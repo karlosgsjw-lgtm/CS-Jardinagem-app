@@ -26,6 +26,7 @@ input,textarea,select{width:100%;padding:12px 13px;border:1px solid #cfddd5;bord
 .date-event{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:9px}.date-event-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.pill{border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.pill.red{background:#ffe8e6;color:#a62f2f}.pill.yellow{background:#fff2c9;color:#876400}.pill.green{background:#e1f5e8;color:#246d45}
 .history{border-left:3px solid #dce9e2;padding-left:12px;margin:12px 0}.emptymsg{text-align:center;padding:35px;color:var(--muted)}hr{border:0;border-top:1px solid var(--line);margin:17px 0}
 @media(max-width:700px){main{padding:17px 10px 35px}.calendar{gap:4px}.day{min-height:112px;padding:6px;border-radius:11px}.event{padding:5px;font-size:9px}.dow{font-size:9px}.month h2{min-width:150px;font-size:18px}.brand{font-size:21px}.statuses{grid-template-columns:1fr}}
+.userbar{margin-left:auto;display:flex;align-items:center;gap:8px}.logout{border:1px solid #ffffff33;background:#ffffff18;color:#fff;padding:8px 11px;border-radius:10px;font-weight:800;cursor:pointer}.quick{display:flex;gap:7px;flex-wrap:wrap}.btn.small{padding:8px 11px;border-radius:10px;font-size:12px}.btn.whats{background:#edf9f1;color:#247245;box-shadow:none}.btn.map{background:#eef4ff;color:#315c9a;box-shadow:none}.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.filters select{width:auto;min-width:150px;padding:10px 12px}.viewtoggle{display:flex;background:#edf4f0;border-radius:12px;padding:3px}.viewtoggle button{border:0;background:transparent;padding:8px 11px;border-radius:9px;font-weight:800;color:#52675d;cursor:pointer}.viewtoggle button.active{background:#fff;color:var(--brand);box-shadow:0 2px 8px #17352a10}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.stat{background:#fff;border:1px solid var(--line);border-radius:15px;padding:14px;box-shadow:0 3px 12px #17352a08}.stat b{display:block;font-size:23px}.stat span{font-size:11px;color:var(--muted);font-weight:800}.upcoming-title{font-weight:900;margin-bottom:8px}.weekgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.weekcol{background:#fff;border:1px solid var(--line);border-radius:15px;min-height:300px;padding:9px}.weekcol.todaycol{box-shadow:0 0 0 2px #176b4520}.weekhead{font-size:11px;font-weight:900;color:#63766d;text-align:center}.weekdate{text-align:center;font-size:18px;font-weight:950;margin:4px 0 8px}.weekevent{border-radius:9px;padding:7px;margin:5px 0;font-size:11px;font-weight:800}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:#17352a;color:#fff;padding:11px 16px;border-radius:12px;z-index:50;font-weight:800;transition:.2s}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}@media(max-width:700px){.userbar{margin-left:0;width:100%;justify-content:space-between}.stats{grid-template-columns:1fr 1fr}.stats .stat:last-child{display:none}.weekgrid{gap:3px}.weekcol{padding:5px;min-height:230px;border-radius:10px}.weekhead{font-size:8px}.weekdate{font-size:15px}.weekevent{font-size:8px;padding:5px}.filters select{width:100%}}
 </style>
 </head>
 <body>
@@ -33,16 +34,17 @@ input,textarea,select{width:100%;padding:12px 13px;border:1px solid #cfddd5;bord
 <nav><button class="active" data-view="agenda">📅 Agenda</button><button data-view="clientes">👤 Clientes</button><button data-view="usuarios">👥 Usuários</button></nav>
 <main>
 <section id="agenda" class="view active">
-<div class="toolbar"><div class="month"><button class="iconbtn" id="prev">‹</button><h2 id="monthTitle"></h2><button class="iconbtn" id="next">›</button></div><button class="btn" onclick="openSchedule()">＋ Agendar</button></div>
-<div class="calendar" id="calendar"></div>
+<div class="toolbar"><div class="month"><button class="iconbtn" id="prev">‹</button><h2 id="monthTitle"></h2><button class="iconbtn" id="next">›</button><button class="btn secondary small" onclick="goToday()">Hoje</button></div><div class="quick"><div class="viewtoggle"><button id="monthBtn" class="active" onclick="setCalendarMode('month')">Mês</button><button id="weekBtn" onclick="setCalendarMode('week')">Semana</button></div><button class="btn" onclick="openSchedule()">＋ Agendar</button></div></div>
+<div class="stats"><div class="stat"><b id="statToday">0</b><span>ATENDIMENTOS HOJE</span></div><div class="stat"><b id="statUrgent">0</b><span>URGENTES PRÓXIMOS 7 DIAS</span></div><div class="stat"><b id="statClients">0</b><span>CLIENTES CADASTRADOS</span></div></div>
+<div class="filters"><select id="statusFilter" onchange="renderCal()"><option value="all">Todas as situações</option><option value="red">🔴 Urgentes</option><option value="yellow">🟡 Atenção</option><option value="green">🟢 Tudo certo</option></select><span class="muted">Clique em um dia para ver detalhes.</span></div><br><div id="calendarWrap"></div><div class="card" id="upcoming"></div>
 </section>
 <section id="clientes" class="view">
 <div class="toolbar"><h2>Clientes</h2><button class="btn" onclick="openClient()">＋ Novo cliente</button></div>
-<input class="search" id="search" placeholder="🔎 Pesquisar cliente..." oninput="renderClients"><br><br><div id="clientList"></div>
+<input class="search" id="search" placeholder="🔎 Nome, telefone ou endereço..." oninput="renderClients"><br><br><div id="clientList"></div>
 </section>
 <section id="usuarios" class="view">
-<div class="toolbar"><h2>Usuários</h2><button class="btn" onclick="openUser()">＋ Novo usuário</button></div>
-<div class="card muted">Cadastre quem pode realizar os atendimentos. Carlos e Cláudia já estão cadastrados.</div><div id="userList"></div>
+<div class="toolbar"><h2>Usuários</h2><button class="btn" onclick="openUserInfo()">＋ Novo usuário</button></div>
+<div class="card muted">Os usuários entram pelo Supabase Auth. Depois de criar o acesso, o perfil aparece aqui automaticamente.</div><div id="userList"></div>
 </section>
 </main>
 <div class="modal" id="modal"><div class="modalbox"><div id="modalContent"></div></div></div>
@@ -104,20 +106,14 @@ async function load(){
   clients=c.data||[];events=e.data||[];profiles=p.data||[];
   renderCal();renderClients();renderUsers();
 }
-function renderCal(){
-  const y=cur.getFullYear(),m=cur.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
-  document.getElementById('monthTitle').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
-  let h=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="dow">${x}</div>`).join('');
-  for(let i=0;i<first;i++)h+='<div class="day empty"></div>';
-  for(let d=1;d<=days;d++){
-    const date=new Date(y,m,d),key=iso(date),ev=events.filter(e=>e.data_atendimento===key),today=key===iso(new Date())?' today':'';
-    h+=`<div class="day${today}" onclick="openDate('${key}')"><div class="num">${d}</div><div class="events">`;
-    ev.slice(0,5).forEach(e=>{let c=clients.find(x=>x.id===e.cliente_id);h+=`<div class="event ${e.situacao}" title="${esc(c?.nome||'Cliente')}"><i class="dot ${e.situacao}"></i><span class="event-text">${esc(c?.nome||'Cliente')}</span></div>`});
-    if(ev.length>5)h+=`<div class="more">+ ${ev.length-5} atendimento(s)</div>`;
-    h+='</div></div>';
-  }
-  document.getElementById('calendar').innerHTML=h;
-}
+let calendarMode='month';
+function goToday(){cur=new Date();cur.setDate(1);renderCal()}
+function setCalendarMode(mode){calendarMode=mode;document.getElementById('monthBtn').classList.toggle('active',mode==='month');document.getElementById('weekBtn').classList.toggle('active',mode==='week');renderCal()}
+function filteredEvents(){const f=document.getElementById('statusFilter')?.value||'all';return events.filter(e=>f==='all'||e.situacao===f)}
+function renderStats(){const today=iso(new Date()),end=new Date();end.setDate(end.getDate()+7),endKey=iso(end);document.getElementById('statToday').textContent=events.filter(e=>e.data_atendimento===today).length;document.getElementById('statUrgent').textContent=events.filter(e=>e.situacao==='red'&&e.data_atendimento>=today&&e.data_atendimento<=endKey).length;document.getElementById('statClients').textContent=clients.length}
+function renderUpcoming(){const today=iso(new Date()),arr=events.filter(e=>e.data_atendimento>=today).sort((a,b)=>a.data_atendimento.localeCompare(b.data_atendimento)).slice(0,5),el=document.getElementById('upcoming');if(!el)return;el.innerHTML='<div class="upcoming-title">📌 Próximos atendimentos</div>'+(arr.length?arr.map(e=>{const c=clients.find(x=>x.id===e.cliente_id);return `<div class="date-event" style="margin-top:7px"><div class="date-event-top"><div><b>${fmt(e.data_atendimento)}</b> · ${statusIcon(e.situacao)} ${esc(c?.nome||'Cliente')}</div><button class="btn secondary small" onclick="openSchedule('${e.data_atendimento}',${e.id})">Abrir</button></div><div class="muted" style="margin-top:4px">${esc(e.nota||'Sem informação')} · ${esc(profiles.find(x=>x.id===e.responsavel_id)?.nome||'—')}</div></div>`}).join(''):'<div class="muted">Nenhum atendimento futuro cadastrado.</div>')}
+function renderWeek(){const base=new Date(cur),start=new Date(base);start.setDate(base.getDate()-base.getDay());let h='<div class="weekgrid">';for(let i=0;i<7;i++){const d=new Date(start);d.setDate(start.getDate()+i);const key=iso(d),ev=filteredEvents().filter(e=>e.data_atendimento===key),tc=key===iso(new Date())?' todaycol':'';h+=`<div class="weekcol${tc}" onclick="openDate('${key}')"><div class="weekhead">${d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').toUpperCase()}</div><div class="weekdate">${d.getDate()}</div>`;ev.forEach(e=>{const c=clients.find(x=>x.id===e.cliente_id);h+=`<div class="weekevent ${e.situacao}">${statusIcon(e.situacao)} ${esc(c?.nome||'Cliente')}</div>`});if(!ev.length)h+='<div class="muted" style="text-align:center;font-size:10px;margin-top:20px">Livre</div>';h+='</div>'}h+='</div>';document.getElementById('calendarWrap').innerHTML=h;document.getElementById('monthTitle').textContent=`${fmt(iso(start))} — ${fmt(iso(new Date(start.getFullYear(),start.getMonth(),start.getDate()+6)))}`}
+function renderCal(){renderStats();if(calendarMode==='week'){renderWeek();renderUpcoming();return}const y=cur.getFullYear(),m=cur.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),fe=filteredEvents();document.getElementById('monthTitle').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());let h=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="dow">${x}</div>`).join('');for(let i=0;i<first;i++)h+='<div class="day empty"></div>';for(let d=1;d<=days;d++){const date=new Date(y,m,d),key=iso(date),ev=fe.filter(e=>e.data_atendimento===key),today=key===iso(new Date())?' today':'';h+=`<div class="day${today}" onclick="openDate('${key}')"><div class="num">${d}</div><div class="events">`;ev.slice(0,5).forEach(e=>{const c=clients.find(x=>x.id===e.cliente_id);h+=`<div class="event ${e.situacao}" title="${esc(c?.nome||'Cliente')}"><i class="dot ${e.situacao}"></i><span class="event-text">${esc(c?.nome||'Cliente')}</span></div>`});if(ev.length>5)h+=`<div class="more">+ ${ev.length-5} atendimento(s)</div>`;h+='</div></div>'}document.getElementById('calendarWrap').innerHTML=`<div class="calendar">${h}</div>`;renderUpcoming()}
 function openDate(date){
   const ev=events.filter(e=>e.data_atendimento===date);
   const rows=ev.length?ev.map(e=>{let c=clients.find(x=>x.id===e.cliente_id),u=profiles.find(x=>x.id===e.responsavel_id);return `<div class="date-event"><div class="date-event-top"><span class="pill ${e.situacao}">${statusIcon(e.situacao)} ${statusLabel(e.situacao)}</span><button class="btn secondary" onclick="openSchedule('${date}',${e.id})">Editar</button></div><div style="margin-top:9px;font-weight:850">${esc(c?.nome||'Cliente')}</div><div style="margin-top:4px">${esc(e.nota||'Sem informação registrada')}</div><div class="muted" style="margin-top:5px">Responsável: ${esc(u?.nome||'—')}</div></div>`}).join(''):'<div class="emptymsg">Nenhum atendimento neste dia.</div>';
@@ -157,9 +153,11 @@ async function saveClient(id){
   const r=id?await sb.from('clientes').update(row).eq('id',id):await sb.from('clientes').insert(row);
   if(r.error)return alert('Erro ao salvar: '+r.error.message);closeModal();await load();
 }
+function wa(v){let n=String(v||'').replace(/\D/g,'');if(n.length<=11)n='55'+n;return n}
+function openUserInfo(){document.getElementById('modalContent').innerHTML=`<div class="modalhead"><h2>👥 Novo usuário</h2><button class="close" onclick="closeModal()">×</button></div><p>Para criar um novo acesso com segurança, use <b>Authentication → Users</b> no Supabase. Depois do cadastro, o perfil será criado automaticamente e aparecerá nesta tela.</p><button class="btn" onclick="closeModal()">Entendi</button>`;document.getElementById('modal').classList.add('open')}
 function renderClients(){
-  const q=(document.getElementById('search')?.value||'').toLowerCase(),arr=clients.filter(c=>c.nome.toLowerCase().includes(q));
-  document.getElementById('clientList').innerHTML=arr.length?arr.map(c=>`<div class="card"><div class="client"><div><strong>👤 ${esc(c.nome)}</strong><div class="muted">${esc(c.telefone||'Sem telefone')} · ${esc(c.endereco||'Sem endereço')}</div></div><div class="actions"><button class="btn secondary" onclick="openClient(${c.id})">Editar</button><button class="btn" onclick="showHistory(${c.id})">Histórico</button></div></div></div>`).join(''):'<div class="emptymsg">Nenhum cliente cadastrado.</div>';
+  const q=(document.getElementById('search')?.value||'').toLowerCase(),arr=clients.filter(c=>[c.nome,c.telefone,c.endereco,c.servico_principal].some(v=>String(v||'').toLowerCase().includes(q)));
+  document.getElementById('clientList').innerHTML=arr.length?arr.map(c=>`<div class="card"><div class="client"><div><strong>👤 ${esc(c.nome)}</strong><div class="muted">${esc(c.telefone||'Sem telefone')} · ${esc(c.endereco||'Sem endereço')}</div></div><div class="actions"><button class="btn secondary" onclick="openClient(${c.id})">Editar</button><button class="btn" onclick="showHistory(${c.id})">Histórico</button>${c.telefone?`<a class="btn small whats" href="https://wa.me/${wa(c.telefone)}" target="_blank" rel="noopener">💬 WhatsApp</a>`:``}${c.endereco?`<a class="btn small map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.endereco)}" target="_blank" rel="noopener">📍 Mapa</a>`:``}</div></div></div>`).join(''):'<div class="emptymsg">Nenhum cliente cadastrado.</div>';
 }
 function showHistory(id){
   const c=clients.find(x=>x.id===id),ev=events.filter(e=>e.cliente_id===id).sort((a,b)=>b.data_atendimento.localeCompare(a.data_atendimento));
@@ -173,5 +171,6 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.
 document.getElementById('search').addEventListener('input',renderClients);
 document.getElementById('prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);renderCal()};
 document.getElementById('next').onclick=()=>{cur.setMonth(cur.getMonth()+1);renderCal()};
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{})}
 boot();
 </script>
