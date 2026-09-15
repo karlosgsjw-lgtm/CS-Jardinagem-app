@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#176b45">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CS Jardinagem App</title>
+<style>
+:root{--green:#176b45;--light:#f4f8f5;--dark:#163328;--muted:#6b7b73;--border:#dce7e1}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--light);color:var(--dark)}
+header{background:linear-gradient(135deg,#145b3d,#218457);color:white;padding:22px 18px;position:sticky;top:0;z-index:5}
+.brand{font-size:23px;font-weight:800}.sub{opacity:.85;font-size:13px;margin-top:3px}
+nav{display:flex;gap:8px;padding:10px;background:white;border-bottom:1px solid var(--border);position:sticky;top:84px;z-index:4;overflow:auto}
+nav button{border:0;background:#eef5f1;color:var(--dark);padding:10px 15px;border-radius:12px;font-weight:700;white-space:nowrap}
+nav button.active{background:var(--green);color:#fff}
+main{max-width:1100px;margin:auto;padding:18px}.view{display:none}.view.active{display:block}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+h2{margin:5px 0 0}.btn{border:0;background:var(--green);color:#fff;padding:11px 15px;border-radius:11px;font-weight:800;cursor:pointer}.btn.secondary{background:#e8f0ec;color:var(--dark)}
+.month{display:flex;align-items:center;gap:10px}.month button{border:0;background:white;border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:18px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.dow{text-align:center;color:var(--muted);font-size:12px;font-weight:800;padding:5px}
+.day{background:white;border:1px solid var(--border);border-radius:12px;min-height:115px;padding:8px;cursor:pointer}.day:hover{border-color:#9fc3af}.day.empty{background:transparent;border:0;cursor:default}.num{font-weight:800;font-size:13px}.today{outline:2px solid #4c9d76}
+.event{font-size:11px;background:#f1f5f3;border-radius:8px;padding:5px;margin-top:5px;display:flex;gap:5px;align-items:center;overflow:hidden}.dot{width:9px;height:9px;border-radius:50%;flex:none}.red{background:#e53935}.yellow{background:#f2b400}.green{background:#2e9d5b}
+.card{background:white;border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+input,textarea,select{width:100%;padding:11px;border:1px solid #ccd9d2;border-radius:10px;background:#fff;font:inherit}textarea{min-height:90px;resize:vertical}label{font-size:12px;font-weight:800;display:block;margin:4px 0 6px}
+.client{display:flex;justify-content:space-between;gap:12px;align-items:center}.client strong{display:block}.muted{color:var(--muted);font-size:13px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+.modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;padding:18px;align-items:center;justify-content:center}.modal.open{display:flex}.modalbox{background:white;border-radius:18px;padding:20px;max-width:560px;width:100%;max-height:90vh;overflow:auto}.close{float:right;border:0;background:#eee;border-radius:50%;width:32px;height:32px}
+.statuses{display:flex;gap:10px;margin:8px 0}.status{flex:1;border:2px solid transparent;border-radius:12px;padding:12px;text-align:center;font-weight:800;cursor:pointer}.status.selected{border-color:var(--dark)}.status.r{background:#ffe9e8}.status.y{background:#fff5d7}.status.g{background:#e7f7ed}
+.history{border-left:3px solid #dce9e2;padding-left:12px;margin-top:10px}.emptymsg{text-align:center;padding:35px;color:var(--muted)}
+@media(max-width:600px){.calendar{gap:3px}.day{min-height:88px;padding:5px}.event{padding:3px;font-size:10px}.event span:last-child{max-width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dow{font-size:10px}main{padding:12px}}
+</style>
+</head>
+<body>
+<header><div class="brand">🌱 CS Jardinagem App</div><div class="sub">Agenda, clientes e histórico da sua jardinagem</div></header>
+<nav>
+<button class="active" data-view="agenda">📅 Agenda</button><button data-view="clientes">👤 Clientes</button><button data-view="usuarios">👥 Usuários</button>
+</nav>
+<main>
+<section id="agenda" class="view active">
+<div class="toolbar"><div class="month"><button id="prev">‹</button><h2 id="monthTitle"></h2><button id="next">›</button></div><button class="btn" onclick="openSchedule()">＋ Agendar</button></div>
+<div class="calendar" id="calendar"></div>
+</section>
+<section id="clientes" class="view">
+<div class="toolbar"><h2>Clientes</h2><button class="btn" onclick="openClient()">＋ Novo cliente</button></div>
+<input id="search" placeholder="🔎 Pesquisar cliente..." oninput="renderClients()"><br><br>
+<div id="clientList"></div>
+</section>
+<section id="usuarios" class="view">
+<div class="toolbar"><h2>Usuários</h2><button class="btn" onclick="openUser()">＋ Novo usuário</button></div>
+<div class="card muted">Cadastre quem pode realizar os atendimentos. Carlos e Cláudia já estão cadastrados.</div>
+<div id="userList"></div>
+</section>
+</main>
+
+<div class="modal" id="modal"><div class="modalbox"><button class="close" onclick="closeModal()">×</button><div id="modalContent"></div></div></div>
+
+<script>
+const KEY='cs_jardinagem_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'null')||{
+ users:[{id:1,name:'Carlos',active:true},{id:2,name:'Cláudia',active:true}],
+ clients:[], events:[]
+};
+let cur=new Date(); cur.setDate(1); let selectedStatus='green';
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function iso(d){return d.toISOString().slice(0,10)}
+function fmt(s){return new Date(s+'T12:00:00').toLocaleDateString('pt-BR')}
+function renderCal(){
+ const y=cur.getFullYear(),m=cur.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+ document.getElementById('monthTitle').textContent=cur.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}).replace(/^./,c=>c.toUpperCase());
+ let h=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(x=>`<div class="dow">${x}</div>`).join('');
+ for(let i=0;i<first;i++)h+='<div class="day empty"></div>';
+ for(let d=1;d<=days;d++){let date=new Date(y,m,d),key=iso(date), ev=db.events.filter(e=>e.date===key);
+ let today=key===iso(new Date())?' today':'';
+ h+=`<div class="day${today}" onclick="openSchedule('${key}')"><div class="num">${d}</div>`;
+ ev.forEach(e=>{let c=db.clients.find(x=>x.id===e.clientId);let u=db.users.find(x=>x.id===e.userId);h+=`<div class="event"><i class="dot ${e.status}"></i><span>${esc(c?.name||'Cliente')}</span></div>`});
+ h+='</div>'} document.getElementById('calendar').innerHTML=h;
+}
+function openSchedule(date=iso(new Date())){
+ if(!db.clients.length){alert('Cadastre o cliente primeiro em “Clientes”.');show('clientes');openClient();return}
+ selectedStatus='green';
+ document.getElementById('modalContent').innerHTML=`<h2>Agendar atendimento</h2><p class="muted">Data: ${fmt(date)}</p>
+ <label>Data</label><input type="date" id="evDate" value="${date}">
+ <label>Cliente</label><select id="evClient">${db.clients.sort((a,b)=>a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>
+ <label>Responsável</label><select id="evUser">${db.users.filter(u=>u.active!==false).map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select>
+ <label>Situação do cliente</label><div class="statuses">
+ <div class="status r" onclick="pick('red',this)">🔴 Urgente</div><div class="status y" onclick="pick('yellow',this)">🟡 Atenção</div><div class="status g selected" onclick="pick('green',this)">🟢 Tudo certo</div></div>
+ <label>Nota do atendimento</label><textarea id="evNote" placeholder="O que foi feito, o que precisa acompanhar..."></textarea>
+ <br><button class="btn" onclick="addEvent()">Salvar atendimento</button>`;
+ document.getElementById('modal').classList.add('open');
+}
+function pick(s,el){selectedStatus=s;document.querySelectorAll('.status').forEach(x=>x.classList.remove('selected'));el.classList.add('selected')}
+function addEvent(){
+ let e={id:Date.now(),date:evDate.value,clientId:+evClient.value,userId:+evUser.value,status:selectedStatus,note:evNote.value.trim()};
+ if(!e.date||!e.clientId){alert('Preencha a data e o cliente.');return} db.events.push(e);save();closeModal();renderCal();
+}
+function openClient(id=null){
+ let c=db.clients.find(x=>x.id===id)||{name:'',phone:'',address:'',service:'',notes:''};
+ document.getElementById('modalContent').innerHTML=`<h2>${id?'Editar cliente':'Novo cliente'}</h2>
+ <label>Nome *</label><input id="cName" value="${esc(c.name)}">
+ <label>Telefone / WhatsApp</label><input id="cPhone" value="${esc(c.phone)}">
+ <label>Endereço</label><input id="cAddress" value="${esc(c.address)}">
+ <label>Serviço principal</label><input id="cService" value="${esc(c.service)}" placeholder="Manutenção, poda, gramado...">
+ <label>Observações</label><textarea id="cNotes">${esc(c.notes)}</textarea><br>
+ <button class="btn" onclick="saveClient(${id||0})">Salvar cliente</button>`;
+ document.getElementById('modal').classList.add('open');
+}
+function saveClient(id){let name=cName.value.trim();if(!name){alert('Informe o nome.');return}
+ if(id){Object.assign(db.clients.find(c=>c.id===id),{name,phone:cPhone.value,address:cAddress.value,service:cService.value,notes:cNotes.value})}
+ else db.clients.push({id:Date.now(),name,phone:cPhone.value,address:cAddress.value,service:cService.value,notes:cNotes.value});
+ save();closeModal();renderClients();renderCal();
+}
+function renderClients(){
+ let q=(document.getElementById('search')?.value||'').toLowerCase();let arr=db.clients.filter(c=>c.name.toLowerCase().includes(q));
+ document.getElementById('clientList').innerHTML=arr.length?arr.map(c=>`<div class="card"><div class="client"><div><strong>👤 ${esc(c.name)}</strong><div class="muted">${esc(c.phone||'Sem telefone')} · ${esc(c.address||'Sem endereço')}</div></div><div class="actions"><button class="btn secondary" onclick="openClient(${c.id})">Editar</button><button class="btn" onclick="showHistory(${c.id})">Histórico</button></div></div></div>`).join(''):'<div class="emptymsg">Nenhum cliente cadastrado.</div>';
+}
+function showHistory(id){
+ let c=db.clients.find(x=>x.id===id), ev=db.events.filter(e=>e.clientId===id).sort((a,b)=>b.date.localeCompare(a.date));
+ document.getElementById('modalContent').innerHTML=`<h2>📖 ${esc(c.name)}</h2><p class="muted">${esc(c.service||'')} ${c.phone?'· '+esc(c.phone):''}</p><p>${esc(c.notes||'')}</p><hr>${ev.length?ev.map(e=>{let u=db.users.find(x=>x.id===e.userId);let label={red:'Urgente',yellow:'Atenção',green:'Tudo certo'}[e.status];return `<div class="history"><b>${fmt(e.date)} · ${label}</b><div>${esc(e.note||'Sem observação')}</div><small class="muted">Responsável: ${esc(u?.name||'—')}</small></div>`}).join(''):'<div class="emptymsg">Ainda não há atendimentos registrados.</div>'}`;
+ document.getElementById('modal').classList.add('open');
+}
+function openUser(id=null){
+ let u=db.users.find(x=>x.id===id)||{name:'',active:true};
+ document.getElementById('modalContent').innerHTML=`<h2>${id?'Editar usuário':'Novo usuário'}</h2><label>Nome *</label><input id="uName" value="${esc(u.name)}"><br><br><button class="btn" onclick="saveUser(${id||0})">Salvar usuário</button>`;
+ document.getElementById('modal').classList.add('open');
+}
+function saveUser(id){let name=uName.value.trim();if(!name){alert('Informe o nome.');return}if(id)db.users.find(u=>u.id===id).name=name;else db.users.push({id:Date.now(),name,active:true});save();closeModal();renderUsers()}
+function renderUsers(){document.getElementById('userList').innerHTML=db.users.map(u=>`<div class="card"><div class="client"><div><strong>👤 ${esc(u.name)}</strong><div class="muted">${u.active===false?'Inativo':'Ativo'}</div></div><button class="btn secondary" onclick="openUser(${u.id})">Editar</button></div></div>`).join('')}
+function closeModal(){document.getElementById('modal').classList.remove('open')}
+function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(v).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='agenda')renderCal();if(v==='clientes')renderClients();if(v==='usuarios')renderUsers()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
+document.getElementById('prev').onclick=()=>{cur.setMonth(cur.getMonth()-1);renderCal()};document.getElementById('next').onclick=()=>{cur.setMonth(cur.getMonth()+1);renderCal()};
+renderCal();renderClients();renderUsers();
+</script>
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script></body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "CS Jardinagem App",
+  "short_name": "CS Jardinagem",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f8f5",
+  "theme_color": "#176b45",
+  "description": "Agenda, clientes e histórico da CS Jardinagem.",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "pt-BR"
+}
