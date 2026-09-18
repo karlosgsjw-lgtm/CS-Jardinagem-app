@@ -12,6 +12,30 @@
 /* V34 - compact summaries, per-tab search and pinch zoom */
 .compactStats{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:10px 0}.toolbarMetrics{display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end}.agendaToolbar .compactStats,.financeToolbar .compactStats{margin:0}.agendaToolbar .btn{white-space:nowrap}.financeToolbar{align-items:center}.compactStat{flex:1 1 150px;min-width:130px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 11px;display:flex;align-items:center;gap:8px}.compactStat .statIcon{font-size:20px;line-height:1}.compactStat .statLabel{font-size:12px;color:var(--muted);font-weight:700}.compactStat b{display:block;font-size:18px;margin-top:2px}.compactStat.agendarLike{min-width:110px}.tabSearch{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:0 0 12px}.tabSearch .searchIcon{font-size:18px}.tabSearch input{border:0;outline:0;background:transparent;width:100%;font-size:15px}.globalSearch{position:relative}.globalSearchBtn{border:0;border-radius:11px;padding:10px 12px;background:#eaf3ed;color:var(--g);font-weight:900;font-size:18px}.globalSearchPanel{position:absolute;right:0;top:calc(100% + 8px);width:min(420px,90vw);background:#fff;color:var(--txt);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 35px #0003;padding:12px;z-index:30}.globalSearchPanel input{width:100%;padding:10px;border:1px solid #cfdad3;border-radius:10px}.globalResults{max-height:360px;overflow:auto;margin-top:8px}.globalResult{padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer}.globalResult:hover{background:#f4f8f5}.globalResult b{display:block}.globalResult small{color:var(--muted)}.photoZoomImg{touch-action:none;will-change:transform;cursor:grab;user-select:none;-webkit-user-drag:none}.photoZoomImg.dragging{cursor:grabbing}
 @media(max-width:760px){.agendaToolbar,.financeToolbar{align-items:flex-start}.toolbarMetrics{width:100%;justify-content:flex-start}.agendaToolbar{flex-wrap:wrap}.financeToolbar{flex-wrap:wrap}.compactStats{flex-wrap:nowrap;overflow-x:auto}.compactStat{flex:1 0 125px}.compactStat b{font-size:16px}.globalSearchPanel{position:fixed;right:10px;top:72px}}
+
+/* V35 — indicadores compactos em uma única linha no celular */
+@media (max-width: 700px){
+  .agendaToolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;align-items:stretch}
+  .agendaToolbar>h2{grid-column:1/-1;margin:0 0 2px!important}
+  .agendaToolbar .toolbarMetrics{display:contents}
+  .agendaToolbar .compactStats{display:contents}
+  .agendaToolbar .compactStat{min-width:0;width:auto;flex:none;padding:7px 4px;border-radius:10px;gap:3px;overflow:hidden}
+  .agendaToolbar .compactStat .statIcon{font-size:16px;line-height:1}
+  .agendaToolbar .compactStat .statLabel{font-size:9px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .agendaToolbar .compactStat b{font-size:13px;line-height:1.1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .agendaToolbar>.btn{grid-column:auto;min-width:0;width:100%;padding:7px 4px;font-size:13px;border-radius:10px;white-space:nowrap}
+  .financeToolbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-items:stretch}
+  .financeToolbar>h2{grid-column:1/-1;margin:0 0 2px!important}
+  .financeToolbar>.compactStats{display:contents}
+  .financeToolbar .compactStat{min-width:0;width:auto;flex:none;padding:7px 4px;border-radius:10px;gap:3px;overflow:hidden}
+  .financeToolbar .compactStat .statIcon{font-size:16px}
+  .financeToolbar .compactStat .statLabel{font-size:9px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .financeToolbar .compactStat b{font-size:13px;line-height:1.1;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+@media (min-width:701px){
+  .agendaToolbar .compactStat{min-width:105px}
+  .agendaToolbar>.btn{min-width:110px}
+}
 </style></head><body>
 <div id="login" class="login"><div class="card"><div class="logo">🌿 <span>CS Jardinagem</span></div><p class="muted">Entre para acessar sua agenda.</p><label>E-mail</label><input id="email" class="field" type="email" autocomplete="username"><label>Senha</label><input id="password" class="field" type="password" autocomplete="current-password"><button class="btn" onclick="login()">Entrar</button><p id="loginMsg" class="muted"></p></div></div>
 <div id="app" class="hidden"><header><div class="headerrow"><div class="brand"><h1>🌿 CS Jardinagem App</h1><small id="who"></small></div><div class="row" style="align-items:center;gap:8px"><div class="globalSearch"><button class="globalSearchBtn" type="button" onclick="toggleGlobalSearch()" aria-label="Pesquisar em todo o app">🔎</button><div id="globalSearchPanel" class="globalSearchPanel hidden"><input id="globalSearchInput" type="search" placeholder="Pesquisar em todo o app..." oninput="globalSearch(this.value)" autocomplete="off"><div id="globalResults" class="globalResults"><span class="muted small">Digite para pesquisar clientes, atendimentos, fotos, ajudantes e mais.</span></div></div></div><button class="btn alt" onclick="logout()">Sair</button></div></div></header>
