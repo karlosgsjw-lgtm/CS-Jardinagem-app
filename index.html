@@ -303,7 +303,14 @@ async function renderNecessidades(){
   let r=await dbClient.from('necessidades').select('*').order('concluida',{ascending:true}).order('criado_em',{ascending:false});
   if(r.error){box.innerHTML='<div class="notice"><b>Erro ao carregar necessidades:</b> '+esc(r.error.message)+'</div>';return}
   const rows=r.data||[];
-  box.innerHTML=rows.length?rows.map(n=>`<div class="panel needsCard ${n.concluida?'done':''}"><div class="row"><div><h3 style="margin:0">${esc(n.titulo)}</h3>${n.descricao?`<div class="muted" style="margin-top:5px">${esc(n.descricao)}</div>`:''}</div><button class="btn danger" onclick="deleteNeed(${n.id})">🗑️ Excluir</button></div>${n.imagem_data?`<div style="margin-top:10px"><img class="needsPhoto" src="${n.imagem_data}" alt="Foto" onclick="openNeedImage(this.src)"></div>`:''}<div class="needsActions"><label class="needsCheck"><input type="checkbox" ${n.concluida?'checked':''} onchange="finishNeed(this,${n.id})"><span>${n.concluida?'Concluída':'Concluir'}</span></label></div></div>`).join(''):'<div class="panel"><p class="muted">Nenhuma necessidade cadastrada.</p></div>';
+  if(!rows.length){box.innerHTML='<div class="panel"><p class="muted">Nenhuma necessidade cadastrada.</p></div>';return;}
+  box.innerHTML=rows.map(n=>{
+    const desc=n.descricao?'<div class="muted" style="margin-top:5px">'+esc(n.descricao)+'</div>':'';
+    const photo=n.imagem_data?'<div style="margin-top:10px"><img class="needsPhoto" src="'+n.imagem_data+'" alt="Foto" onclick="openNeedImage(this.src)"></div>':'';
+    const checked=n.concluida?'checked':'';
+    const label=n.concluida?'Concluída':'Concluir';
+    return '<div class="panel needsCard '+(n.concluida?'done':'')+'"><div class="row"><div><h3 style="margin:0">'+esc(n.titulo)+'</h3>'+desc+'</div><button class="btn danger" onclick="deleteNeed('+n.id+')">🗑️ Excluir</button></div>'+photo+'<div class="needsActions"><label class="needsCheck"><input type="checkbox" '+checked+' onchange="finishNeed(this,'+n.id+')"><span>'+label+'</span></label></div></div>';
+  }).join('');
 }
 function openNeedForm(){openModal(`<h2>＋ Nova necessidade</h2><div class="needsForm"><div class="full"><label>O que você precisa?</label><input id="needTitulo" class="field" placeholder="Ex.: Comprar carretel"></div><div class="full"><label>Detalhes (opcional)</label><textarea id="needDesc" class="field" rows="3" placeholder="Ex.: carretel para roçadeira Makita"></textarea></div><div class="full"><label>Foto (opcional)</label><div class="needsActions"><button class="btn alt" onclick="document.getElementById('needGallery').click()">🖼️ Escolher da galeria</button><button class="btn alt" onclick="document.getElementById('needCamera').click()">📷 Tirar foto</button></div><input id="needGallery" type="file" accept="image/*" style="display:none" onchange="previewNeedFile(this)"><input id="needCamera" type="file" accept="image/*" capture="environment" style="display:none" onchange="previewNeedFile(this)"><div id="needPreview" style="margin-top:10px"></div></div><button class="btn full" onclick="saveNeed()">Salvar necessidade</button></div>`);}
 let pendingNeedImage='';
