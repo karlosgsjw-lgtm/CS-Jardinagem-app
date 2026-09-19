@@ -98,6 +98,16 @@
 .modalCloseBar{display:flex;gap:8px;justify-content:flex-end;align-items:center;position:sticky;bottom:-19px;background:#fff;padding:12px 0 0;margin-top:16px;border-top:1px solid var(--line);z-index:4}.modalCloseBar .btn{flex:1;min-width:0}.modalSaveButton{background:#166534!important;color:#fff!important}.modalCloseButton{background:#fee2e2!important;color:#991b1b!important}
 @media(max-width:700px){#mainNav{width:100%;max-width:none;border-radius:0;margin-bottom:12px}.moreMenuBtn{margin-left:auto}.moreMenu{right:6px;top:50px}.agendaToolbar{display:grid!important;grid-template-columns:1fr auto!important;align-items:center!important}.agendaToolbar h2{grid-column:1}.agendaToolbar .privacyToggle{grid-column:2;grid-row:1}.agendaToolbar .toolbarMetrics{grid-column:1/-1;width:100%!important;display:block!important}.agendaToolbar .compactStats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}.agendaToolbar .compactStat{min-width:0!important;width:100%!important;padding:8px 3px!important}.agendaToolbar .compactStat .statLabel{font-size:8px!important;white-space:nowrap}.agendaToolbar .compactStat b{font-size:11px!important;white-space:nowrap}.modalCloseBar .btn{font-size:14px;padding:10px 8px}}
 </style>
+
+<style>
+/* V40.3 — menu ☰ visível no celular; não altera as demais funções */
+nav#mainNav{position:relative!important;overflow:visible!important;z-index:1000!important}
+nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
+@media(max-width:760px){
+  nav#mainNav{overflow:visible!important;z-index:1000!important}
+  nav#mainNav .moreMenu{position:absolute!important;right:6px!important;top:52px!important;z-index:10000!important;display:block}
+}
+</style>
 </head><body>
 <div id="loginScreen" class="login"><div class="card"><div class="logo">🌿 <span>CS Jardinagem</span></div><p class="muted">Entre para acessar sua agenda.</p><label>E-mail</label><input id="email" class="field" type="email" autocomplete="username"><label>Senha</label><input id="password" class="field" type="password" autocomplete="current-password"><button class="btn" onclick="window.login()">Entrar</button><p id="loginMsg" class="muted"></p></div></div>
 <div id="app" class="hidden"><header><div class="headerrow"><div class="brand"><h1>🌿 CS Jardinagem App</h1><small id="who"></small></div><div class="row" style="align-items:center;gap:8px"><button class="btn alt" onclick="logout()">Sair</button></div></div></header>
