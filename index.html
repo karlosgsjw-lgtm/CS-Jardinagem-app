@@ -104,8 +104,39 @@
 nav#mainNav{position:relative!important;overflow:visible!important;z-index:1000!important}
 nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 @media(max-width:760px){
-  nav#mainNav{overflow:visible!important;z-index:1000!important}
-  nav#mainNav .moreMenu{position:absolute!important;right:6px!important;top:52px!important;z-index:10000!important;display:block}
+  nav#mainNav{
+    position:relative!important;
+    overflow:visible!important;
+    z-index:1000!important;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr)) 48px!important;
+    gap:4px!important;
+    align-items:stretch!important;
+  }
+  nav#mainNav > button[data-tab]{
+    min-width:0!important;
+    width:100%!important;
+    flex:initial!important;
+    padding:11px 2px!important;
+    font-size:10px!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+  nav#mainNav > .moreMenuBtn{
+    width:48px!important;
+    min-width:48px!important;
+    flex:initial!important;
+    padding:8px 2px!important;
+    font-size:22px!important;
+  }
+  nav#mainNav .moreMenu{
+    position:absolute!important;
+    right:6px!important;
+    top:calc(100% + 6px)!important;
+    width:min(230px,calc(100vw - 20px))!important;
+    z-index:10000!important;
+  }
 }
 </style>
 </head><body>
