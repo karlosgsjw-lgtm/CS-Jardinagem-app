@@ -438,21 +438,40 @@ window.repeatAnnual=async cid=>{let day=Number($('aday').value),year=Number($('a
 window.printAnnualImage=async function(cid,year){
   const c=clients.find(x=>x.id===cid);
   const dates=annuals.filter(x=>x.cliente_id===cid&&Number(x.ano)===Number(year)).map(x=>x.data_agendada);
-  const cv=document.createElement('canvas'),W=1600,H=1100,ctx=cv.getContext('2d'); cv.width=W; cv.height=H;
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#166534';ctx.font='bold 38px Arial';ctx.fillText(`Agenda anual — ${c?.nome||''}`,55,58);
-  ctx.fillStyle='#555';ctx.font='20px Arial';ctx.fillText(String(year),55,92);
-  const gx=35,gy=125,cw=380,ch=300,gap=15,names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  for(let m=0;m<12;m++){const x=gx+(m%4)*(cw+gap),y=gy+Math.floor(m/4)*(ch+gap);ctx.strokeStyle='#dce5df';ctx.strokeRect(x,y,cw,ch);ctx.fillStyle='#172018';ctx.font='bold 21px Arial';ctx.fillText(names[m],x+15,y+30);ctx.font='14px Arial';['D','S','T','Q','Q','S','S'].forEach((n,i)=>ctx.fillText(n,x+20+i*50,y+55));const first=new Date(year,m,1).getDay(),last=new Date(year,m+1,0).getDate();for(let d=1;d<=last;d++){const idx=first+d-1,col=idx%7,row=Math.floor(idx/7),px=x+20+col*50,py=y+83+row*31,ds=iso(new Date(year,m,d));if(dates.includes(ds)){ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(px,py-5,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff'}else ctx.fillStyle='#172018';ctx.font='14px Arial';ctx.fillText(String(d),px-4,py)}}
-  const url=cv.toDataURL('image/png'),w=window.open('','_blank'); if(!w)return alert('Permita pop-ups para imprimir.');
-  w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Agenda anual</title><style>html,body{margin:0;padding:0;background:#fff}body{display:flex;justify-content:center;align-items:flex-start}img{display:block;width:100%;height:auto;max-width:100vw}@page{size:A4 landscape;margin:5mm}@media print{body{display:block}img{width:100%;max-width:none}}</style></head><body><img src="${url}" alt="Agenda anual"></body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},400);
+  const cv=document.createElement('canvas');
+  const W=1600,H=1100;
+  const ctx=cv.getContext('2d');
+  cv.width=W; cv.height=H;
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#166534'; ctx.font='bold 38px Arial';
+  ctx.fillText(`Agenda anual — ${c?.nome||''}`,55,58);
+  ctx.fillStyle='#555'; ctx.font='20px Arial'; ctx.fillText(String(year),55,92);
+  const gx=35,gy=125,cw=380,ch=300,gap=15;
+  const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  for(let m=0;m<12;m++){
+    const x=gx+(m%4)*(cw+gap), y=gy+Math.floor(m/4)*(ch+gap);
+    ctx.strokeStyle='#dce5df'; ctx.strokeRect(x,y,cw,ch);
+    ctx.fillStyle='#172018'; ctx.font='bold 21px Arial'; ctx.fillText(names[m],x+15,y+30);
+    ctx.font='14px Arial';
+    ['D','S','T','Q','Q','S','S'].forEach((n,i)=>ctx.fillText(n,x+20+i*50,y+55));
+    const first=new Date(year,m,1).getDay(), last=new Date(year,m+1,0).getDate();
+    for(let d=1;d<=last;d++){
+      const idx=first+d-1,col=idx%7,row=Math.floor(idx/7);
+      const px=x+20+col*50,py=y+83+row*31,ds=iso(new Date(year,m,d));
+      if(dates.includes(ds)){
+        ctx.fillStyle='#ef4444'; ctx.beginPath(); ctx.arc(px,py-5,14,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff';
+      }else ctx.fillStyle='#172018';
+      ctx.font='14px Arial'; ctx.fillText(String(d),px-4,py);
+    }
+  }
+  const url=cv.toDataURL('image/png');
+  const w=window.open('','_blank');
+  if(!w)return alert('Permita pop-ups para imprimir.');
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Agenda anual</title><style>html,body{margin:0;padding:0;background:#fff}body{display:flex;justify-content:center;align-items:flex-start}img{display:block;width:100%;height:auto;max-width:100vw}@page{size:A4 landscape;margin:5mm}@media print{body{display:block}img{width:100%;max-width:none}}</style></head><body><img src="${url}" alt="Agenda anual"></body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print()},400);
 };
- .emissaoItem{border-bottom:1px solid var(--line);padding:12px 0}.emissaoItem:last-child{border-bottom:0}.photoCaptureBtns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.cameraModal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:16px;z-index:60}.cameraBox{background:#fff;border-radius:18px;padding:16px;width:min(620px,100%)}.cameraVideo{width:100%;max-height:62vh;background:#111;border-radius:14px;object-fit:cover}.cameraActions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}.pendingPhoto{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px;border:1px solid #dce5df;border-radius:12px;background:#f7faf8}.pendingPhoto img{width:86px;height:70px;object-fit:cover;border-radius:9px}.pendingPhoto span{font-size:13px;color:#68736b}.appVersion{font-size:9px;color:#9aa59e;text-align:center;margin:8px 0 0}.helperPayRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.helperPayInfo{min-width:0}.helperPayCheck{display:inline-flex;align-items:center;gap:7px;font-weight:800;color:var(--g);cursor:pointer;white-space:nowrap}.helperPayCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}</style>
-/* V39.1 — somente ajustes solicitados: pesquisa e posição do + Agendar */
-.calendarHead{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap}
-.calendarHead h2{margin:0;flex:0 1 auto;text-align:center}
-.calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
-@media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
-</head><body><img src="${url}" onload="setTimeout(()=>window.print(),300)"></body></html>`);w.document.close()};
 function financePage(){
   let now=new Date(), day=(now.getDay()+6)%7, mon=new Date(now); mon.setHours(12,0,0,0); mon.setDate(now.getDate()-day);
   let sun=new Date(mon); sun.setDate(mon.getDate()+6);
