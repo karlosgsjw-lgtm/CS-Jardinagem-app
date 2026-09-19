@@ -77,12 +77,14 @@
   .table td:nth-child(4){position:absolute!important;right:0!important;top:12px!important;width:120px!important;padding:0!important}
   .table td:nth-child(4) .actionGroup{justify-content:flex-end!important}
 }
-</style>
+
 /* V39.1 — somente ajustes solicitados: pesquisa e posição do + Agendar */
 .calendarHead{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap}
 .calendarHead h2{margin:0;flex:0 1 auto;text-align:center}
 .calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
 @media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
+</style>
+
 </head><body>
 <div id="loginScreen" class="login"><div class="card"><div class="logo">🌿 <span>CS Jardinagem</span></div><p class="muted">Entre para acessar sua agenda.</p><label>E-mail</label><input id="email" class="field" type="email" autocomplete="username"><label>Senha</label><input id="password" class="field" type="password" autocomplete="current-password"><button class="btn" onclick="window.login()">Entrar</button><p id="loginMsg" class="muted"></p></div></div>
 <div id="app" class="hidden"><header><div class="headerrow"><div class="brand"><h1>🌿 CS Jardinagem App</h1><small id="who"></small></div><div class="row" style="align-items:center;gap:8px"><button class="btn alt" onclick="logout()">Sair</button></div></div></header>
