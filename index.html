@@ -83,6 +83,8 @@
 .calendarHead h2{margin:0;flex:0 1 auto;text-align:center}
 .calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
 @media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
+
+.plantAiBox{max-width:760px}.plantAiButtons{display:flex;gap:10px;flex-wrap:wrap}.plantAiPreview{display:block;width:100%;max-width:520px;max-height:520px;object-fit:contain;margin:16px auto 0;border-radius:16px;border:1px solid #dbe5df;background:#fff}.plantAiResult{margin-top:16px;padding:18px;border-radius:16px;background:#f7faf8;border:1px solid #dce8df;line-height:1.55}.plantAiResult h3{margin-top:0}.plantAiCare{margin-top:12px;padding:14px;border-radius:12px;background:#fff}.plantAiResult p{margin:8px 0}.small{font-size:13px}
 </style>
 
 <style>
@@ -353,11 +355,49 @@ window.confirmDeleteNeed=async function(box,id){
 };
 window.deleteNeed=async function(id){const n=needs.find(x=>String(x.id)===String(id));if(!n)return;if(!confirm('Tem certeza que deseja excluir esta necessidade?'))return;const r=await dbClient.from('necessidades').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir a necessidade.\n\n'+r.error.message);await necessidadesPage()};
 window.plantAiPage=function(){
-  $('content').innerHTML=`<div class="toolbar"><h2>🌿 Identificar planta</h2></div><div class="panel plantAiBox"><p class="muted">Envie uma foto da planta. Esta tela já está preparada para receber a análise por IA, com identificação da espécie e orientações de cuidados.</p><input id="plantAiFile" class="hidden" type="file" accept="image/*" onchange="previewPlantAi(this)"><button class="btn" type="button" onclick="$('plantAiFile').click()">📷 Escolher foto da planta</button><div id="plantAiPreviewWrap"></div><div id="plantAiResult" class="notice hidden">A conexão com o serviço de visão por IA ainda precisa ser configurada. A interface e o fluxo de foto já estão preparados.</div></div>`;
+  $('content').innerHTML=`<div class="toolbar"><h2>🌿 Identificar planta</h2></div><div class="panel plantAiBox"><p class="muted">Tire uma foto ou escolha uma imagem da planta. A IA vai tentar identificar a espécie e explicar como cuidar dela.</p><input id="plantAiFile" class="hidden" type="file" accept="image/*" capture="environment" onchange="previewPlantAi(this)"><div class="plantAiButtons"><button class="btn" type="button" onclick="$('plantAiFile').click()">📷 Tirar / escolher foto</button></div><div id="plantAiPreviewWrap"></div><div id="plantAiStatus" class="notice hidden"></div><div id="plantAiResult" class="plantAiResult hidden"></div></div>`;
 };
 window.previewPlantAi=function(input){
   const f=input?.files?.[0];if(!f)return;
-  const reader=new FileReader();reader.onload=()=>{$('plantAiPreviewWrap').innerHTML=`<img class="plantAiPreview" src="${reader.result}" alt="Foto da planta"><button class="btn" type="button" style="margin-top:10px" onclick="$('plantAiResult').classList.remove('hidden')">🔎 Analisar com IA</button>`};reader.readAsDataURL(f);
+  if(!f.type.startsWith('image/'))return alert('Escolha uma imagem válida.');
+  const reader=new FileReader();
+  reader.onload=()=>{
+    $('plantAiPreviewWrap').innerHTML=`<img class="plantAiPreview" src="${reader.result}" alt="Foto da planta"><button class="btn" type="button" style="margin-top:10px" onclick="analyzePlantAi()">🔎 Analisar com IA</button>`;
+    $('plantAiStatus')?.classList.add('hidden');
+    $('plantAiResult')?.classList.add('hidden');
+  };
+  reader.readAsDataURL(f);
+};
+window.analyzePlantAi=async function(){
+  const input=$('plantAiFile'),f=input?.files?.[0];
+  if(!f)return alert('Escolha uma foto da planta primeiro.');
+  const status=$('plantAiStatus'),result=$('plantAiResult');
+  status.classList.remove('hidden'); status.className='notice'; status.textContent='🌿 Analisando a planta... Aguarde.';
+  result.classList.add('hidden');
+  try{
+    const image=await fileToDataUrl(f,1400,.80);
+    const {data,error}=await dbClient.functions.invoke('identificar-planta',{body:{image}});
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||'A IA não conseguiu analisar esta imagem.');
+    const a=data.analysis||{};
+    result.innerHTML=`<h3>🌿 ${esc(a.nome_comum||'Planta não identificada')}</h3>
+      ${a.nome_cientifico?`<p><b>🔬 Nome científico:</b> ${esc(a.nome_cientifico)}</p>`:''}
+      ${a.confianca?`<p><b>🎯 Confiança:</b> ${esc(a.confianca)}</p>`:''}
+      ${a.identificacao?`<p><b>🔎 Identificação:</b> ${esc(a.identificacao)}</p>`:''}
+      ${a.luz?`<p><b>☀️ Luz:</b> ${esc(a.luz)}</p>`:''}
+      ${a.rega?`<p><b>💧 Rega:</b> ${esc(a.rega)}</p>`:''}
+      ${a.solo?`<p><b>🌱 Solo:</b> ${esc(a.solo)}</p>`:''}
+      ${a.adubacao?`<p><b>🌾 Adubação:</b> ${esc(a.adubacao)}</p>`:''}
+      ${a.poda?`<p><b>✂️ Poda:</b> ${esc(a.poda)}</p>`:''}
+      ${a.problemas_comuns?`<p><b>⚠️ Problemas comuns:</b> ${esc(a.problemas_comuns)}</p>`:''}
+      ${a.cuidados?`<div class="plantAiCare"><b>📋 Como cuidar:</b><div>${esc(a.cuidados).replace(/\n/g,'<br>')}</div></div>`:''}
+      <p class="muted small">A identificação por foto é uma estimativa. Em caso de dúvida, envie uma foto mais nítida mostrando folhas, caule e a planta inteira.</p>`;
+    result.classList.remove('hidden'); status.classList.add('hidden');
+  }catch(e){
+    console.error('plantAi',e);
+    status.className='notice';
+    status.textContent='❌ Não foi possível analisar a foto. Verifique se a Edge Function “identificar-planta” foi publicada e se a chave OPENAI_API_KEY foi configurada no Supabase. Detalhe: '+(e?.message||e);
+  }
 };
 window.tab=t=>{document.querySelectorAll('nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('#moreMenu button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));closeMoreMenu();try{if(t==='inicio')agenda();if(t==='anual')annualPage();if(t==='clientes')clientPage();if(t==='ajudantes')helpersPage();if(t==='financeiro')financePage();if(t==='emissao')emissaoPage();if(t==='necessidades')necessidadesPage();if(t==='usuarios')usersPage();addTabSearch(t);applyMoneyVisibility()}catch(e){$('content').innerHTML='<div class="notice"><b>Erro nesta tela:</b> '+esc(e?.message||e)+'</div>'}};
 function plannedForDate(ds){return annuals.filter(x=>x.data_agendada===ds)}
