@@ -372,7 +372,7 @@ window.plantAiPage=function(){
   <div class="panel plantAiBox">
     <p class="muted">Tire uma foto com a câmera ou escolha uma imagem da planta. Depois a IA vai identificar a espécie e explicar como cuidar dela.</p>
 
-    <input id="plantAiFile" class="plantAiFileInput" type="file" accept="image/*" onchange="previewPlantAi(this)">
+    <input id="plantAiFile" class="plantAiFileInput" type="file" accept="image/*" onchange="previewPlantAi(this)" hidden>
 
     <div class="row" style="gap:10px;flex-wrap:wrap">
       <button class="btn" type="button" onclick="startPlantAiCamera()">📷 Abrir câmera</button>
