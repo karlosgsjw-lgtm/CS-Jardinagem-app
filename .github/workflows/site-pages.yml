@@ -1,1 +1,51 @@
-name: Deploy CS Jardinagem site\non:\n  push:\n    branches: [main]\n    paths:\n      - 'site/**'\n      - '.github/workflows/site-pages.yml'\n      - 'logo_cs_jardinagem.jpg'\n      - 'icon.svg'\n  workflow_dispatch:\npermissions:\n  contents: read\n  pages: write\n  id-token: write\nconcurrency:\n  group: pages\n  cancel-in-progress: true\njobs:\n  deploy:\n    environment:\n      name: github-pages\n      url: ${{ steps.deployment.outputs.page_url }}\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/configure-pages@v5\n      - uses: actions/upload-pages-artifact@v3\n        with:\n          path: site\n      - id: deployment\n        uses: actions/deploy-pages@v4\n
+name: Deploy CS Jardinagem site
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'app/**'
+      - 'app.html'
+      - 'logo_cs_jardinagem.jpg'
+      - 'icon.svg'
+      - 'manifest.webmanifest'
+      - '.github/workflows/site-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Montar site e aplicativo em enderecos separados
+        run: |
+          rm -rf _site
+          mkdir -p _site/app
+          cp -R site/. _site/
+          cp app/index.html _site/app/index.html
+          cp logo_cs_jardinagem.jpg _site/logo_cs_jardinagem.jpg
+          cp logo_cs_jardinagem.jpg _site/app/logo_cs_jardinagem.jpg
+          cp icon.svg _site/icon.svg
+          cp icon.svg _site/app/icon.svg
+          cp manifest.webmanifest _site/app/manifest.webmanifest
+          cat > _site/app/sw.js <<'EOF'
+          const CACHE='cs-jardinagem-app-v8';
+          self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));
+          self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+          self.addEventListener('fetch',e=>{});
+          EOF
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
