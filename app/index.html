@@ -396,7 +396,19 @@ function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').for
 
 function loginMsg(t){$('loginMsg').textContent=t}
 async function boot(){let r=await dbClient.auth.getSession();if(r.error)return loginMsg(r.error.message);if(r.data.session){me=r.data.session.user;await start()}else showLogin();dbClient.auth.onAuthStateChange(async(_e,s)=>{if(s){me=s.user;await start()}else showLogin()})}
-async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
+async function start(){
+  try{
+    loginMsg('Carregando seus dados...');
+    await loadProfile();
+    await loadData();
+    scheduleAndroidNotifications();
+    showApp();
+  }catch(e){
+    console.error('CS Jardinagem start:',e);
+    loginMsg('Login aceito, mas houve erro ao carregar os dados: '+(e?.message||e));
+    showLogin();
+  }
+}
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
 async function loadData(){let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];let h=await dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome');helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[]}
 function scheduleAndroidNotifications(){try{if(!window.AndroidNotifications)return;let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid:unpaid});window.AndroidNotifications.scheduleNotifications(JSON.stringify(data))}catch(e){console.warn('Notificações Android:',e)}}
@@ -422,7 +434,21 @@ function showApp(){
   let saved='inicio';try{saved=sessionStorage.getItem('csj_current_tab')||'inicio'}catch(e){}
   csCurrentTab=saved;tab(saved);
 }
-window.login=async()=>{try{loginMsg('Entrando...');const email=$('email').value.trim();const password=$('password').value;if(!email||!password){loginMsg('Informe e-mail e senha.');return}let r=await dbClient.auth.signInWithPassword({email,password});if(r.error){loginMsg(r.error.message||'Não foi possível entrar.');return}loginMsg('Login realizado. Carregando agenda...')}catch(e){console.error(e);loginMsg('Não foi possível entrar. Verifique sua internet e tente novamente.')}};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
+window.login=async()=>{
+  try{
+    loginMsg('Entrando...');
+    const email=$('email').value.trim(), password=$('password').value;
+    if(!email||!password){loginMsg('Informe e-mail e senha.');return}
+    const r=await dbClient.auth.signInWithPassword({email,password});
+    if(r.error){loginMsg(r.error.message||'Não foi possível entrar.');return}
+    me=r.data?.user||null;
+    if(!me){loginMsg('O servidor aceitou o acesso, mas não retornou o usuário.');return}
+    await start();
+  }catch(e){
+    console.error('CS Jardinagem login:',e);
+    loginMsg('Erro ao entrar: '+(e?.message||e));
+  }
+};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
