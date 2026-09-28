@@ -436,16 +436,16 @@ function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').for
 function loginMsg(t){$('loginMsg').textContent=t}
 async function boot(){let r=await dbClient.auth.getSession();if(r.error)return loginMsg(r.error.message);if(r.data.session){me=r.data.session.user;await start()}else showLogin();dbClient.auth.onAuthStateChange(async(_e,s)=>{if(s){me=s.user;await start()}else showLogin()})}
 async function start(){
-  try{
-    loginMsg('Carregando seus dados...');
-    await loadProfile();
-    await loadData();
-    scheduleAndroidNotifications();
-    showApp();
-  }catch(e){
-    console.error('CS Jardinagem start:',e);
-    loginMsg('Login aceito, mas houve erro ao carregar os dados: '+(e?.message||e));
-    showLogin();
+  loginMsg('Carregando seus dados...');
+  try{await loadProfile();}catch(e){console.error('loadProfile',e);}
+  try{await loadData();}catch(e){console.error('loadData',e);}
+  try{scheduleAndroidNotifications();}catch(e){console.error('notifications',e);}
+  $('loginScreen').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  try{tab('inicio');}catch(e){
+    console.error('tab inicio',e);
+    const box=$('content');
+    if(box)box.innerHTML='<div class="panel"><h2>⚠️ Login realizado</h2><p>O acesso foi aceito, mas a tela inicial encontrou um erro.</p><p class="muted">'+esc(e?.message||e)+'</p><button class="btn" onclick="location.reload()">Tentar novamente</button></div>';
   }
 }
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
@@ -1321,7 +1321,7 @@ if('serviceWorker' in navigator){
     m.textContent='Entrando...';
     fetch(U+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':K,'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})})
     .then(function(r){return r.text().then(function(t){var d={};try{d=t?JSON.parse(t):{}}catch(x){};if(!r.ok)throw new Error(d.error_description||d.msg||d.message||'E-mail ou senha inválidos.');return d;});})
-    .then(function(d){localStorage.setItem('csj_supabase_session_v1',JSON.stringify({access_token:d.access_token,refresh_token:d.refresh_token,expires_in:d.expires_in,expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),token_type:d.token_type||'bearer',user:d.user}));m.textContent='Login realizado. Abrindo agenda...';setTimeout(function(){location.reload();},300);})
+    .then(function(d){localStorage.setItem('csj_supabase_session_v1',JSON.stringify({access_token:d.access_token,refresh_token:d.refresh_token,expires_in:d.expires_in,expires_at:Math.floor(Date.now()/1000)+(d.expires_in||3600),token_type:d.token_type||'bearer',user:d.user}));m.textContent='Login realizado. Abrindo agenda...';})
     .catch(function(e){m.textContent='Erro: '+(e.message||e);});
   });
 })();
