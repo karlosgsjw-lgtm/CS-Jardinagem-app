@@ -37,10 +37,7 @@ jobs:
           cp logo_cs_jardinagem.jpg _site/app/logo_cs_jardinagem.jpg
           cp icon.svg _site/icon.svg
           cp icon.svg _site/app/icon.svg
-          cp icon-192.png _site/icon-192.png
-          cp icon-512.png _site/icon-512.png
-          cp icon-192.png _site/app/icon-192.png
-          cp icon-512.png _site/app/icon-512.png
+          # Os ícones PNG antigos não existem no repositório; o app usa icon.svg.
           cp manifest.webmanifest _site/app/manifest.webmanifest
           cat > _site/app/sw.js <<'EOF'
           const CACHE='cs-jardinagem-app-v8';
