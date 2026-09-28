@@ -37,14 +37,9 @@ jobs:
           cp logo_cs_jardinagem.jpg _site/app/logo_cs_jardinagem.jpg
           cp icon.svg _site/icon.svg
           cp icon.svg _site/app/icon.svg
-          # Os ícones PNG antigos não existem no repositório; o app usa icon.svg.
-          cp manifest.webmanifest _site/app/manifest.webmanifest
-          cat > _site/app/sw.js <<'EOF'
-          const CACHE='cs-jardinagem-app-v8';
-          self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));
-          self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
-          self.addEventListener('fetch',e=>{});
-          EOF
+          # O app possui manifest e service worker próprios; não sobrescrever com os arquivos da raiz.
+          cp app/manifest.webmanifest _site/app/manifest.webmanifest
+          cp app/sw.js _site/app/sw.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
