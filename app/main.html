@@ -562,10 +562,19 @@ async function renderNecessidades(){
   const ir=await dbClient.from('necessidade_itens').select('*').order('concluida',{ascending:true}).order('criado_em',{ascending:false});
   if(ir.error){box.innerHTML='<div class="notice"><b>Erro ao carregar itens:</b> '+esc(ir.error.message)+'</div>';return}
   needItems=ir.data||[];
-  box.innerHTML=needCategories.length?needCategories.map(cat=>{
+  let html='';
+  for(const cat of needCategories){
     const items=needItems.filter(x=>x.categoria_id===cat.id);
-    return '<div class="needCategory" id="needCat'+cat.id+'"><button type="button" class="needCategoryHead" onclick="toggleNeedCategory('+cat.id+')"><span><b>'+esc(cat.nome)+'</b><small>'+items.length+' '+(items.length===1?'item':'itens')+'</small></span><span class="needArrow">⌄</span></button><div class="needCategoryBody" id="needBody'+cat.id+'"><div class="needCatActions"><button class="btn" onclick="openNeedItem('+cat.id+')">＋ Adicionar</button><button class="btn alt" onclick="renameNeedCategory('+cat.id+')">✏️ Renomear</button><button class="btn danger" onclick="deleteNeedCategory('+cat.id+')">🗑️ Excluir</button></div>'+(items.length?items.map(n=>'<div class="needItem '+(n.concluida?'needDone':'')+'"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0"><b>'+esc(n.titulo)+'</b>'+(n.descricao?'<div class="muted small" style="margin-top:4px">'+esc(n.descricao)+'</div>':'')+'</div><button class="btn danger iconAction" onclick="deleteNeedItem('+n.id+')">🗑️</button></div>'+(n.imagem_data?'<img class="needsPhoto" src="'+n.imagem_data+'" alt="Foto" onclick="viewPhoto(\''+String(n.imagem_data).replace(/'/g,"&#39;")+'\',\''+esc(n.titulo).replace(/'/g,"&#39;")+'\')">':'')+(cat.nome.toLowerCase()==='ferramentas'?'<div class="toolActions"><button class="btn alt" onclick="openToolHistory('+n.id+')">🧰 Histórico de manutenção</button></div>':'')+'<label class="needsCheck"><input type="checkbox" '+(n.concluida?'checked':'')+' onchange="toggleNeedItem('+n.id+',this.checked)"><span>Concluído</span></label></div>').join(''):'<div class="muted" style="padding:12px 0">Nenhum item cadastrado.</div>'+'</div></div>';
-  }).join(''):'<div class="panel"><p class="muted">Nenhum subcampo cadastrado.</p></div>';
+    let itemHtml='';
+    for(const n of items){
+      itemHtml+='<div class="needItem '+(n.concluida?'needDone':'')+'"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0"><b>'+esc(n.titulo)+'</b>'+(n.descricao?'<div class="muted small" style="margin-top:4px">'+esc(n.descricao)+'</div>':'')+'</div><button class="btn danger iconAction" onclick="deleteNeedItem('+n.id+')">🗑️</button></div>';
+      if(n.imagem_data)itemHtml+='<img class="needsPhoto" src="'+n.imagem_data+'" alt="Foto">';
+      if(String(cat.nome).toLowerCase()==='ferramentas')itemHtml+='<div class="toolActions"><button class="btn alt" onclick="openToolHistory('+n.id+')">🧰 Histórico de manutenção</button></div>';
+      itemHtml+='<label class="needsCheck"><input type="checkbox" '+(n.concluida?'checked':'')+' onchange="toggleNeedItem('+n.id+',this.checked)"><span>Concluído</span></label></div>';
+    }
+    html+='<div class="needCategory" id="needCat'+cat.id+'"><button type="button" class="needCategoryHead" onclick="toggleNeedCategory('+cat.id+')"><span><b>'+esc(cat.nome)+'</b><small>'+items.length+' '+(items.length===1?'item':'itens')+'</small></span><span class="needArrow">⌄</span></button><div class="needCategoryBody" id="needBody'+cat.id+'"><div class="needCatActions"><button class="btn" onclick="openNeedItem('+cat.id+')">＋ Adicionar</button><button class="btn alt" onclick="renameNeedCategory('+cat.id+')">✏️ Renomear</button><button class="btn danger" onclick="deleteNeedCategory('+cat.id+')">🗑️ Excluir</button></div>'+(itemHtml||'<div class="muted" style="padding:12px 0">Nenhum item cadastrado.</div>')+'</div></div>';
+  }
+  box.innerHTML=html||'<div class="panel"><p class="muted">Nenhum subcampo cadastrado.</p></div>';
   await renderLegacyNeeds();
 }
 async function renderLegacyNeeds(){
