@@ -361,6 +361,7 @@ function showApp(){
     try{
       let saved=sessionStorage.getItem('csj_current_tab')||csCurrentTab||'inicio';
       csCurrentTab=saved;
+      if(saved==='necessidades'){setTimeout(()=>tab('necessidades'),0);}
     }catch(e){}
     return;
   }
