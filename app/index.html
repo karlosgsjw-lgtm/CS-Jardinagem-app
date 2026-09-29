@@ -345,7 +345,7 @@ window.csConfirm=function(question){return new Promise(resolve=>{
 function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').forEach(el=>{el.setAttribute('inputmode','numeric');el.setAttribute('autocomplete','off');if(!el.dataset.moneyBound){el.dataset.moneyBound='1';el.addEventListener('focus',()=>{setTimeout(()=>el.select(),0)});el.addEventListener('input',()=>formatMoneyInput(el));el.addEventListener('blur',()=>{if(!el.value.trim())el.value='0,00';else formatMoneyInput(el)});el.addEventListener('keydown',e=>{if(['e','E','+','-'].includes(e.key))e.preventDefault()})}})}
 
 function loginMsg(t){$('loginMsg').textContent=t}
-async function boot(){let r=await dbClient.auth.getSession();if(r.error)return loginMsg(r.error.message);if(r.data.session){me=r.data.session.user;await start()}else showLogin();dbClient.auth.onAuthStateChange(async(_e,s)=>{if(s){me=s.user;await start()}else showLogin()})}
+async function boot(){let r=await dbClient.auth.getSession();if(r.error)return loginMsg(r.error.message);if(r.data.session){me=r.data.session.user;await start()}else showLogin();dbClient.auth.onAuthStateChange(async(_e,s)=>{if(s && !me){try{me=s.user;await start()}catch(e){console.error('Auth state:',e)}}else if(!s){showLogin()}})}
 async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
 async function loadData(){let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];let h=await dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome');helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[]}
@@ -372,7 +372,19 @@ function showApp(){
   let saved='inicio';try{saved=sessionStorage.getItem('csj_current_tab')||'inicio'}catch(e){}
   csCurrentTab=saved;tab(saved);
 }
-window.login=async()=>{loginMsg('Entrando...');let r=await dbClient.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(r.error)loginMsg(r.error.message)};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
+window.login=async()=>{
+  try{
+    loginMsg('Entrando...');
+    const r=await dbClient.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});
+    if(r.error){loginMsg(r.error.message);return}
+    me=r.data.user;
+    loginMsg('Login realizado. Abrindo agenda...');
+    await start();
+  }catch(e){
+    console.error('Falha ao abrir agenda após login:',e);
+    loginMsg('Erro ao abrir a agenda: '+(e?.message||e));
+  }
+};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
