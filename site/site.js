@@ -30,7 +30,12 @@ async function loadSiteContent(){
   set('heroEyebrow',h.eyebrow);set('heroTitle',h.titulo);set('heroDescription',h.descricao);set('heroPrimary',h.botao_principal);set('heroSecondary',h.botao_secundario);
   const hi=document.querySelector('.hero-img');if(hi&&h.hero_imagem)hi.style.backgroundImage="linear-gradient(90deg,#063b2b22,#063b2b00),url('"+String(h.hero_imagem).replace(/'/g,"%27")+"')";
   set('servicesEyebrow',s.titulo_pequeno);set('servicesTitle',s.titulo);
-  const grid=document.getElementById('servicesGrid'); if(grid&&Array.isArray(s.itens)) grid.innerHTML=s.itens.map((x,i)=>'<article><div class="photo" style="background-image:url("'+String(x.imagem||'').replace(/"/g,'&quot;')+'")"></div><h3>'+String(x.titulo||'').replace(/[<>]/g,'')+'</h3><p>'+String(x.descricao||'').replace(/[<>]/g,'')+'</p></article>').join('');
+  const grid=document.getElementById('servicesGrid'); if(grid&&Array.isArray(s.itens)){grid.innerHTML=s.itens.map((x,i)=>{
+    const imgs=Array.isArray(x.imagens)&&x.imagens.length?x.imagens:(x.imagem?[x.imagem]:[]);
+    const safe=imgs.map(u=>String(u||'').replace(/"/g,'&quot;')).filter(Boolean);
+    const first=safe[0]||'';
+    return '<article class="serviceCard"><div class="servicePhotoWrap" data-service-index="'+i+'" data-images="'+String(JSON.stringify(safe)).replace(/"/g,'&quot;')+'"><div class="photo servicePhoto" style="background-image:url("'+first+'")"></div>'+(safe.length>1?'<button type="button" class="serviceNav servicePrev" aria-label="Foto anterior" onclick="servicePhotoPrev('+i+')">‹</button><button type="button" class="serviceNav serviceNext" aria-label="Próxima foto" onclick="servicePhotoNext('+i+')">›</button><span class="servicePhotoCount">1/'+safe.length+'</span>':'')+'</div><h3>'+String(x.titulo||'').replace(/[<>]/g,'')+'</h3><p>'+String(x.descricao||'').replace(/[<>]/g,'')+'</p></article>';
+  }).join('');startServiceSlides(s.itens)}}
   set('quoteEyebrow',q.eyebrow);set('quoteTitle',q.titulo);set('quoteDescription',q.descricao);
   const ql=document.getElementById('quoteList');if(ql&&Array.isArray(q.lista))ql.innerHTML=q.lista.map(x=>'<li>'+String(x).replace(/[<>]/g,'')+'</li>').join('');
   set('aboutEyebrow',a.eyebrow);set('aboutTitle',a.titulo);set('aboutDescription',a.descricao);
@@ -40,3 +45,21 @@ async function loadSiteContent(){
  }catch(e){console.warn('Conteúdo do site:',e)}
 }
 loadSiteContent();
+
+let serviceSlideTimers={};
+let serviceSlideState={};
+function getServiceImages(i){const w=document.querySelector('.servicePhotoWrap[data-service-index="'+i+'"]');if(!w)return[];try{return JSON.parse(w.dataset.images||'[]')}catch(e){return[]}}
+function setServicePhoto(i,index,manual){
+  const w=document.querySelector('.servicePhotoWrap[data-service-index="'+i+'"]');if(!w)return;
+  const imgs=getServiceImages(i);if(!imgs.length)return;
+  index=(index+imgs.length)%imgs.length;serviceSlideState[i]=index;
+  const p=w.querySelector('.servicePhoto');if(!p)return;
+  p.classList.add('fadeOut');
+  setTimeout(()=>{p.style.backgroundImage="url('"+String(imgs[index]).replace(/'/g,"%27")+"')";p.classList.remove('fadeOut');},180);
+  const count=w.querySelector('.servicePhotoCount');if(count)count.textContent=(index+1)+'/'+imgs.length;
+  if(manual)resetServiceTimer(i);
+}
+function resetServiceTimer(i){if(serviceSlideTimers[i])clearInterval(serviceSlideTimers[i]);serviceSlideTimers[i]=setInterval(()=>servicePhotoNext(i),3000)}
+function servicePhotoNext(i){const imgs=getServiceImages(i);if(imgs.length>1)setServicePhoto(i,(serviceSlideState[i]||0)+1,false)}
+function servicePhotoPrev(i){const imgs=getServiceImages(i);if(imgs.length>1)setServicePhoto(i,(serviceSlideState[i]||0)-1,true)}
+function startServiceSlides(items){Object.keys(serviceSlideTimers).forEach(k=>clearInterval(serviceSlideTimers[k]));serviceSlideTimers={};serviceSlideState={};(items||[]).forEach((x,i)=>{const imgs=Array.isArray(x.imagens)&&x.imagens.length?x.imagens:(x.imagem?[x.imagem]:[]);if(imgs.length>1)resetServiceTimer(i)})}
