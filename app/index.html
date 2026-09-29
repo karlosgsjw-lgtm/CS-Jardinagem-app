@@ -340,7 +340,29 @@ function showApp(){
   let saved='inicio';try{saved=sessionStorage.getItem('csj_current_tab')||'inicio'}catch(e){}
   csCurrentTab=saved;tab(saved);
 }
-window.login=async()=>{loginMsg('Entrando...');let r=await dbClient.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(r.error)loginMsg(r.error.message)};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
+window.login=async()=>{
+  try{
+    loginMsg('Entrando...');
+    const email=$('email').value.trim(), password=$('password').value;
+    if(!email||!password){loginMsg('Informe e-mail e senha.');return}
+    const res=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',
+      headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){loginMsg(data.error_description||data.msg||data.message||'E-mail ou senha inválidos.');return}
+    const session={access_token:data.access_token,refresh_token:data.refresh_token,expires_in:data.expires_in,expires_at:Math.floor(Date.now()/1000)+(data.expires_in||3600),token_type:data.token_type||'bearer',user:data.user};
+    const sr=await dbClient.auth.setSession(session);
+    if(sr.error){loginMsg(sr.error.message);return}
+    me=data.user;
+    loginMsg('Login realizado. Abrindo agenda...');
+    await start();
+  }catch(e){
+    console.error('login',e);
+    loginMsg('Erro ao entrar: '+(e?.message||e));
+  }
+};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
