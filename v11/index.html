@@ -1528,6 +1528,7 @@ window.nv2Maintenance=async id=>{let i=items.find(x=>x.id==id);if(!i)return;let 
 window.nv2SaveMaintenance=async id=>{let cost=String($('nv2mCost')?.value||'0').replace(/\./g,'').replace(',','.'),d={ferramenta_id:id,data_manutencao:$('nv2mDate')?.value||null,tipo:$('nv2mType')?.value.trim()||null,descricao:$('nv2mDesc')?.value.trim()||null,custo:parseFloat(cost)||0,observacoes:$('nv2mObs')?.value.trim()||null,criado_por:me.id},r=await dbClient.from('ferramenta_manutencoes').insert(d);if(r.error)return alert('Não foi possível registrar.\n\n'+r.error.message);await nv2Maintenance(id)}
 window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este registro de manutenção?'))return;let r=await dbClient.from('ferramenta_manutencoes').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir.\n\n'+r.error.message);await nv2Maintenance(item)}
 })();
+try{if(typeof csCurrentTab!=='undefined'&&csCurrentTab==='necessidades'&&window.necessidadesPageV2)setTimeout(()=>window.necessidadesPageV2(),0)}catch(e){}
 </script>
 </body></html>
 <script>
