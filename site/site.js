@@ -25,12 +25,21 @@ loadSiteContent();
 (function(){
   const popup=document.getElementById('budgetPopup');
   if(!popup)return;
-  let timer;
-  function show(){popup.classList.add('show');popup.setAttribute('aria-hidden','false')}
-  function hide(){popup.classList.remove('show');popup.setAttribute('aria-hidden','true')}
-  function cycle(){show();clearTimeout(timer);timer=setTimeout(hide,5000)}
-  setTimeout(cycle,1800);
-  setInterval(cycle,10000);
+  let visibleTimer=null, restartTimer=null;
+  function show(){
+    clearTimeout(visibleTimer);
+    clearTimeout(restartTimer);
+    popup.classList.add('show');
+    popup.setAttribute('aria-hidden','false');
+    visibleTimer=setTimeout(hide,10000);
+  }
+  function hide(){
+    clearTimeout(visibleTimer);
+    popup.classList.remove('show');
+    popup.setAttribute('aria-hidden','true');
+    restartTimer=setTimeout(show,4000);
+  }
+  show();
   popup.querySelector('.budgetPopupClose')?.addEventListener('click',hide);
-  popup.querySelector('.budgetPopupBtn')?.addEventListener('click',()=>{hide();});
+  popup.querySelector('.budgetPopupBtn')?.addEventListener('click',hide);
 })();
