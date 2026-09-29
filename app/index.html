@@ -1499,6 +1499,7 @@ boot();
 </style>
 <script>
 (function(){
+const $=id=>document.getElementById(id); const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 let cats=[],items=[],selected=null,pending=[];
 const E=v=>esc(String(v??'')),cat=id=>cats.find(x=>String(x.id)===String(id)),tools=c=>String(c?.nome||'').toLowerCase()==='ferramentas';
 function money2(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
