@@ -54,8 +54,8 @@ function setServicePhoto(i,index,manual){
   const imgs=getServiceImages(i);if(!imgs.length)return;
   index=(index+imgs.length)%imgs.length;serviceSlideState[i]=index;
   const p=w.querySelector('.servicePhoto');if(!p)return;
-  p.classList.add('fadeOut');
-  setTimeout(()=>{p.style.backgroundImage="url('"+String(imgs[index]).replace(/'/g,"%27")+"')";p.classList.remove('fadeOut');},180);
+  const nextImg=new Image();nextImg.src=imgs[index];p.classList.add('fadeOut');
+  setTimeout(()=>{p.style.backgroundImage="url('"+String(imgs[index]).replace(/'/g,"%27")+"')";p.classList.remove('fadeOut');},260);
   const count=w.querySelector('.servicePhotoCount');if(count)count.textContent=(index+1)+'/'+imgs.length;
   if(manual)resetServiceTimer(i);
 }
