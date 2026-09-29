@@ -21,3 +21,16 @@ function startLightboxAuto(){clearInterval(lightboxTimer);const imgs=serviceImag
 function closeServiceLightbox(fromPop=false){const lb=document.getElementById('serviceLightbox');if(!lb.classList.contains('open'))return;clearInterval(lightboxTimer);lb.classList.remove('open');lb.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open');if(!fromPop&&lightboxHistory){lightboxHistory=false;history.back()}else lightboxHistory=false;setTimeout(()=>window.scrollTo(0,savedScrollY),20)}
 document.querySelector('.lightboxClose')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.serviceLightboxBackdrop')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.lightboxNext')?.addEventListener('click',lightboxNext);document.querySelector('.lightboxPrev')?.addEventListener('click',lightboxPrev);window.addEventListener('keydown',e=>{const lb=document.getElementById('serviceLightbox');if(!lb?.classList.contains('open'))return;if(e.key==='Escape')closeServiceLightbox();if(e.key==='ArrowRight')lightboxNext();if(e.key==='ArrowLeft')lightboxPrev()});window.addEventListener('popstate',()=>{if(lightboxHistory){lightboxHistory=false;closeServiceLightbox(true)}});
 loadSiteContent();
+/* Popup de orçamento: alterna a cada 10 segundos */
+(function(){
+  const popup=document.getElementById('budgetPopup');
+  if(!popup)return;
+  let timer;
+  function show(){popup.classList.add('show');popup.setAttribute('aria-hidden','false')}
+  function hide(){popup.classList.remove('show');popup.setAttribute('aria-hidden','true')}
+  function cycle(){show();clearTimeout(timer);timer=setTimeout(hide,5000)}
+  setTimeout(cycle,1800);
+  setInterval(cycle,10000);
+  popup.querySelector('.budgetPopupClose')?.addEventListener('click',hide);
+  popup.querySelector('.budgetPopupBtn')?.addEventListener('click',()=>{hide();});
+})();
