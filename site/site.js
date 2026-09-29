@@ -8,3 +8,15 @@ try{
   if(!nr.ok) console.warn('Aviso de e-mail não enviado:',await nr.text());
 }catch(emailErr){console.warn('Aviso de e-mail não enviado:',emailErr)}
 const url=trackingUrl(data.access_token);localStorage.setItem('cs_orcamento_token',data.access_token);form.reset();preview.innerHTML='';showSavedOrder(data.access_token);msg.innerHTML='<div style="font-size:16px;font-weight:800;margin-bottom:10px">✅ Pedido enviado com sucesso!</div>'+(falhas?'<div>O pedido foi recebido, mas '+falhas+' foto(s) não puderam ser anexadas.</div>':'')+'<a class="btn primary full" style="margin-top:12px" href="'+url+'">📋 Acompanhar meu pedido</a><div style="font-size:12px;margin-top:8px">Guarde este link para consultar seu pedido e conversar conosco.</div>';msg.style.color='#087f4b'}catch(err){console.error(err);msg.textContent='Não foi possível enviar o pedido agora. '+(err.message||'Verifique sua conexão e tente novamente.');msg.style.color='#b42318'}finally{btn.disabled=false}});
+
+// Galeria real da CS Jardinagem — carregada do Supabase.
+async function loadPublicGallery(){
+  const grid=document.getElementById('galleryGrid'); if(!grid)return;
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/site_galeria?select=id,titulo,url,ordem&ativo=eq.true&order=ordem.asc,criado_em.desc',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+    if(!r.ok)return; const rows=await r.json(); if(!rows.length)return;
+    grid.innerHTML=rows.map((x,i)=>'<a class="g realGallery" href="'+String(x.url).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener" title="'+String(x.titulo||'Trabalho CS Jardinagem').replace(/"/g,'&quot;')+'"><img src="'+String(x.url).replace(/"/g,'&quot;')+'" alt="'+String(x.titulo||'Trabalho realizado pela CS Jardinagem').replace(/"/g,'&quot;')+'" loading="lazy"></a>').join('');
+    const h=document.getElementById('galleryHint'); if(h)h.textContent='Alguns dos trabalhos realizados pela CS Jardinagem.';
+  }catch(e){console.warn('Galeria:',e)}
+}
+loadPublicGallery();
