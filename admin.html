@@ -116,10 +116,6 @@ async function loadNeedsAdmin(){
    api("/rest/v1/necessidade_fotos?select=*&order=criado_em.asc")
   ]);
   needsCategories=c||[];needsItems=i||[];needsPhotos=p||[];
-  if(!needsCategories.some(x=>x.nome.toLowerCase()==="financeiro")){
-    await api("/rest/v1/necessidade_categorias",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({nome:"Financeiro",ordem:0,ativo:true})});
-    const fresh=await api("/rest/v1/necessidade_categorias?select=*&ativo=eq.true&order=ordem.asc,id.asc");needsCategories=fresh||[];
-  }
   renderNeeds();
  }catch(e){const el=$("needsAdminContent");if(el)el.innerHTML="<p>Erro ao carregar Necessidades: "+esc(e.message)+"</p>"}
 }
