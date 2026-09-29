@@ -21,12 +21,15 @@ function startLightboxAuto(){clearInterval(lightboxTimer);const imgs=serviceImag
 function closeServiceLightbox(fromPop=false){const lb=document.getElementById('serviceLightbox');if(!lb.classList.contains('open'))return;clearInterval(lightboxTimer);lb.classList.remove('open');lb.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open');if(!fromPop&&lightboxHistory){lightboxHistory=false;history.back()}else lightboxHistory=false;setTimeout(()=>window.scrollTo(0,savedScrollY),20)}
 document.querySelector('.lightboxClose')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.serviceLightboxBackdrop')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.lightboxNext')?.addEventListener('click',lightboxNext);document.querySelector('.lightboxPrev')?.addEventListener('click',lightboxPrev);window.addEventListener('keydown',e=>{const lb=document.getElementById('serviceLightbox');if(!lb?.classList.contains('open'))return;if(e.key==='Escape')closeServiceLightbox();if(e.key==='ArrowRight')lightboxNext();if(e.key==='ArrowLeft')lightboxPrev()});window.addEventListener('popstate',()=>{if(lightboxHistory){lightboxHistory=false;closeServiceLightbox(true)}});
 loadSiteContent();
-/* Popup de orçamento: alterna a cada 10 segundos */
+/* Popup de orçamento: acompanha a rolagem até a área de orçamento */
 (function(){
   const popup=document.getElementById('budgetPopup');
+  const quote=document.getElementById('orcamento');
   if(!popup)return;
-  let visibleTimer=null, restartTimer=null;
+  let visibleTimer=null, restartTimer=null, quoteVisible=false, started=false;
+
   function show(){
+    if(quoteVisible)return;
     clearTimeout(visibleTimer);
     clearTimeout(restartTimer);
     popup.classList.add('show');
@@ -37,8 +40,23 @@ loadSiteContent();
     clearTimeout(visibleTimer);
     popup.classList.remove('show');
     popup.setAttribute('aria-hidden','true');
-    restartTimer=setTimeout(show,4000);
+    if(!quoteVisible) restartTimer=setTimeout(show,2000);
   }
+  if(quote){
+    const observer=new IntersectionObserver(entries=>{
+      quoteVisible=entries[0].isIntersecting;
+      if(quoteVisible){
+        clearTimeout(restartTimer);
+        clearTimeout(visibleTimer);
+        popup.classList.remove('show');
+        popup.setAttribute('aria-hidden','true');
+      }else if(started){
+        show();
+      }
+    },{threshold:0.08});
+    observer.observe(quote);
+  }
+  started=true;
   show();
   popup.querySelector('.budgetPopupClose')?.addEventListener('click',hide);
   popup.querySelector('.budgetPopupBtn')?.addEventListener('click',hide);
