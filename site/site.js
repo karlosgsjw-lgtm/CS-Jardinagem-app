@@ -35,7 +35,7 @@ async function loadSiteContent(){
     const safe=imgs.map(u=>String(u||'').replace(/"/g,'&quot;')).filter(Boolean);
     const first=safe[0]||'';
     return '<article class="serviceCard"><div class="servicePhotoWrap" data-service-index="'+i+'" data-images="'+String(JSON.stringify(safe)).replace(/"/g,'&quot;')+'"><div class="photo servicePhoto" style="background-image:url("'+first+'")"></div>'+(safe.length>1?'<button type="button" class="serviceNav servicePrev" aria-label="Foto anterior" onclick="servicePhotoPrev('+i+')">‹</button><button type="button" class="serviceNav serviceNext" aria-label="Próxima foto" onclick="servicePhotoNext('+i+')">›</button><span class="servicePhotoCount">1/'+safe.length+'</span>':'')+'</div><h3>'+String(x.titulo||'').replace(/[<>]/g,'')+'</h3><p>'+String(x.descricao||'').replace(/[<>]/g,'')+'</p></article>';
-  }).join('');startServiceSlides(s.itens)}}
+  }).join('');startServiceSlides(s.itens)}
   set('quoteEyebrow',q.eyebrow);set('quoteTitle',q.titulo);set('quoteDescription',q.descricao);
   const ql=document.getElementById('quoteList');if(ql&&Array.isArray(q.lista))ql.innerHTML=q.lista.map(x=>'<li>'+String(x).replace(/[<>]/g,'')+'</li>').join('');
   set('aboutEyebrow',a.eyebrow);set('aboutTitle',a.titulo);set('aboutDescription',a.descricao);
