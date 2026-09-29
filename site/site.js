@@ -21,43 +21,63 @@ function startLightboxAuto(){clearInterval(lightboxTimer);const imgs=serviceImag
 function closeServiceLightbox(fromPop=false){const lb=document.getElementById('serviceLightbox');if(!lb.classList.contains('open'))return;clearInterval(lightboxTimer);lb.classList.remove('open');lb.setAttribute('aria-hidden','true');document.body.classList.remove('lightbox-open');if(!fromPop&&lightboxHistory){lightboxHistory=false;history.back()}else lightboxHistory=false;setTimeout(()=>window.scrollTo(0,savedScrollY),20)}
 document.querySelector('.lightboxClose')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.serviceLightboxBackdrop')?.addEventListener('click',()=>closeServiceLightbox());document.querySelector('.lightboxNext')?.addEventListener('click',lightboxNext);document.querySelector('.lightboxPrev')?.addEventListener('click',lightboxPrev);window.addEventListener('keydown',e=>{const lb=document.getElementById('serviceLightbox');if(!lb?.classList.contains('open'))return;if(e.key==='Escape')closeServiceLightbox();if(e.key==='ArrowRight')lightboxNext();if(e.key==='ArrowLeft')lightboxPrev()});window.addEventListener('popstate',()=>{if(lightboxHistory){lightboxHistory=false;closeServiceLightbox(true)}});
 loadSiteContent();
-/* Popup de orçamento: acompanha a rolagem até a área de orçamento */
+/* Popup de orçamento: ativo somente enquanto a seção de orçamento estiver visível */
 (function(){
   const popup=document.getElementById('budgetPopup');
   const quote=document.getElementById('orcamento');
-  if(!popup)return;
-  let visibleTimer=null, restartTimer=null, quoteVisible=false, started=false;
+  if(!popup||!quote)return;
+
+  let visibleTimer=null;
+  let restartTimer=null;
+  let active=false;
 
   function show(){
-    if(quoteVisible)return;
+    if(!active)return;
     clearTimeout(visibleTimer);
     clearTimeout(restartTimer);
     popup.classList.add('show');
     popup.setAttribute('aria-hidden','false');
     visibleTimer=setTimeout(hide,10000);
   }
+
   function hide(){
     clearTimeout(visibleTimer);
     popup.classList.remove('show');
     popup.setAttribute('aria-hidden','true');
-    if(!quoteVisible) restartTimer=setTimeout(show,2000);
+    if(active) restartTimer=setTimeout(show,2000);
   }
-  if(quote){
-    const observer=new IntersectionObserver(entries=>{
-      quoteVisible=entries[0].isIntersecting;
-      if(quoteVisible){
-        clearTimeout(restartTimer);
-        clearTimeout(visibleTimer);
-        popup.classList.remove('show');
-        popup.setAttribute('aria-hidden','true');
-      }else if(started){
-        show();
-      }
-    },{threshold:0.08});
-    observer.observe(quote);
-  }
-  started=true;
-  show();
-  popup.querySelector('.budgetPopupClose')?.addEventListener('click',hide);
-  popup.querySelector('.budgetPopupBtn')?.addEventListener('click',hide);
+
+  const observer=new IntersectionObserver(entries=>{
+    const visible=entries[0].isIntersecting;
+
+    if(visible){
+      active=true;
+      if(!popup.classList.contains('show')) show();
+    }else{
+      active=false;
+      clearTimeout(visibleTimer);
+      clearTimeout(restartTimer);
+      popup.classList.remove('show');
+      popup.setAttribute('aria-hidden','true');
+    }
+  },{
+    threshold:0.03
+  });
+
+  observer.observe(quote);
+
+  popup.querySelector('.budgetPopupClose')?.addEventListener('click',()=>{
+    clearTimeout(visibleTimer);
+    clearTimeout(restartTimer);
+    popup.classList.remove('show');
+    popup.setAttribute('aria-hidden','true');
+    if(active) restartTimer=setTimeout(show,2000);
+  });
+
+  popup.querySelector('.budgetPopupBtn')?.addEventListener('click',()=>{
+    clearTimeout(visibleTimer);
+    clearTimeout(restartTimer);
+    popup.classList.remove('show');
+    popup.setAttribute('aria-hidden','true');
+  });
 })();
