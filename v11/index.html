@@ -538,13 +538,12 @@ window.toggleMoreMenu=function(){const m=$('moreMenu');if(m)m.classList.toggle('
 window.closeMoreMenu=function(){const m=$('moreMenu');if(m)m.classList.add('hidden')}
 document.addEventListener('click',e=>{const nav=$('mainNav');if(nav&&!nav.contains(e.target))closeMoreMenu()});
 let needs=[];
-async async function necessidadesPage(){
+async function necessidadesPage(){
   if(window.necessidadesPageV2)return window.necessidadesPageV2();
   $('content').innerHTML='<div class="toolbar"><h2>📋 Necessidades</h2><button class="btn" onclick="openNeed()">＋ Nova</button></div><div id="needsList"><p class="muted">Carregando...</p></div>';
   await renderNecessidades();
 }
-
-}async function renderNecessidades(){
+async function renderNecessidades(){
   const box=$('needsList');if(!box)return;
   const r=await dbClient.from('necessidades').select('*').order('concluida',{ascending:true}).order('criado_em',{ascending:false});
   if(r.error){box.innerHTML='<div class="notice"><b>Erro ao carregar necessidades:</b> '+esc(r.error.message)+'</div>';return}
