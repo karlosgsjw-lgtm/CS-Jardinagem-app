@@ -17,7 +17,7 @@ async function deleteOrder(){
   current=null;history.replaceState({},'',location.pathname);$("detail").innerHTML="<p>Pedido excluído.</p>";await load();
  }catch(e){alert(e.message||"Não foi possível excluir o pedido.")}
 }
-function inputField(label,key,value,type="text"){return "<label>"+esc(label)+"<input data-key='"+esc(key)+"' value='"+esc(value||"')+"'></label>"}
+function inputField(label,key,value,type="text"){return '<label>'+esc(label)+'<input data-key="'+esc(key)+'" value="'+esc(value||"")+'"></label>'}
 async function loadSiteEditor(){
  const rows=await api("/rest/v1/site_conteudo?select=chave,dados");
  const cfg={};(rows||[]).forEach(x=>cfg[x.chave]=x.dados||{});
