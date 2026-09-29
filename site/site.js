@@ -20,3 +20,23 @@ async function loadPublicGallery(){
   }catch(e){console.warn('Galeria:',e)}
 }
 loadPublicGallery();
+
+async function loadSiteContent(){
+ try{
+  const r=await fetch(SB_URL+'/rest/v1/site_conteudo?select=chave,dados',{headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+  if(!r.ok)return; const rows=await r.json(); const cfg={}; rows.forEach(x=>cfg[x.chave]=x.dados||{});
+  const h=cfg.hero||{}; const s=cfg.servicos||{}; const q=cfg.orcamento||{}; const a=cfg.sobre||{}; const ct=cfg.contato||{};
+  const set=(id,v)=>{const e=document.getElementById(id);if(e&&v!==undefined)e.innerHTML=String(v).replace(/\n/g,'<br>')};
+  set('heroEyebrow',h.eyebrow);set('heroTitle',h.titulo);set('heroDescription',h.descricao);set('heroPrimary',h.botao_principal);set('heroSecondary',h.botao_secundario);
+  const hi=document.querySelector('.hero-img');if(hi&&h.hero_imagem)hi.style.backgroundImage="linear-gradient(90deg,#063b2b22,#063b2b00),url('"+String(h.hero_imagem).replace(/'/g,"%27")+"')";
+  set('servicesEyebrow',s.titulo_pequeno);set('servicesTitle',s.titulo);
+  const grid=document.getElementById('servicesGrid'); if(grid&&Array.isArray(s.itens)) grid.innerHTML=s.itens.map((x,i)=>'<article><div class="photo" style="background-image:url("'+String(x.imagem||'').replace(/"/g,'&quot;')+'")"></div><h3>'+String(x.titulo||'').replace(/[<>]/g,'')+'</h3><p>'+String(x.descricao||'').replace(/[<>]/g,'')+'</p></article>').join('');
+  set('quoteEyebrow',q.eyebrow);set('quoteTitle',q.titulo);set('quoteDescription',q.descricao);
+  const ql=document.getElementById('quoteList');if(ql&&Array.isArray(q.lista))ql.innerHTML=q.lista.map(x=>'<li>'+String(x).replace(/[<>]/g,'')+'</li>').join('');
+  set('aboutEyebrow',a.eyebrow);set('aboutTitle',a.titulo);set('aboutDescription',a.descricao);
+  if(ct.whatsapp){document.querySelectorAll('a.wa,footer a[href^="https://wa.me/"]').forEach(e=>e.href='https://wa.me/'+String(ct.whatsapp).replace(/\D/g,''))}
+  if(ct.instagram){const e=document.querySelector('footer a[href*="instagram"]');if(e)e.href=ct.instagram}
+  if(ct.google){const e=document.querySelector('footer a[href*="google.com/maps"]');if(e)e.href=ct.google}
+ }catch(e){console.warn('Conteúdo do site:',e)}
+}
+loadSiteContent();
