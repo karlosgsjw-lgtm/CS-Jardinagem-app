@@ -1,0 +1,11 @@
+{
+  "name":"CS Jardinagem App",
+  "short_name":"CS Jardinagem",
+  "id":"/CS-Jardinagem-app/app-novo/",
+  "start_url":"/CS-Jardinagem-app/app-novo/",
+  "scope":"/CS-Jardinagem-app/app-novo/",
+  "display":"standalone",
+  "background_color":"#ffffff",
+  "theme_color":"#2e7d32",
+  "description":"CS Jardinagem App - entrada nova"
+}
