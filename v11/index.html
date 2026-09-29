@@ -387,7 +387,7 @@ window.login=async()=>{
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
   }
-};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()}
+};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
