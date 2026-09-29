@@ -1529,6 +1529,16 @@ window.nv2SaveMaintenance=async id=>{let cost=String($('nv2mCost')?.value||'0').
 window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este registro de manutenção?'))return;let r=await dbClient.from('ferramenta_manutencoes').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir.\n\n'+r.error.message);await nv2Maintenance(item)}
 })();
 try{if(typeof csCurrentTab!=='undefined'&&csCurrentTab==='necessidades'&&window.necessidadesPageV2)setTimeout(()=>window.necessidadesPageV2(),0)}catch(e){}
+const _csjOriginalTab=window.tab;
+window.tab=function(t){
+  if(t==='necessidades' && typeof window.necessidadesPageV2==='function'){
+    saveCurrentFormState();csCurrentTab=t;try{sessionStorage.setItem('csj_current_tab',t)}catch(e){}
+    document.querySelectorAll('nav button[data-tab],#moreMenu button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+    closeMoreMenu();
+    return window.necessidadesPageV2();
+  }
+  return _csjOriginalTab(t);
+};
 </script>
 </body></html>
 <script>
