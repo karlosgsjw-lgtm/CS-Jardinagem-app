@@ -33,6 +33,7 @@ jobs:
           mkdir -p _site/app
           cp -R site/. _site/
           cp app/index.html _site/app/index.html
+          cp app/main.html _site/app/main.html
           cp logo_cs_jardinagem.jpg _site/logo_cs_jardinagem.jpg
           cp logo_cs_jardinagem.jpg _site/app/logo_cs_jardinagem.jpg
           cp icon.svg _site/icon.svg
