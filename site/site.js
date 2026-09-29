@@ -81,3 +81,23 @@ loadSiteContent();
     popup.setAttribute('aria-hidden','true');
   });
 })();
+/* Analytics simples do site público */
+(function(){
+  try{
+    const KEY='cs_site_analytics_session';
+    let sid=localStorage.getItem(KEY);
+    if(!sid){sid=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));localStorage.setItem(KEY,sid)}
+    const send=(type,element,metadata={})=>{
+      const body={p_event_type:type,p_session_id:sid,p_path:location.pathname,p_element:element||null,p_metadata:metadata};
+      fetch(SB_URL+'/rest/v1/rpc/site_registrar_analytics',{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
+    };
+    send('page_view','page_view',{referrer:document.referrer||null,screen:innerWidth+'x'+innerHeight});
+    document.addEventListener('click',e=>{
+      const el=e.target.closest('a,button');
+      if(!el)return;
+      const label=(el.innerText||el.getAttribute('aria-label')||el.title||'').trim().slice(0,100);
+      const href=el.getAttribute('href')||'';
+      send('click',label||'button',{href});
+    },{passive:true});
+  }catch(_){}
+})();
