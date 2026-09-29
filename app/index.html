@@ -319,7 +319,7 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
       }));
       localStorage.setItem('csj_supabase_user_v1',JSON.stringify(d.user||{}));
       msg.textContent='Login realizado. Abrindo agenda...';
-      setTimeout(function(){if(window.csStart){window.csStart();}else{msg.textContent='Login aceito, carregando agenda...';}},100);
+      (function waitForApp(n){if(window.csStart){window.csStart();return}if(n>=50){msg.textContent='Login realizado, mas o módulo da agenda não carregou. Atualize a página e tente novamente.';return}setTimeout(function(){waitForApp(n+1)},100)})(0);
     }).catch(function(e){
       msg.textContent='Erro: '+(e.message||e);
     });
