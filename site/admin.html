@@ -109,4 +109,38 @@ async function analytics(days=7){
  }
 }
 $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').onclick=()=>analytics(7);
-</script></script></body></html>
+</script>
+<script>
+(function(){
+ async function carregarEstatisticasDiretas(){
+  const msg=document.getElementById('amsg');
+  const cards=document.getElementById('astats');
+  if(!cards)return;
+  try{
+   const token=localStorage.getItem('cs_admin_access');
+   if(!token)throw new Error('Sessão administrativa não encontrada.');
+   const base='https://lttqucegcmzwfsnrtdyj.supabase.co';
+   const key='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+   const headers={apikey:key,Authorization:'Bearer '+token};
+   const since=new Date(Date.now()-30*864e5).toISOString();
+   const res=await fetch(base+'/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000',{headers});
+   const data=await res.json();
+   if(!res.ok)throw new Error(data?.message||data?.hint||('HTTP '+res.status));
+   const views=data.filter(x=>x.event_type==='page_view'), clicks=data.filter(x=>x.event_type==='click');
+   const people=new Set(views.map(x=>x.session_id).filter(Boolean)).size;
+   cards.innerHTML=[['👤','Pessoas',people],['👁️','Visitas',views.length],['🖱️','Cliques',clicks.length]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
+   const makeChart=(id,items)=>{const el=document.getElementById(id);if(!el)return;const counts={};items.forEach(x=>{const d=new Date(x.created_at);const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});counts[k]=(counts[k]||0)+1});const labels=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))}const vals=labels.map(k=>counts[k]||0),max=Math.max(1,...vals);el.innerHTML='<div class="chart">'+vals.map((v,i)=>'<div class="barWrap"><div class="bar" style="height:'+((v/max)*100)+'%;min-height:'+(v?4:0)+'px"></div><span class="barValue">'+v+'</span><span class="barLabel">'+labels[i]+'</span></div>').join('')+'</div>'};
+   makeChart('av',views);
+   const by={}; const om=await fetch(base+'/rest/v1/site_orcamentos?select=criado_em&criado_em=gte.'+encodeURIComponent(since)+'&order=criado_em.asc',{headers}).then(x=>x.json());(Array.isArray(om)?om:[]).forEach(x=>{const d=new Date(x.criado_em),k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});by[k]=(by[k]||0)+1});
+   const el=document.getElementById('ao');if(el){const labels=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))}const vals=labels.map(k=>by[k]||0),max=Math.max(1,...vals);el.innerHTML='<div class="chart">'+vals.map((v,i)=>'<div class="barWrap"><div class="bar" style="height:'+((v/max)*100)+'%;min-height:'+(v?4:0)+'px"></div><span class="barValue">'+v+'</span><span class="barLabel">'+labels[i]+'</span></div>').join('')+'</div>'}
+   const cm={};clicks.forEach(x=>{const k=x.element||x.metadata?.element||'Outro';cm[k]=(cm[k]||0)+1});const ac=document.getElementById('ac');if(ac)ac.innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique.</span>';
+   const ai=document.getElementById('ai');if(ai)ai.innerHTML='<div class="ind">👤 Pessoas únicas <b>'+people+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(people?(views.length/people).toFixed(1):'0')+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(views.length?(clicks.length/views.length).toFixed(1):'0')+'</b></div>';
+   const groups=(fn)=>{const m={};views.forEach(x=>{const k=fn(x.metadata||{});if(k)m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8)};
+   [['asrc',m=>m.referrer?'Seu app/site':'Acesso direto'],['acity',m=>m.city?(m.city+(m.region?', '+m.region:'')):null],['adev',m=>m.device],['abro',m=>m.browser]].forEach(([id,fn])=>{const el=document.getElementById(id),rows=groups(fn);if(el)el.innerHTML=rows.length?rows.map(x=>'<div class="rank"><div class="rankInfo"><div class="rankName">'+x[0]+'</div><div class="rankTrack"><div class="rankFill" style="width:'+(x[1]/rows[0][1]*100)+'%"></div></div></div><b>'+x[1]+'</b></div>').join(''):'<span class="small">Ainda não há dados.</span>'});
+   if(msg)msg.textContent='Últimos 30 dias · '+views.length+' visitas registradas · atualizado agora.';
+  }catch(e){console.error(e);if(msg)msg.textContent='Erro ao carregar estatísticas: '+e.message;if(cards)cards.innerHTML='<div style="grid-column:1/-1"><b>Erro ao carregar os dados</b><span>'+e.message+'</span></div>'}
+ }
+ window.addEventListener('load',()=>setTimeout(carregarEstatisticasDiretas,700));
+ window.carregarEstatisticasDiretas=carregarEstatisticasDiretas;
+})();
+</script></body></html>
