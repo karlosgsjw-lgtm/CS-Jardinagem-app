@@ -162,4 +162,30 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  window.addEventListener('load',()=>setTimeout(carregarEstatisticasDiretas,700));
  window.carregarEstatisticasDiretas=carregarEstatisticasDiretas;
 })();
+</script><script>
+(function(){
+ function bindLoginFallback(){
+  const b=document.getElementById('entrar'), em=document.getElementById('email'), pw=document.getElementById('senha');
+  if(!b||!em||!pw)return;
+  b.onclick=async function(){
+   const email=em.value.trim(), senha=pw.value;
+   const msg=document.getElementById('loginMsg');
+   if(!email||!senha){if(msg)msg.textContent='Informe e-mail e senha.';return}
+   b.disabled=true;if(msg)msg.textContent='Entrando...';
+   try{
+    const r=await fetch('https://lttqucegcmzwfsnrtdyj.supabase.co/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':'sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG','Content-Type':'application/json'},body:JSON.stringify({email,password:senha})});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j?.access_token)throw new Error(j?.error_description||j?.msg||j?.message||'E-mail ou senha inválidos.');
+    window.accessToken=j.access_token;localStorage.setItem('cs_admin_access',j.access_token);
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('logout').style.display='block';
+    if(typeof window.showApp==='function')await window.showApp();
+    else if(msg)msg.textContent='Acesso confirmado.';
+   }catch(e){if(msg)msg.textContent='❌ '+e.message}
+   finally{b.disabled=false}
+  };
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindLoginFallback);else bindLoginFallback();
+})();
 </script></body></html>
