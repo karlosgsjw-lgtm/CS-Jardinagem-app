@@ -40,7 +40,7 @@ async function showApp(){
  try{await load()}catch(e){console.error("load",e)}
  try{await loadGalleryAdmin()}catch(e){console.error("gallery",e)}
  try{await analytics(7)}catch(e){console.error("analytics",e)}
- try{enableSitePush();$("enablePush").onclick=enableSitePush}catch(e){}
+ 
  let lastVisitCount=0;let analyticsReady=false;async function visitAlert(){try{const since=new Date(Date.now()-15*60e3).toISOString();const ev=await api('/rest/v1/site_analytics_events?select=*&event_type=eq.page_view&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.desc&limit=20');const count=ev.length;if(analyticsReady&&count>lastVisitCount&&'Notification'in window&&Notification.permission==='granted'){const m=ev[0]?.metadata||{};new Notification('Nova visita — CS Jardinagem',{body:(m.city?(m.city+', '+(m.region||'')):'Novo visitante')+' · '+(m.device||'dispositivo')})}lastVisitCount=count;analyticsReady=true}catch(e){}}setInterval(()=>load().catch(console.error),10000);setInterval(()=>visitAlert().catch(console.error),30000);visitAlert().catch(console.error);
  setInterval(()=>analytics(7).catch(console.error),30000);
 }async function load(){try{const data=await api("/rest/v1/site_orcamentos?select=*&order=criado_em.desc");const oldIds=new Set(pedidos.map(p=>p.id));pedidos=data||[];const newOnes=pedidos.filter(p=>p.status==="novo"&&!oldIds.has(p.id));renderList();$("newCount").textContent=pedidos.filter(p=>p.status==="novo").length;if(!firstLoad&&newOnes.length&&"Notification"in window&&Notification.permission==="granted"){new Notification("Novo orçamento — CS Jardinagem",{body:newOnes.length===1?newOnes[0].nome+" enviou uma solicitação.":newOnes.length+" novos orçamentos recebidos."});}firstLoad=false;if(current){const fresh=pedidos.find(p=>p.id===current.id);if(fresh)current=fresh}}catch(e){if(String(e.message).toLowerCase().includes("jwt")){localStorage.removeItem("cs_admin_access");location.reload()}else $("list").innerHTML="<p>"+e.message+"</p>"}}function renderList(){$("list").innerHTML="";if(!pedidos.length){$("list").innerHTML="<p class='small'>Nenhum orçamento recebido ainda.</p>";return}pedidos.forEach(p=>{const d=document.createElement("div");d.className="item "+(p.status==="novo"?"new ":"")+(current&&current.id===p.id?"active":"");d.innerHTML="<strong>"+esc(p.nome)+"</strong><div class='small'>"+esc(p.telefone)+" · "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div><div class='small'>"+esc(p.status.replace("_"," "))+"</div>";d.onclick=()=>openOrder(p);$("list").appendChild(d)})}function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}async function openOrder(p){current=p;history.pushState({orderId:p.id},"","#pedido-"+p.id);renderList();$("detail").innerHTML="<p>Carregando pedido...</p>";try{const [ms,fs]=await Promise.all([api("/rest/v1/site_mensagens?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc"),api("/rest/v1/site_orcamento_arquivos?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc")]);$("detail").innerHTML="<div class='top'><div><h2>"+esc(p.nome)+"</h2><div class='small'>Recebido em "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div></div><span class='badge' style='background:#087f4b'>"+esc(p.status.replace("_"," "))+"</span></div><div class='statusbox'><strong>Telefone:</strong> "+esc(p.telefone)+"<br><strong>E-mail:</strong> "+esc(p.email||"não informado")+"<br><strong>Pedido:</strong><br>"+esc(p.mensagem||"Sem descrição")+"</div><div class='tools'><button type='button' class='danger' onclick='deleteOrder()'>🗑️ Excluir pedido</button><a target='_blank' href='https://wa.me/55"+p.telefone.replace(/\\D/g,"")+"'>💬 WhatsApp</a><a href='tel:"+esc(p.telefone)+"'>📞 Ligar</a>"+(p.email?"<a href='mailto:"+esc(p.email)+"'>✉️ E-mail</a>":"")+"</div><h3>📷 Fotos enviadas ("+(fs||[]).length+")</h3><div class='photos'>"+(fs||[]).map(f=>"<a target='_blank' href='"+esc(f.url)+"'><img src='"+esc(f.url)+"' alt='"+esc(f.nome_arquivo)+"'></a>").join("")+"</div><h3>💬 Conversa</h3><div id='msgs' class='messages'>"+((ms||[]).length?(ms||[]).map(m=>"<div class='m "+(m.autor_tipo==="empresa"?"me":"")+"'><strong>"+esc(m.autor_nome)+"</strong><br>"+esc(m.mensagem)+"</div>").join(""):"<span class='small'>Ainda não há mensagens.</span>")+"</div><form id='reply'><textarea id='replyText' rows='3' placeholder='Responder pelo chat do site...' required></textarea><button class='btn primary full'>Enviar resposta</button></form>";$("reply").onsubmit=sendReply;if(p.status==="novo"){await api("/rest/v1/site_orcamentos?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify({status:"em_andamento",atualizado_em:new Date().toISOString()})});p.status="em_andamento";$("newCount").textContent=pedidos.filter(x=>x.status==="novo").length;renderList()}}catch(e){$("detail").innerHTML="<p>"+e.message+"</p>"}}async function sendReply(e){e.preventDefault();const text=$("replyText").value.trim();if(!text)return;const b=e.currentTarget.querySelector("button");b.disabled=true;try{await api("/rest/v1/site_mensagens",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({orcamento_id:current.id,autor_tipo:"empresa",autor_nome:"CS Jardinagem",mensagem:text})});await openOrder(current)}catch(err){alert("Não foi possível enviar a resposta.")}finally{b.disabled=false}}$("entrar").onclick=login;$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("logout").onclick=()=>{localStorage.removeItem("cs_admin_access");location.reload()};
@@ -132,38 +132,6 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
 </script>
 <script>
 (function(){
- async function carregarEstatisticasDiretas(){
-  const msg=document.getElementById('amsg');
-  const cards=document.getElementById('astats');
-  if(!cards)return;
-  try{
-   const token=accessToken||localStorage.getItem('cs_admin_access');
-   if(!token)throw new Error('Sessão administrativa não encontrada.');
-   const base='https://lttqucegcmzwfsnrtdyj.supabase.co';
-   const headers={apikey:SB_KEY,Authorization:'Bearer '+token};
-   const since=new Date(Date.now()-30*864e5).toISOString();
-   const res=await fetch(base+'/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000',{headers});
-   const data=await res.json();
-   if(!res.ok)throw new Error(data?.message||data?.hint||('HTTP '+res.status));
-   const views=data.filter(x=>x.event_type==='page_view'), clicks=data.filter(x=>x.event_type==='click');
-   const people=new Set(views.map(x=>x.session_id).filter(Boolean)).size;
-   cards.innerHTML=[['👤','Pessoas',people],['👁️','Visitas',views.length],['🖱️','Cliques',clicks.length]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
-   const makeChart=(id,items)=>{const el=document.getElementById(id);if(!el)return;const counts={};items.forEach(x=>{const d=new Date(x.created_at);const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});counts[k]=(counts[k]||0)+1});const labels=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))}const vals=labels.map(k=>counts[k]||0),max=Math.max(1,...vals);el.innerHTML='<div class="chart">'+vals.map((v,i)=>'<div class="barWrap"><div class="bar" style="height:'+((v/max)*100)+'%;min-height:'+(v?4:0)+'px"></div><span class="barValue">'+v+'</span><span class="barLabel">'+labels[i]+'</span></div>').join('')+'</div>'};
-   makeChart('av',views);
-   const by={}; const om=await fetch(base+'/rest/v1/site_orcamentos?select=criado_em&criado_em=gte.'+encodeURIComponent(since)+'&order=criado_em.asc',{headers}).then(x=>x.json());(Array.isArray(om)?om:[]).forEach(x=>{const d=new Date(x.criado_em),k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});by[k]=(by[k]||0)+1});
-   const el=document.getElementById('ao');if(el){const labels=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}))}const vals=labels.map(k=>by[k]||0),max=Math.max(1,...vals);el.innerHTML='<div class="chart">'+vals.map((v,i)=>'<div class="barWrap"><div class="bar" style="height:'+((v/max)*100)+'%;min-height:'+(v?4:0)+'px"></div><span class="barValue">'+v+'</span><span class="barLabel">'+labels[i]+'</span></div>').join('')+'</div>'}
-   const cm={};clicks.forEach(x=>{const k=x.element||x.metadata?.element||'Outro';cm[k]=(cm[k]||0)+1});const ac=document.getElementById('ac');if(ac)ac.innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique.</span>';
-   const ai=document.getElementById('ai');if(ai)ai.innerHTML='<div class="ind">👤 Pessoas únicas <b>'+people+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(people?(views.length/people).toFixed(1):'0')+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(views.length?(clicks.length/views.length).toFixed(1):'0')+'</b></div>';
-   const groups=(fn)=>{const m={};views.forEach(x=>{const k=fn(x.metadata||{});if(k)m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8)};
-   [['asrc',m=>m.referrer?'Seu app/site':'Acesso direto'],['acity',m=>m.city?(m.city+(m.region?', '+m.region:'')):null],['adev',m=>m.device],['abro',m=>m.browser]].forEach(([id,fn])=>{const el=document.getElementById(id),rows=groups(fn);if(el)el.innerHTML=rows.length?rows.map(x=>'<div class="rank"><div class="rankInfo"><div class="rankName">'+x[0]+'</div><div class="rankTrack"><div class="rankFill" style="width:'+(x[1]/rows[0][1]*100)+'%"></div></div></div><b>'+x[1]+'</b></div>').join(''):'<span class="small">Ainda não há dados.</span>'});
-   if(msg)msg.textContent='Últimos 30 dias · '+views.length+' visitas registradas · atualizado agora.';
-  }catch(e){console.error(e);if(msg)msg.textContent='Erro ao carregar estatísticas: '+e.message;if(cards)cards.innerHTML='<div style="grid-column:1/-1"><b>Erro ao carregar os dados</b><span>'+e.message+'</span></div>'}
- }
- window.addEventListener('load',()=>setTimeout(carregarEstatisticasDiretas,700));
- window.carregarEstatisticasDiretas=carregarEstatisticasDiretas;
-})();
-</script><script>
-(function(){
  function bindLoginFallback(){
   const b=document.getElementById('entrar'), em=document.getElementById('email'), pw=document.getElementById('senha');
   if(!b||!em||!pw)return;
@@ -187,5 +155,43 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
   };
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindLoginFallback);else bindLoginFallback();
+})();
+</script><script>
+(function(){
+ const KEY="sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG";
+ const URL="https://lttqucegcmzwfsnrtdyj.supabase.co";
+ const PUB="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
+ function b64(s){const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from([...r],c=>c.charCodeAt(0))}
+ async function push(){
+  const b=document.getElementById('enablePush'); if(!b)return;
+  try{
+   if(!window.isSecureContext||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){b.textContent='🔔 Push não disponível';return}
+   if(Notification.permission==='denied'){
+    b.textContent='🔴 Permissão bloqueada';
+    alert('As notificações estão bloqueadas para este site. No Chrome: ⋮ → Configurações → Configurações do site → Notificações → CS Jardinagem → Permitir. Depois feche e abra o painel novamente.');
+    return
+   }
+   if(Notification.permission==='default'){const p=await Notification.requestPermission();if(p!=='granted'){b.textContent='🔔 Ativar notificações';return}}
+   const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push2');
+   await navigator.serviceWorker.ready;
+   let sub=await reg.pushManager.getSubscription();
+   if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(PUB)});
+   const j=sub.toJSON(),tok=localStorage.getItem('cs_admin_access');
+   if(!tok)throw new Error('Sessão administrativa não encontrada.');
+   const u=await fetch(URL+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+tok}}).then(x=>x.json());
+   if(!u?.id)throw new Error('Não foi possível identificar o usuário.');
+   const rr=await fetch(URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+tok,Prefer:'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,endpoint:j.endpoint,p256dh:j.keys?.p256dh,auth:j.keys?.auth,user_agent:navigator.userAgent})});
+   if(!rr.ok)throw new Error(await rr.text());
+   b.textContent='🟢 Notificações ativas';
+  }catch(e){console.error(e);b.textContent='🔔 Ativar notificações';alert('Não foi possível ativar agora. '+(e.message||e))}
+ }
+ function bind(){
+  const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar'),pb=document.getElementById('enablePush');
+  if(p7)p7.onclick=()=>window.analytics(7);
+  if(p30)p30.onclick=()=>window.analytics(30);
+  if(up)up.onclick=()=>window.analytics(7);
+  if(pb)pb.onclick=push;
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
 </script></body></html>
