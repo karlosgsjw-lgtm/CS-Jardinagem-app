@@ -70,22 +70,43 @@ async function saveSiteSection(section){
  }catch(e){$("siteEditorMsg").textContent="❌ "+e.message}
 }
 loadSiteEditor().catch(e=>{if($("siteEditorMsg"))$("siteEditorMsg").textContent=e.message});
-async function analytics(days=7){try{const since=new Date(Date.now()-days*864e5).toISOString();const ev=await api('/rest/v1/site_analytics_events?select=*&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000');const v=ev.filter(x=>x.event_type==='page_view'),c=ev.filter(x=>x.event_type==='click'),u=new Set(v.map(x=>x.session_id)).size,o=pedidos.filter(x=>new Date(x.criado_em)>=new Date(since)).length,cv=u?o/u*100:0;$('#astats').innerHTML=[['👤','Pessoas',u],['👁️','Visitas',v.length],['🖱️','Cliques',c.length],['💰','Orçamentos',o],['🎯','Conversão',cv.toFixed(1)+'%']].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+esc(x[2])+'</b><span>'+x[1]+'</span></div>').join('');bars('av',v,days);const om={};pedidos.forEach(x=>{const d=new Date(x.criado_em);if(d>=new Date(since)){const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});om[k]=(om[k]||0)+1}});bars('ao',Object.entries(om).map(x=>({created_at:x[0],n:x[1]})),days,true);const cm={};c.forEach(x=>cm[x.element||'Outro']=(cm[x.element||'Outro']||0)+1);$('#ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique.</span>';const meta=v.map(x=>x.metadata||{});rank('asrc',group(meta.map(x=>sourceName(x.referrer))));rank('acity',group(meta.map(x=>x.city?(x.city+(x.region?', '+x.region:'')):null)));rank('adev',group(meta.map(x=>x.device)));rank('abro',group(meta.map(x=>x.browser)));const recent=v.slice(-10).reverse();$('#arecent').innerHTML='<div class="recentRow recentHead"><span>Horário</span><span>Local</span><span>Origem</span><span>Dispositivo / navegador</span></div>'+recent.map(x=>{const m=x.metadata||{};return '<div class="recentRow"><strong>'+new Date(x.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</strong><span>'+esc(m.city?(m.city+(m.region?', '+m.region:'')):(m.country||'Não disponível'))+'</span><span>'+esc(sourceName(m.referrer))+'</span><span>'+esc((m.device||'—')+' · '+(m.browser||'—'))+'</span></div>'}).join('')||'<span class="small">Nenhuma visita no período.</span>';$('#ai').innerHTML='<div class="ind">👤 Pessoas únicas <b>'+u+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(u?(v.length/u).toFixed(1):0)+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(v.length?(c.length/v.length).toFixed(1):0)+'</b></div><div class="ind">💰 Conversão em orçamento <b>'+cv.toFixed(1)+'%</b></div>';$('#amsg').textContent='Últimos '+days+' dias · atualizado agora.'}catch(e){$('#amsg').textContent='Erro: '+e.message}}function bars(id,data,days,isOrders=false){
- const el=$('#'+id);
- const counts={};
- if(isOrders){
-   (data||[]).forEach(x=>{const k=x.created_at;counts[k]=(counts[k]||0)+(x.n||0)});
- }else{
-   (data||[]).forEach(x=>{const d=new Date(x.created_at);if(!isNaN(d)){const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});counts[k]=(counts[k]||0)+1}});
+async function analytics(days=7){
+ const msg=$('#amsg'); if(msg)msg.textContent='Carregando estatísticas...';
+ try{
+  const since=new Date(Date.now()-days*864e5).toISOString();
+  const evRaw=await api('/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000');
+  const ev=Array.isArray(evRaw)?evRaw:[];
+  const v=ev.filter(x=>x.event_type==='page_view');
+  const clicks=ev.filter(x=>x.event_type==='click');
+  const unique=new Set(v.map(x=>x.session_id).filter(Boolean)).size;
+  const orders=Array.isArray(pedidos)?pedidos:[];
+  const orderCount=orders.filter(x=>x?.criado_em && new Date(x.criado_em)>=new Date(since)).length;
+  const cv=unique?orderCount/unique*100:0;
+  $('#astats').innerHTML=[
+   ['👤','Pessoas',unique],['👁️','Visitas',v.length],['🖱️','Cliques',clicks.length],
+   ['💰','Orçamentos',orderCount],['🎯','Conversão',cv.toFixed(1)+'%']
+  ].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+esc(x[2])+'</b><span>'+x[1]+'</span></div>').join('');
+  bars('av',v,days);
+  const om={};
+  orders.forEach(x=>{if(!x?.criado_em)return;const d=new Date(x.criado_em);if(d>=new Date(since)){const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});om[k]=(om[k]||0)+1}});
+  bars('ao',Object.entries(om).map(x=>({created_at:x[0],n:x[1]})),days,true);
+  const cm={}; clicks.forEach(x=>cm[x.element||x.metadata?.element||'Outro']=(cm[x.element||x.metadata?.element||'Outro']||0)+1);
+  $('#ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique no período.</span>';
+  const meta=v.map(x=>x.metadata||{});
+  rank('asrc',group(meta.map(x=>sourceName(x.referrer))));
+  rank('acity',group(meta.map(x=>x.city?(x.city+(x.region?', '+x.region:'')):null)));
+  rank('adev',group(meta.map(x=>x.device)));
+  rank('abro',group(meta.map(x=>x.browser)));
+  const recent=v.slice(-10).reverse();
+  $('#arecent').innerHTML=recent.length?'<div class="recentRow recentHead"><span>Horário</span><span>Local</span><span>Origem</span><span>Dispositivo / navegador</span></div>'+recent.map(x=>{const m=x.metadata||{};return '<div class="recentRow"><strong>'+new Date(x.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</strong><span>'+esc(m.city?(m.city+(m.region?', '+m.region:'')):(m.country||'Não disponível'))+'</span><span>'+esc(sourceName(m.referrer))+'</span><span>'+esc((m.device||'—')+' · '+(m.browser||'—'))+'</span></div>'}).join(''):'<span class="small">Nenhuma visita no período.</span>';
+  $('#ai').innerHTML='<div class="ind">👤 Pessoas únicas <b>'+unique+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(unique?(v.length/unique).toFixed(1):0)+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(v.length?(clicks.length/v.length).toFixed(1):0)+'</b></div><div class="ind">💰 Conversão em orçamento <b>'+cv.toFixed(1)+'%</b></div>';
+  if(msg)msg.textContent='Últimos '+days+' dias · '+v.length+' visitas registradas · atualizado agora.';
+ }catch(e){
+  console.error('analytics',e);
+  $('#astats').innerHTML='<div style="grid-column:1/-1"><b>Não foi possível carregar os dados.</b><span>Toque em Atualizar para tentar novamente.</span></div>';
+  $('#av').innerHTML='';$('#ao').innerHTML='';$('#ac').innerHTML='';$('#ai').innerHTML='';
+  if(msg)msg.textContent='Erro nas estatísticas: '+(e.message||e);
  }
- const now=new Date(), labels=[];
- for(let i=Math.min(days,14)-1;i>=0;i--){
-   const d=new Date(now);d.setDate(now.getDate()-i);
-   labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
- }
- const vals=labels.map(k=>counts[k]||0),max=Math.max(1,...vals);
- el.innerHTML='<div class="chart">'+vals.map((v,i)=>'<div class="barWrap"><div class="bar" style="height:'+Math.max(v?4:0,(v/max)*100)+'%"></div><span class="barValue">'+v+'</span><span class="barLabel">'+labels[i]+'</span></div>').join('')+'</div>';
 }
-function group(arr){const m={};arr.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,8)}function sourceName(ref){if(!ref)return'Link direto / desconhecido';try{const h=new URL(ref).hostname.replace(/^www\\./,'');if(h.includes('google'))return'Google';if(h.includes('instagram'))return'Instagram';if(h.includes('facebook'))return'Facebook';if(h.includes('tiktok'))return'TikTok';if(h.includes('whatsapp'))return'WhatsApp';if(h.includes('github.io'))return'Seu app/site';return h}catch(_){return'Outro'}}function rank(id,items){const el=$('#'+id);if(!items.length){el.innerHTML='<span class="small">Ainda não há dados suficientes.</span>';return}const max=items[0][1];el.innerHTML='<div class="rankList">'+items.map(x=>'<div class="rank"><div class="rankInfo"><div class="rankName">'+esc(x[0])+'</div><div class="rankTrack"><div class="rankFill" style="width:'+Math.max(8,x[1]/max*100)+'%"></div></div></div><b>'+x[1]+'</b></div>').join('')+'</div>'}
 $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').onclick=()=>analytics(7);
 </script></script></body></html>
