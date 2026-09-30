@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20260929';
+    const key='csj_cache_reset_20260930';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -777,6 +777,7 @@ function clearAllTransientFormStates(){
 window.tab=t=>{saveCurrentFormState();csCurrentTab=t;try{sessionStorage.setItem('csj_current_tab',t)}catch(e){}document.querySelectorAll('nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('#moreMenu button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));closeMoreMenu();try{if(t==='inicio')agenda();if(t==='anual')annualPage();if(t==='clientes')clientPage();if(t==='ajudantes')helpersPage();if(t==='financeiro')financePage();if(t==='emissao')emissaoPage();if(t==='necessidades')necessidadesPage();if(t==='orcamentos')orcamentosPage();if(t==='usuarios')usersPage();addTabSearch(t);applyMoneyVisibility();setTimeout(()=>restoreCurrentFormState(t),0)}catch(e){$('content').innerHTML='<div class="notice"><b>Erro nesta tela:</b> '+esc(e?.message||e)+'</div>'}};
 function plannedForDate(ds){return annuals.filter(x=>x.data_agendada===ds)}
 window.openAnnualOverview=function(year=new Date().getFullYear()){
+  return openAnnualComplete(year);
   const names=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
   let html='<h2>🗓️ Agenda anual '+year+'</h2><p class="muted small">Todos os meses em uma única tela. Os clientes aparecem nas datas já agendadas.</p><div class="annualOverviewGrid">';
   for(let m=0;m<12;m++){
@@ -1571,5 +1572,5 @@ window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este r
 </script>
 </body></html>
 <script>
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20260929-photos2").catch(()=>{}));}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20260930-agenda").catch(()=>{}));}
 </script>
