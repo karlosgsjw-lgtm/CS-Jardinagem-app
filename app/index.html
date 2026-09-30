@@ -387,7 +387,7 @@ window.login=async()=>{
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
   }
-};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{$('modal').classList.add('hidden')};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
+};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{const yr=annualCompleteReturnYear;annualCompleteReturnYear=null;$('modal').classList.add('hidden');if(yr){setTimeout(()=>openAnnualComplete(yr),0)}};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
@@ -804,6 +804,7 @@ function agenda(){
 window.changeMonth=n=>{month.setMonth(month.getMonth()+n);agenda()};
 let forecast={};async function weather(){forecast={};try{let r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.6677&longitude=-46.4614&daily=weather_code&timezone=America%2FSao_Paulo&forecast_days=16');let j=await r.json();j.daily.time.forEach((d,i)=>forecast[d]=weatherIcon(j.daily.weather_code[i]));document.querySelectorAll('[id^="wx-"]').forEach(e=>e.textContent=forecast[e.id.slice(3)]||'')}catch(e){}}
 function weatherIcon(c){if(c===0)return'☀️';if(c<=3)return'🌤️';if(c<=48)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';return'⛈️'}
+let annualCompleteReturnYear=null;
 window.dayDetails=ds=>{
   const sortByTime=(a,b)=>String(a.horario_inicio||'').localeCompare(String(b.horario_inicio||''))||String(a.horario_fim||'').localeCompare(String(b.horario_fim||''))||String(a.clientes?.nome||'').localeCompare(String(b.clientes?.nome||''));
   let list=appts.filter(a=>a.data_atendimento===ds).sort(sortByTime),pl=plannedForDate(ds).filter(x=>!list.some(a=>a.cliente_id===x.cliente_id));
@@ -955,7 +956,7 @@ window.saveAppt=async id=>{
   let r=id?await dbClient.from('atendimentos').update(p).eq('id',id):await dbClient.from('atendimentos').insert({...p,responsavel_id:me.id}).select('id').single();
   if(r.error)return alert(r.error.message);let savedId=id||r.data?.id;
   try{for(const f of pendingApptFiles)await saveAttachment('appt',savedId,f,'');pendingApptFiles=[]}catch(e){console.warn('Anexos do atendimento:',e)}
-  closeModal();await loadData();scheduleAndroidNotifications();agenda()
+  const returnAnnual=annualCompleteReturnYear;await loadData();scheduleAndroidNotifications();if(returnAnnual){closeModal()}else{closeModal();agenda()}
 };
 window.deleteAppointment=async(id,ds)=>{if(!await csConfirm('Tem certeza que deseja excluir?'))return;let r=await dbClient.from('atendimentos').delete().eq('id',id);if(r.error)return alert(r.error.message);await deleteAllAttachments('appt',id);await loadData();scheduleAndroidNotifications();dayDetails(ds)};
 
@@ -1025,18 +1026,20 @@ function annualPage(){
   $('content').innerHTML='<div class="toolbar"><h2>🗓️ Agenda Anual</h2><div class="row"><span class="muted">'+year+'</span><button type="button" class="btn" onclick="openAnnualComplete('+year+')">🗓️ Calendário completo</button></div></div><div class="panel"><p class="muted">As datas criadas ou alteradas na Agenda principal também aparecem automaticamente aqui e na agenda anual de cada cliente.</p>'+clients.map(c=>'<div class="row infoLine annualClientRow"><b>'+esc(c.nome)+'</b><span class="actionGroup"><button type="button" class="btn alt annualClientIcon" aria-label="Visualizar calendário anual" title="Visualizar calendário anual" onclick="openAnnual('+c.id+','+year+')">🗓️</button></span></div>').join('')||'<p class="muted">Cadastre clientes primeiro.</p>'+'</div>';
 }
 
-window.openAnnualComplete=function(year=new Date().getFullYear()){
+window.openAnnualComplete=function(year=new Date().getFullYear()){annualCompleteReturnYear=null;
   const byDate={};
   annuals.filter(x=>Number(x.ano)===Number(year)).forEach(x=>{const c=clients.find(c=>c.id===x.cliente_id);if(c)(byDate[x.data_agendada]??=[]).push(c.nome)});
   let months=[];
   for(let m=0;m<12;m++){
     const first=new Date(year,m,1),last=new Date(year,m+1,0).getDate(),start=first.getDay(),cells=[];
     for(let i=0;i<start;i++)cells.push('<div class="annualAllCell empty"></div>');
-    for(let d=1;d<=last;d++){const ds=iso(new Date(year,m,d)),names=[...new Set(byDate[ds]||[])];cells.push('<div class="annualAllCell '+(names.length?'hasClient':'')+'"><b>'+d+'</b>'+(names.length?'<div class="annualAllNames">'+names.map(esc).join('<br>')+'</div>':'')+'</div>')}
+    for(let d=1;d<=last;d++){const ds=iso(new Date(year,m,d)),names=[...new Set(byDate[ds]||[])];cells.push('<div class="annualAllCell '+(names.length?'hasClient':'')+'" role="button" tabindex="0" onclick="openAnnualCompleteDay(\''+ds+'\','+year+')"><b>'+d+'</b>'+(names.length?'<div class="annualAllNames">'+names.map(esc).join('<br>')+'</div>':'')+'</div>')}
     months.push('<div class="annualAllMonth"><h3>'+new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(first)+'</h3><div class="annualAllWeek">'+['D','S','T','Q','Q','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="annualAllGrid">'+cells.join('')+'</div></div>');
   }
-  openModal('<h2>🗓️ Agenda anual completa — '+year+'</h2><p class="muted">Todos os clientes e todas as datas do ano.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
+  openModal('<h2>🗓️ Agenda anual completa — '+year+'</h2><p class="muted">Toque em qualquer dia para ver e editar somente os serviços daquele dia.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
 };
+
+window.openAnnualCompleteDay=function(ds,year){annualCompleteReturnYear=year;dayDetails(ds)};
 
 window.printAnnualComplete=function(year){
   const byDate={};annuals.filter(x=>Number(x.ano)===Number(year)).forEach(x=>{const c=clients.find(c=>c.id===x.cliente_id);if(c)(byDate[x.data_agendada]??=[]).push(c.nome)});
