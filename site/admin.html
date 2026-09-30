@@ -117,11 +117,10 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
   const cards=document.getElementById('astats');
   if(!cards)return;
   try{
-   const token=localStorage.getItem('cs_admin_access');
+   const token=accessToken||localStorage.getItem('cs_admin_access');
    if(!token)throw new Error('Sessão administrativa não encontrada.');
    const base='https://lttqucegcmzwfsnrtdyj.supabase.co';
-   const key='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
-   const headers={apikey:key,Authorization:'Bearer '+token};
+   const headers={apikey:SB_KEY,Authorization:'Bearer '+token};
    const since=new Date(Date.now()-30*864e5).toISOString();
    const res=await fetch(base+'/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000',{headers});
    const data=await res.json();
