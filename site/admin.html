@@ -204,4 +204,33 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
+</script><script>
+(function(){
+ const U='https://lttqucegcmzwfsnrtdyj.supabase.co',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+ async function stats(days){
+  const token=localStorage.getItem('cs_admin_access');
+  const msg=document.getElementById('amsg');
+  if(!token){if(msg)msg.textContent='Sessão não encontrada.';return}
+  try{
+   const since=new Date(Date.now()-days*864e5).toISOString();
+   const h={apikey:K,Authorization:'Bearer '+token};
+   const q=await fetch(U+'/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000',{headers:h});
+   if(!q.ok)throw new Error('Estatísticas: HTTP '+q.status);
+   const ev=await q.json(),v=ev.filter(x=>x.event_type==='page_view'),cl=ev.filter(x=>x.event_type==='click');
+   const unique=new Set(v.map(x=>x.session_id).filter(Boolean)).size;
+   let orders=0;
+   try{const oq=await fetch(U+'/rest/v1/site_orcamentos?select=criado_em&criado_em=gte.'+encodeURIComponent(since),{headers:h});if(oq.ok)orders=(await oq.json()).length}catch(_){}
+   document.getElementById('astats').innerHTML=[['👤','Pessoas',unique],['👁️','Visitas',v.length],['🖱️','Cliques',cl.length],['💰','Orçamentos',orders]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
+   const by={};v.forEach(x=>{const d=new Date(x.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});by[d]=(by[d]||0)+1});
+   document.getElementById('av').innerHTML=Object.entries(by).map(x=>'<div style="display:inline-flex;flex-direction:column;align-items:center;margin:0 4px;vertical-align:bottom"><b style="font-size:11px">'+x[1]+'</b><div style="height:'+Math.max(8,x[1]*12)+'px;width:14px;background:#15803d;border-radius:5px 5px 0 0"></div><span style="font-size:9px">'+x[0]+'</span></div>').join('')||'<span class="small">Nenhuma visita.</span>';
+   document.getElementById('ac').innerHTML=(cl.map(x=>x.metadata?.element||'Outro').reduce((a,x)=>(a[x]=(a[x]||0)+1,a),{})); 
+   const cm={};cl.forEach(x=>{const k=x.metadata?.element||x.element||'Outro';cm[k]=(cm[k]||0)+1});
+   document.getElementById('ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique.</span>';
+   if(msg)msg.textContent='Últimos '+days+' dias · '+v.length+' visitas · atualizado agora.';
+  }catch(e){console.error(e);if(msg)msg.textContent='❌ '+e.message;document.getElementById('astats').innerHTML='<div style="grid-column:1/-1"><b>Erro ao carregar estatísticas</b><span>'+e.message+'</span></div>'}
+ }
+ function bind(){document.getElementById('a7')?.addEventListener('click',()=>stats(7));document.getElementById('a30')?.addEventListener('click',()=>stats(30));document.getElementById('ar')?.addEventListener('click',()=>stats(7));if(localStorage.getItem('cs_admin_access'))setTimeout(()=>stats(7),1200)}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+ window.statsDiretas=stats;
+})();
 </script></body></html>
