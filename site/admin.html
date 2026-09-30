@@ -229,8 +229,31 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
    if(msg)msg.textContent='Últimos '+days+' dias · '+v.length+' visitas · atualizado agora.';
   }catch(e){console.error(e);if(msg)msg.textContent='❌ '+e.message;document.getElementById('astats').innerHTML='<div style="grid-column:1/-1"><b>Erro ao carregar estatísticas</b><span>'+e.message+'</span></div>'}
  }
- function bind(){document.getElementById('a7')?.addEventListener('click',()=>stats(7));document.getElementById('a30')?.addEventListener('click',()=>stats(30));document.getElementById('ar')?.addEventListener('click',()=>stats(7));if(localStorage.getItem('cs_admin_access'))setTimeout(()=>stats(7),1200)}
+ function bind(){
+ const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar');
+ const run=async(d)=>{[p7,p30].forEach(x=>x&&x.classList.remove('active'));const b=d===7?p7:p30;if(b)b.classList.add('active');await stats(d)};
+ if(p7)p7.onclick=()=>run(7);
+ if(p30)p30.onclick=()=>run(30);
+ if(up)up.onclick=()=>run(window._statsDays||7);
+ window._statsDays=7;
+ if(localStorage.getItem('cs_admin_access'))setTimeout(()=>run(7),1200)
+}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
  window.statsDiretas=stats;
+})();
+</script><style>
+#siteAnalytics #a7.active,#siteAnalytics #a30.active{background:#15803d!important;color:#fff!important;border-color:#15803d!important}
+</style>
+<script>
+(function(){
+ function force(){
+  const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar');
+  if(!p7||!p30||!up||!window.statsDiretas)return;
+  const run=async d=>{window._statsDays=d;p7.style.background=d===7?'#15803d':'';p7.style.color=d===7?'#fff':'';p30.style.background=d===30?'#15803d':'';p30.style.color=d===30?'#fff':'';await window.statsDiretas(d)};
+  p7.onclick=()=>run(7);p30.onclick=()=>run(30);up.onclick=()=>run(window._statsDays||7);
+  setTimeout(()=>run(window._statsDays||7),300);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',force);else force();
+ setTimeout(force,1500);
 })();
 </script></body></html>
