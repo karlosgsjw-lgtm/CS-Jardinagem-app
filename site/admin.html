@@ -90,7 +90,7 @@ async function saveSiteSection(section){
  }catch(e){$("siteEditorMsg").textContent="❌ "+e.message}
 }
 loadSiteEditor().catch(e=>{if($("siteEditorMsg"))$("siteEditorMsg").textContent=e.message});
-async async async function analytics(days=7){
+async function analytics(days=7){
  const msg=$('#amsg'); if(msg)msg.textContent='Carregando estatísticas...';
  try{
   const since=new Date(Date.now()-days*864e5).toISOString();
@@ -162,7 +162,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  const URL="https://lttqucegcmzwfsnrtdyj.supabase.co";
  const PUB="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
  function b64(s){const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from([...r],c=>c.charCodeAt(0))}
- async async function push(){
+ async function push(){
   const b=document.getElementById('enablePush'); if(!b)return;
   try{
    if(!window.isSecureContext||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){b.textContent='🔔 Push não disponível';return}
