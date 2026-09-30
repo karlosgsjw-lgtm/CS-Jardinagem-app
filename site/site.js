@@ -94,7 +94,7 @@ loadSiteContent();
       const body={p_event_type:type,p_session_id:sid,p_path:location.pathname,p_element:element||null,p_metadata:metadata};
       fetch(SB_URL+'/rest/v1/rpc/site_registrar_analytics',{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)}).catch(()=>{});
     };
-    send('page_view','page_view',{referrer:document.referrer||null,screen:innerWidth+'x'+innerHeight});
+    (async()=>{try{let geo=null;try{const gr=await fetch('https://ipapi.co/json/');if(gr.ok)geo=await gr.json()}catch(_){}const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||null;const ua=navigator.userAgent||'';const device=/Mobi|Android|iPhone|iPad/i.test(ua)?'Celular/tablet':'Computador';const browser=/Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)&&!/Chrome\//.test(ua)?'Safari':'Outro';send('page_view','page_view',{referrer:document.referrer||null,screen:innerWidth+'x'+innerHeight,language:navigator.language||null,timezone:tz,device,browser,city:geo?.city||null,region:geo?.region||null,country:geo?.country_name||null,country_code:geo?.country_code||null,org:geo?.org||null})}catch(_){send('page_view','page_view',{referrer:document.referrer||null,screen:innerWidth+'x'+innerHeight})}})();
     document.addEventListener('click',e=>{
       const el=e.target.closest('a,button');
       if(!el)return;
