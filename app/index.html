@@ -350,7 +350,55 @@ async function boot(){
 async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
 async function loadData(){let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];let h=await dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome');helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[]}
-function scheduleAndroidNotifications(){try{if(!window.AndroidNotifications)return;let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid:unpaid});window.AndroidNotifications.scheduleNotifications(JSON.stringify(data))}catch(e){console.warn('Notificações Android:',e)}}
+let csLocalNotified={};
+try{csLocalNotified=JSON.parse(localStorage.getItem('csj_local_notified')||'{}')}catch(e){}
+async function requestAppNotifications(){
+ try{
+  if(!('Notification' in window))return false;
+  if(Notification.permission==='default')await Notification.requestPermission();
+  return Notification.permission==='granted';
+ }catch(e){return false}
+}
+function appNotify(title,body,tag){
+ try{
+  if(Notification.permission!=='granted')return;
+  new Notification(title,{body,tag,icon:'./icon.svg',badge:'./icon.svg',silent:false});
+ }catch(e){console.warn('Notificação:',e)}
+}
+function scheduleAndroidNotifications(){
+ try{
+  if(window.AndroidNotifications){
+   let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);
+   let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));
+   let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);
+   let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));
+   if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid});
+   window.AndroidNotifications.scheduleNotifications(JSON.stringify(data));
+  }
+ }catch(e){console.warn('Notificações Android:',e)}
+ try{requestAppNotifications().then(appCheckNotifications)}catch(e){}
+}
+function appCheckNotifications(){
+ try{
+  if(!('Notification' in window)||Notification.permission!=='granted')return;
+  const now=new Date(),today=iso(now);
+  (appts||[]).filter(a=>a.data_atendimento===today).forEach(a=>{
+   const key='service-'+a.id+'-'+today;
+   if(csLocalNotified[key])return;
+   csLocalNotified[key]=true;
+   localStorage.setItem('csj_local_notified',JSON.stringify(csLocalNotified));
+   appNotify('🌿 CS Jardinagem','Hoje tem serviço: '+(a.clientes?.nome||'Cliente')+(a.valor_servico||a.valor?' · R$ '+Number(a.valor_servico??a.valor).toFixed(2).replace('.',','):''),'service-'+a.id);
+  });
+  const monthKey='unpaid-'+now.getFullYear()+'-'+now.getMonth();
+  const unpaid=(appts||[]).filter(a=>{const d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).length;
+  if(now.getDate()>=25&&unpaid&&!csLocalNotified[monthKey]){
+   csLocalNotified[monthKey]=true;localStorage.setItem('csj_local_notified',JSON.stringify(csLocalNotified));
+   appNotify('💰 CS Jardinagem','Há '+unpaid+' atendimento(s) em aberto neste mês.','unpaid-month');
+  }
+ }catch(e){console.warn('Notificação local:',e)}
+}
+setInterval(appCheckNotifications,60000);
+
 
 function showLogin(){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden')}
 let csCurrentTab='inicio';
@@ -1578,5 +1626,5 @@ window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este r
 </script>
 </body></html>
 <script>
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20260930-editsite2").catch(()=>{}));}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20260930-notify").catch(()=>{}));}
 </script>
