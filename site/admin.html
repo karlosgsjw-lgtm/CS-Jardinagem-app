@@ -9,12 +9,13 @@
   if(!j?.access_token)throw new Error("O servidor não retornou a sessão de acesso.");
   accessToken=j.access_token;localStorage.setItem("cs_admin_access",accessToken);
   $("loginMsg").textContent="Acesso confirmado. Abrindo painel...";
-  await showApp();
-  await enableSitePush();
+  $("login").style.display="none";$("app").style.display="block";$("logout").style.display="block";
+  showApp().catch(err=>console.error("showApp",err));
+  setTimeout(()=>enableSitePush().catch(()=>{}),300);
  }catch(e){
   console.error("Falha no login:",e);
   $("loginMsg").textContent="❌ "+(e.message||"Não foi possível entrar.");
-  localStorage.removeItem("cs_admin_access");
+  if(String(e.message||"").toLowerCase().includes("invalid login")||String(e.message||"").toLowerCase().includes("senha")||String(e.message||"").toLowerCase().includes("e-mail")) localStorage.removeItem("cs_admin_access");
  }finally{$("entrar").disabled=false}
 }const PUSH_PUBLIC_KEY="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
 function b64ToUint8(base64){const pad='='.repeat((4-base64.length%4)%4);const s=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
