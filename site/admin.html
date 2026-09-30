@@ -90,7 +90,7 @@ async function saveSiteSection(section){
  }catch(e){$("siteEditorMsg").textContent="❌ "+e.message}
 }
 loadSiteEditor().catch(e=>{if($("siteEditorMsg"))$("siteEditorMsg").textContent=e.message});
-async async function analytics(days=7){
+async async async function analytics(days=7){
  const msg=$('#amsg'); if(msg)msg.textContent='Carregando estatísticas...';
  try{
   const since=new Date(Date.now()-days*864e5).toISOString();
@@ -162,7 +162,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  const URL="https://lttqucegcmzwfsnrtdyj.supabase.co";
  const PUB="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
  function b64(s){const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from([...r],c=>c.charCodeAt(0))}
- async function push(){
+ async async function push(){
   const b=document.getElementById('enablePush'); if(!b)return;
   try{
    if(!window.isSecureContext||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){b.textContent='🔔 Push não disponível';return}
@@ -185,12 +185,22 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
    b.textContent='🟢 Notificações ativas';
   }catch(e){console.error(e);b.textContent='🔔 Ativar notificações';alert('Não foi possível ativar agora. '+(e.message||e))}
  }
+ async function refreshPushState(){
+  const b=document.getElementById('enablePush'); if(!b)return;
+  try{
+    if(!('Notification'in window)||Notification.permission!=='granted'){b.textContent='🔔 Ativar notificações';return}
+    const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push3');
+    const sub=await reg.pushManager.getSubscription();
+    b.textContent=sub?'🟢 Notificações ativas':'🔔 Ativar notificações';
+  }catch(e){b.textContent='🔔 Ativar notificações'}
+ }
  function bind(){
   const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar'),pb=document.getElementById('enablePush');
   if(p7)p7.onclick=()=>window.analytics(7);
   if(p30)p30.onclick=()=>window.analytics(30);
   if(up)up.onclick=()=>window.analytics(7);
   if(pb)pb.onclick=push;
+  refreshPushState();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
