@@ -89,7 +89,7 @@ async function saveSiteSection(section){
  }catch(e){$("siteEditorMsg").textContent="❌ "+e.message}
 }
 loadSiteEditor().catch(e=>{if($("siteEditorMsg"))$("siteEditorMsg").textContent=e.message});
-async function analytics(days=7){
+async async function analytics(days=7){
  const msg=$('#amsg'); if(msg)msg.textContent='Carregando estatísticas...';
  try{
   const since=new Date(Date.now()-days*864e5).toISOString();
