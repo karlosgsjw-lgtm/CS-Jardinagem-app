@@ -32,6 +32,7 @@ loadSiteContent();
   let visibleTimer=null;
   let restartTimer=null;
   let active=false;
+  let closedByUser=false;
 
   function show(){
     if(!active)return;
@@ -54,7 +55,7 @@ loadSiteContent();
 
     if(visible){
       active=true;
-      if(!popup.classList.contains('show')) show();
+      if(!closedByUser && !popup.classList.contains('show')) show();
     }else{
       active=false;
       clearTimeout(visibleTimer);
@@ -69,11 +70,11 @@ loadSiteContent();
   observer.observe(quote);
 
   popup.querySelector('.budgetPopupClose')?.addEventListener('click',()=>{
+    closedByUser=true;
     clearTimeout(visibleTimer);
     clearTimeout(restartTimer);
     popup.classList.remove('show');
     popup.setAttribute('aria-hidden','true');
-    if(active) restartTimer=setTimeout(show,2000);
   });
 
   popup.querySelector('.budgetPopupBtn')?.addEventListener('click',()=>{
