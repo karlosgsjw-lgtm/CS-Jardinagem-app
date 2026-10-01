@@ -1080,9 +1080,15 @@ window.saveHelper=async id=>{
   helpersPage();
 };
 
-function annualPage(){
-  let year=new Date().getFullYear();
-  $('content').innerHTML='<div class="toolbar"><h2>🗓️ Agenda Anual</h2><div class="row"><span class="muted">'+year+'</span><button type="button" class="btn" onclick="openAnnualComplete('+year+')">🗓️ Calendário completo</button></div></div><div class="panel"><p class="muted">As datas criadas ou alteradas na Agenda principal também aparecem automaticamente aqui e na agenda anual de cada cliente.</p>'+clients.map(c=>'<div class="row infoLine annualClientRow"><b>'+esc(c.nome)+'</b><span class="actionGroup"><button type="button" class="btn alt annualClientIcon" aria-label="Visualizar calendário anual" title="Visualizar calendário anual" onclick="openAnnual('+c.id+','+year+')">🗓️</button></span></div>').join('')||'<p class="muted">Cadastre clientes primeiro.</p>'+'</div>';
+function annualYearOptions(selected){
+  const now=new Date().getFullYear(),start=Math.min(2020,now-5),end=Math.max(2040,now+10);
+  let out='';
+  for(let y=start;y<=end;y++)out+='<option value="'+y+'" '+(Number(y)===Number(selected)?'selected':'')+'>'+y+'</option>';
+  return out;
+}
+function annualPage(year=new Date().getFullYear()){
+  year=Number(year)||new Date().getFullYear();
+  $('content').innerHTML='<div class="toolbar"><h2>🗓️ Agenda Anual</h2><div class="row"><label style="margin:0">Ano <select class="field" style="width:auto;min-width:105px;padding:9px 12px" onchange="annualPage(this.value)">'+annualYearOptions(year)+'</select></label><button type="button" class="btn" onclick="openAnnualComplete('+year+')">🗓️ Calendário completo</button></div></div><div class="panel"><p class="muted">Escolha o ano acima para consultar datas passadas ou futuras. As datas criadas ou alteradas na Agenda principal também aparecem automaticamente aqui e na agenda anual de cada cliente.</p>'+clients.map(c=>'<div class="row infoLine annualClientRow"><b>'+esc(c.nome)+'</b><span class="actionGroup"><button type="button" class="btn alt annualClientIcon" aria-label="Visualizar calendário anual" title="Visualizar calendário anual" onclick="openAnnual('+c.id+','+year+')">🗓️</button></span></div>').join('')||'<p class="muted">Cadastre clientes primeiro.</p>'+'</div>';
 }
 
 window.openAnnualComplete=function(year=new Date().getFullYear()){annualCompleteReturnYear=null;
@@ -1095,7 +1101,7 @@ window.openAnnualComplete=function(year=new Date().getFullYear()){annualComplete
     for(let d=1;d<=last;d++){const ds=iso(new Date(year,m,d)),names=[...new Set(byDate[ds]||[])];cells.push('<div class="annualAllCell '+(names.length?'hasClient':'')+'" role="button" tabindex="0" onclick="openAnnualCompleteDay(\''+ds+'\','+year+')"><b>'+d+'</b>'+(names.length?'<div class="annualAllNames">'+names.map(esc).join('<br>')+'</div>':'')+'</div>')}
     months.push('<div class="annualAllMonth"><h3>'+new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(first)+'</h3><div class="annualAllWeek">'+['D','S','T','Q','Q','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="annualAllGrid">'+cells.join('')+'</div></div>');
   }
-  openModal('<h2>🗓️ Agenda anual completa — '+year+'</h2><p class="muted">Toque em qualquer dia para ver e editar somente os serviços daquele dia.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
+  openModal('<div class="toolbar" style="margin:0 0 5px"><h2 style="margin:0">🗓️ Agenda anual completa</h2><label style="margin:0">Ano <select class="field" style="width:auto;min-width:95px;padding:8px 10px" onchange="openAnnualComplete(this.value)">'+annualYearOptions(year)+'</select></label></div><p class="muted">Toque em qualquer dia para ver e editar somente os serviços daquele ano.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
 };
 
 window.openAnnualCompleteDay=function(ds,year){annualCompleteReturnYear=year;dayDetails(ds)};
@@ -1630,5 +1636,5 @@ window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este r
 </script>
 </body></html>
 <script>
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20260930-notify").catch(()=>{}));}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261001-annualyear").catch(()=>{}));}
 </script>
