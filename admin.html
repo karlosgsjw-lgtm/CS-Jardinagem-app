@@ -1,1 +1,297 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=/CS-Jardinagem-app/site/admin.html"><title>CS Jardinagem — Administração</title><script>location.replace("/CS-Jardinagem-app/site/admin.html");</script></head><body><p>Abrindo o painel administrativo da CS Jardinagem...</p></body></html>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Painel de orçamentos | CS Jardinagem</title><link rel="stylesheet" href="style.css?v=20261001-adminfix2"><style>.admin{max-width:1150px;margin:35px auto;padding:0 18px}.login,.panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:25px;box-shadow:0 12px 35px #0a4d3010}.grid{display:grid;grid-template-columns:350px 1fr;gap:18px}.list{display:flex;flex-direction:column;gap:8px;max-height:650px;overflow:auto}.item{padding:14px;border:1px solid var(--line);border-radius:12px;cursor:pointer}.item.new{border-left:5px solid #e39b19}.item.active{background:#edf8f1}.small{font-size:12px;color:#71817a}.messages{min-height:180px;max-height:350px;overflow:auto;border:1px solid var(--line);padding:15px;border-radius:12px}.m{margin:8px 0;padding:10px;border-radius:12px;background:#eef5f1}.me{background:#087f4b;color:#fff;margin-left:20%}.tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.tools a,.tools button{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;font-weight:750;text-decoration:none;color:inherit;cursor:pointer}.top{display:flex;align-items:center;justify-content:space-between;gap:12px}.badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;padding:0 9px;border-radius:99px;background:#b42318;color:#fff;font-weight:800}.photos{display:flex;gap:10px;flex-wrap:wrap}.photos img{width:150px;height:110px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}.galleryAdmin{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.galleryCard{width:150px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}.galleryCard img{width:100%;height:105px;object-fit:cover;display:block}.galleryCard .gaBody{padding:8px}.galleryCard button{width:100%;border:0;border-radius:8px;padding:7px;background:#fee2e2;color:#991b1b;font-weight:800;cursor:pointer}.galleryUpload{border:2px dashed #a7c9b8;border-radius:12px;padding:16px;text-align:center;color:#087f4b;margin-top:12px}.galleryUpload input{margin-top:8px}.statusbox{padding:12px;border-radius:12px;background:#f6faf8;margin:12px 0}.logout{float:right}.editorGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.editCard{border:1px solid var(--line);border-radius:14px;padding:15px;background:#fbfdfc}.editCard h4{margin:0 0 10px}.editCard textarea{min-height:85px}.serviceEdit{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}.danger{background:#fee2e2!important;color:#991b1b!important}.orderDanger{margin-top:12px}.sitePreview{width:100%;height:420px;border:1px solid var(--line);border-radius:14px}@media(max-width:800px){.editorGrid{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.list{max-height:350px}.photos img{width:105px;height:85px}}</style><style>.analyticsCards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:15px 0}.analyticsCards>div{padding:15px;border:1px solid var(--line);border-radius:14px;background:#f8fcfa}.analyticsCards b{display:block;font-size:25px;color:#087f4b}.analyticsCards span{font-size:12px;color:#71817a}.analyticsGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.analyticsChartBox{border:1px solid var(--line);border-radius:14px;padding:15px}.chart{height:210px;display:flex;align-items:flex-end;gap:4px;border-bottom:1px solid var(--line);padding:10px 3px 22px}.barWrap{height:100%;flex:1;position:relative;display:flex;align-items:flex-end;justify-content:center}.bar{width:75%;max-width:32px;min-height:2px;background:#087f4b;border-radius:6px 6px 1px 1px}.barValue{position:absolute;top:-16px;font-size:9px}.barLabel{position:absolute;bottom:-20px;font-size:8px;transform:rotate(-35deg)}.clickRow,.ind{padding:8px 0;border-bottom:1px solid #edf2ef;display:flex;justify-content:space-between}@media(max-width:800px){.analyticsCards{grid-template-columns:repeat(2,1fr)}.analyticsGrid{grid-template-columns:1fr}}.analyticsCards>div{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff,#f5fbf7);box-shadow:0 8px 22px #0a4d3010;transition:.2s}.analyticsCards>div:hover{transform:translateY(-2px)}.analyticsCards>div:before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:#087f4b}.analyticsExtraGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}.rankList{display:flex;flex-direction:column;gap:7px;margin-top:10px}.rank{display:grid;grid-template-columns:1fr 42px;align-items:center;gap:10px}.rankInfo{min-width:0}.rankName{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rankTrack{height:7px;background:#e8f1ec;border-radius:99px;overflow:hidden;margin-top:4px}.rankFill{height:100%;background:#087f4b;border-radius:99px}.rank b{text-align:right;color:#087f4b}.recentRow{display:grid;grid-template-columns:110px 1fr 1fr 1fr;gap:8px;padding:9px 0;border-bottom:1px solid #edf2ef;font-size:11px}.recentRow strong{font-size:12px}.recentHead{font-weight:800;color:#71817a;font-size:10px}.analyticsNote{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f7faf8;color:#63736c;font-size:11px}@media(max-width:800px){.analyticsExtraGrid{grid-template-columns:1fr}}</style></head><body><header><a class="brand" href="index.html" title="Voltar ao site"><img src="/CS-Jardinagem-app/logo_cs_jardinagem.jpg?v=2" alt="CS Jardinagem"></a><strong style="margin-right:auto">Painel de orçamentos</strong><div class="tools" style="margin:0"><a href="index.html">🌐 Visualizar site</a><button id="backBtn" type="button">← Voltar</button><button id="logout" class="logout" style="display:none">Sair</button></div></header><main class="admin"><section id="login" class="login"><h2>Acesso da CS Jardinagem</h2><p>Entre com um dos usuários master já cadastrados no sistema.</p><input id="email" type="email" placeholder="E-mail"><input id="senha" type="password" placeholder="Senha"><button id="entrar" class="btn primary" style="margin-top:12px">Entrar</button><p id="loginMsg"></p></section><section id="app" style="display:none"><div class="grid"><div class="panel"><div class="top"><h3>Pedidos</h3><span id="newCount" class="badge">0</span></div><p class="small">Atualização automática a cada 10 segundos.</p><div id="list" class="list"></div></div><div class="panel"><div id="detail"><p>Selecione um pedido.</p></div></div></div><div class="panel" style="margin-top:18px"><div class="top"><div><h3>📊 Estatísticas do site</h3><div class="small">Acessos, cliques, pessoas e conversão em orçamento.</div></div><div class="tools"><button id="enablePush" type="button">🔔 Ativar notificações</button><button id="a7">7 dias</button><button id="a30">30 dias</button><button id="ar">↻ Atualizar</button></div></div><div id="astats" class="analyticsCards"></div><div class="analyticsGrid"><div class="analyticsChartBox"><h4>Acessos por dia</h4><div id="av"></div></div><div class="analyticsChartBox"><h4>Orçamentos por dia</h4><div id="ao"></div></div></div><div class="analyticsGrid"><div class="analyticsChartBox"><h4>🖱️ Cliques mais registrados</h4><div id="ac"></div></div><div class="analyticsChartBox"><h4>🎯 Indicadores</h4><div id="ai"></div></div></div><div class="analyticsExtraGrid"><div class="analyticsChartBox"><h4>🌎 De onde estão vindo</h4><div id="asrc"></div></div><div class="analyticsChartBox"><h4>📍 Cidades / regiões</h4><div id="acity"></div></div></div><div class="analyticsExtraGrid"><div class="analyticsChartBox"><h4>📱 Dispositivos</h4><div id="adev"></div></div><div class="analyticsChartBox"><h4>🌐 Navegadores</h4><div id="abro"></div></div></div><div class="analyticsChartBox" style="margin-top:14px"><h4>🕐 Visitas recentes</h4><div id="arecent"></div></div><div class="analyticsNote">📌 A localização é aproximada, baseada no IP. O endereço IP não é armazenado pelo site.</div><p id="amsg" class="small"></p></div><div class="panel" style="margin-top:18px"><div class="top"><div><h3>🌿 Galeria do site</h3><div class="small">Envie as fotos dos trabalhos que aparecerão na página pública.</div></div></div><div class="galleryUpload"><b>📷 Adicionar fotos</b><br><input id="galleryFiles" type="file" accept="image/*" multiple><button id="galleryUploadBtn" class="btn primary" type="button" style="margin-top:10px">Enviar fotos para a galeria</button><p id="galleryMsg" class="small"></p></div><div id="galleryAdmin" class="galleryAdmin"></div></div></div><div class="panel" style="margin-top:18px"><div class="top"><div><h3>✏️ Editor visual do site</h3><div class="small">Altere os textos, links e imagens e salve. A página pública passa a usar os valores salvos.</div></div><a class="btn primary" href="index.html" target="_blank" rel="noopener">👁️ Ver site</a></div><div id="siteEditor" class="editorGrid" style="margin-top:15px"></div><p id="siteEditorMsg" class="small"></p></div></section></main><script>const SB_URL="https://lttqucegcmzwfsnrtdyj.supabase.co";const SB_KEY="sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG";let accessToken=localStorage.getItem("cs_admin_access")||"";let refreshToken=localStorage.getItem("cs_admin_refresh")||"";let pedidos=[];let current=null;let firstLoad=true;const $=id=>document.getElementById(id);function headers(){return{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":"application/json"}}async function refreshAdminSession(){
+ if(!refreshToken)return false;
+ const r=await fetch(SB_URL+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{"apikey":SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:refreshToken})});
+ const j=await r.json().catch(()=>null);
+ if(!r.ok||!j?.access_token)return false;
+ accessToken=j.access_token;refreshToken=j.refresh_token||refreshToken;
+ localStorage.setItem("cs_admin_access",accessToken);localStorage.setItem("cs_admin_refresh",refreshToken);
+ return true;
+}
+async function api(path,opt={},retried=false){
+ let r=await fetch(SB_URL+path,{...opt,headers:{...headers(),...(opt.headers||{})}});
+ let j=await r.json().catch(()=>null);
+ if((r.status===401||r.status===403)&&!retried&&await refreshAdminSession()){
+   r=await fetch(SB_URL+path,{...opt,headers:{...headers(),...(opt.headers||{})}});
+   j=await r.json().catch(()=>null);
+ }
+ if(!r.ok)throw new Error(j?.message||j?.hint||j?.error_description||"Erro ao comunicar com o servidor.");
+ return j;
+}async function login(){
+ const email=$("email").value.trim(),senha=$("senha").value;
+ if(!email||!senha){$("loginMsg").textContent="Informe e-mail e senha.";return}
+ $("entrar").disabled=true;$("loginMsg").textContent="Entrando...";
+ try{
+  const r=await fetch(SB_URL+"/auth/v1/token?grant_type=password",{method:"POST",headers:{"apikey":SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({email,password:senha})});
+  const j=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error(j?.error_description||j?.msg||j?.message||"E-mail ou senha inválidos.");
+  if(!j?.access_token)throw new Error("O servidor não retornou a sessão de acesso.");
+  accessToken=j.access_token;refreshToken=j.refresh_token||"";localStorage.setItem("cs_admin_access",accessToken);if(refreshToken)localStorage.setItem("cs_admin_refresh",refreshToken);
+  $("loginMsg").textContent="Acesso confirmado. Abrindo painel...";
+  $("login").style.display="none";$("app").style.display="block";$("logout").style.display="block";
+  showApp().catch(err=>console.error("showApp",err));
+  
+ }catch(e){
+  console.error("Falha no login:",e);
+  $("loginMsg").textContent="❌ "+(e.message||"Não foi possível entrar.");
+  if(String(e.message||"").toLowerCase().includes("invalid login")||String(e.message||"").toLowerCase().includes("senha")||String(e.message||"").toLowerCase().includes("e-mail")) localStorage.removeItem("cs_admin_access");
+ }finally{$("entrar").disabled=false}
+}const PUSH_PUBLIC_KEY="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
+function b64ToUint8(base64){const pad='='.repeat((4-base64.length%4)%4);const s=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+async function enableSitePush(){
+ const b=document.getElementById("enablePush");
+ try{
+  if(b)b.textContent='⏳ Ativando...';
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){if(b)b.textContent='🔔 Push não disponível';return;}
+  if(Notification.permission==='default')await Notification.requestPermission();
+  if(Notification.permission!=='granted'){if(b)b.textContent='🔕 Permissão bloqueada';return;}
+  const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push4');
+  await navigator.serviceWorker.ready;
+  const existing=await reg.pushManager.getSubscription();
+  const sub=existing||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToUint8(PUSH_PUBLIC_KEY)});
+  const key=sub.toJSON();
+  const authUser=await fetch(SB_URL+'/auth/v1/user',{headers:headers()}).then(x=>x.json());
+  if(!authUser?.id)throw new Error('Sessão de administrador não encontrada. Entre novamente.');
+  const save=await fetch(SB_URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{...headers(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:authUser.id,endpoint:key.endpoint,p256dh:key.keys?.p256dh,auth:key.keys?.auth,user_agent:navigator.userAgent})});
+  if(!save.ok){const j=await save.json().catch(()=>null);throw new Error(j?.message||j?.hint||'Não foi possível salvar a inscrição de notificações.');}
+  if(b)b.textContent='✅ Notificações ativas';
+ }catch(e){if(b)b.textContent='❌ Falha ao ativar';console.warn('Web Push:',e);alert('Não foi possível ativar as notificações.\n\n'+(e?.message||e))}
+}
+async function showApp(){
+ $("login").style.display="none";$("app").style.display="block";$("logout").style.display="block";
+ try{await load()}catch(e){console.error("load",e)}
+ try{await loadGalleryAdmin()}catch(e){console.error("gallery",e)}
+ try{await analytics(7)}catch(e){console.error("analytics",e)}
+ 
+ let lastVisitCount=0;let analyticsReady=false;async function visitAlert(){try{const since=new Date(Date.now()-15*60e3).toISOString();const ev=await api('/rest/v1/site_analytics_events?select=*&event_type=eq.page_view&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.desc&limit=20');const count=ev.length;if(analyticsReady&&count>lastVisitCount&&'Notification'in window&&Notification.permission==='granted'){const m=ev[0]?.metadata||{};new Notification('Nova visita — CS Jardinagem',{body:(m.city?(m.city+', '+(m.region||'')):'Novo visitante')+' · '+(m.device||'dispositivo')})}lastVisitCount=count;analyticsReady=true}catch(e){}}setInterval(()=>load().catch(console.error),10000);setInterval(()=>visitAlert().catch(console.error),30000);visitAlert().catch(console.error);
+ setInterval(()=>analytics(7).catch(console.error),30000);
+}async function load(){try{const data=await api("/rest/v1/site_orcamentos?select=*&order=criado_em.desc");const oldIds=new Set(pedidos.map(p=>p.id));pedidos=data||[];const newOnes=pedidos.filter(p=>p.status==="novo"&&!oldIds.has(p.id));renderList();$("newCount").textContent=pedidos.filter(p=>p.status==="novo").length;if(!firstLoad&&newOnes.length&&"Notification"in window&&Notification.permission==="granted"){new Notification("Novo orçamento — CS Jardinagem",{body:newOnes.length===1?newOnes[0].nome+" enviou uma solicitação.":newOnes.length+" novos orçamentos recebidos."});}firstLoad=false;if(current){const fresh=pedidos.find(p=>p.id===current.id);if(fresh)current=fresh}}catch(e){if(String(e.message).toLowerCase().includes("jwt")||String(e.message).toLowerCase().includes("token")||String(e.message).toLowerCase().includes("unauthorized")){$("list").innerHTML="<p>⚠️ Sessão expirada. Clique em Sair e entre novamente.</p>"}else $("list").innerHTML="<p>"+e.message+"</p>"}}function renderList(){$("list").innerHTML="";if(!pedidos.length){$("list").innerHTML="<p class='small'>Nenhum orçamento recebido ainda.</p>";return}pedidos.forEach(p=>{const d=document.createElement("div");d.className="item "+(p.status==="novo"?"new ":"")+(current&&current.id===p.id?"active":"");d.innerHTML="<strong>"+esc(p.nome)+"</strong><div class='small'>"+esc(p.telefone)+" · "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div><div class='small'>"+esc(p.status.replace("_"," "))+"</div>";d.onclick=()=>openOrder(p);$("list").appendChild(d)})}function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}async function openOrder(p){current=p;history.pushState({orderId:p.id},"","#pedido-"+p.id);renderList();$("detail").innerHTML="<p>Carregando pedido...</p>";try{const [ms,fs]=await Promise.all([api("/rest/v1/site_mensagens?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc"),api("/rest/v1/site_orcamento_arquivos?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc")]);$("detail").innerHTML="<div class='top'><div><h2>"+esc(p.nome)+"</h2><div class='small'>Recebido em "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div></div><span class='badge' style='background:#087f4b'>"+esc(p.status.replace("_"," "))+"</span></div><div class='statusbox'><strong>Telefone:</strong> "+esc(p.telefone)+"<br><strong>E-mail:</strong> "+esc(p.email||"não informado")+"<br><strong>Pedido:</strong><br>"+esc(p.mensagem||"Sem descrição")+"</div><div class='tools'><button type='button' class='danger' onclick='deleteOrder()'>🗑️ Excluir pedido</button><a target='_blank' href='https://wa.me/55"+p.telefone.replace(/\\D/g,"")+"'>💬 WhatsApp</a><a href='tel:"+esc(p.telefone)+"'>📞 Ligar</a>"+(p.email?"<a href='mailto:"+esc(p.email)+"'>✉️ E-mail</a>":"")+"</div><h3>📷 Fotos enviadas ("+(fs||[]).length+")</h3><div class='photos'>"+(fs||[]).map(f=>"<a target='_blank' href='"+esc(f.url)+"'><img src='"+esc(f.url)+"' alt='"+esc(f.nome_arquivo)+"'></a>").join("")+"</div><h3>💬 Conversa</h3><div id='msgs' class='messages'>"+((ms||[]).length?(ms||[]).map(m=>"<div class='m "+(m.autor_tipo==="empresa"?"me":"")+"'><strong>"+esc(m.autor_nome)+"</strong><br>"+esc(m.mensagem)+"</div>").join(""):"<span class='small'>Ainda não há mensagens.</span>")+"</div><form id='reply'><textarea id='replyText' rows='3' placeholder='Responder pelo chat do site...' required></textarea><button class='btn primary full'>Enviar resposta</button></form>";$("reply").onsubmit=sendReply;if(p.status==="novo"){await api("/rest/v1/site_orcamentos?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify({status:"em_andamento",atualizado_em:new Date().toISOString()})});p.status="em_andamento";$("newCount").textContent=pedidos.filter(x=>x.status==="novo").length;renderList()}}catch(e){$("detail").innerHTML="<p>"+e.message+"</p>"}}async function sendReply(e){e.preventDefault();const text=$("replyText").value.trim();if(!text)return;const b=e.currentTarget.querySelector("button");b.disabled=true;try{await api("/rest/v1/site_mensagens",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({orcamento_id:current.id,autor_tipo:"empresa",autor_nome:"CS Jardinagem",mensagem:text})});await openOrder(current)}catch(err){alert("Não foi possível enviar a resposta.")}finally{b.disabled=false}}$("entrar").onclick=login;$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("logout").onclick=()=>{localStorage.removeItem("cs_admin_access");location.reload()};$("enablePush").onclick=enableSitePush;
+async function loadGalleryAdmin(){try{const data=await api("/rest/v1/site_galeria?select=*&order=ordem.asc,criado_em.desc");$("galleryAdmin").innerHTML=(data||[]).map(x=>"<div class='galleryCard'><img src='"+esc(x.url)+"' alt='"+esc(x.titulo||"Trabalho")+"' loading='lazy'><div class='gaBody'><div class='small'>"+esc(x.titulo||"Trabalho CS Jardinagem")+"</div><button type='button' onclick='deleteGallery("+x.id+",\""+String(x.caminho).replace(/"/g,"&quot;")+"\")'>Excluir</button></div></div>").join("")||"<p class='small'>Nenhuma foto cadastrada.</p>"}catch(e){$("galleryAdmin").innerHTML="<p>"+esc(e.message)+"</p>"}}
+async function uploadGallery(){const input=$("galleryFiles"),msg=$("galleryMsg"),btn=$("galleryUploadBtn");if(!input.files.length){msg.textContent="Selecione pelo menos uma foto.";return}btn.disabled=true;msg.textContent="Enviando fotos...";try{let ordem=Date.now()%2147483647;for(const file of [...input.files]){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const path="trabalhos/"+crypto.randomUUID()+"-"+safe;const sr=await fetch(SB_URL+"/storage/v1/object/site-galeria/"+path,{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"image/jpeg","x-upsert":"false"},body:file});if(!sr.ok)throw new Error("Não foi possível enviar "+file.name);const url=SB_URL+"/storage/v1/object/public/site-galeria/"+path;await api("/rest/v1/site_galeria",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({titulo:"Trabalho CS Jardinagem",url,caminho:path,ordem:ordem++})})}input.value="";msg.textContent="Fotos adicionadas à galeria.";await loadGalleryAdmin()}catch(e){msg.textContent=e.message||"Falha ao enviar fotos."}finally{btn.disabled=false}}
+document.getElementById("galleryUploadBtn")?.addEventListener("click",uploadGallery);document.getElementById("backBtn")?.addEventListener("click",()=>{if(history.length>1)history.back();else location.href="index.html"});window.addEventListener("popstate",()=>{if(!location.hash.startsWith("#pedido-")){current=null;$("detail").innerHTML="<p>Selecione um pedido.</p>";renderList()}});
+async function deleteGallery(id,path){if(!confirm("Excluir esta foto da galeria?"))return;try{await fetch(SB_URL+"/storage/v1/object/site-galeria/"+path.split("/").map(encodeURIComponent).join("/"),{method:"DELETE",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken}});await api("/rest/v1/site_galeria?id=eq."+encodeURIComponent(id),{method:"DELETE"});await loadGalleryAdmin()}catch(e){alert(e.message||"Não foi possível excluir a foto.")}}
+
+async function deleteOrder(){
+ if(!current)return;
+ if(!confirm("Excluir definitivamente este pedido, a conversa e as fotos enviadas?"))return;
+ const p=current;
+ try{
+  const fs=await api("/rest/v1/site_orcamento_arquivos?select=*&orcamento_id=eq."+encodeURIComponent(p.id));
+  for(const f of (fs||[])){try{await fetch(SB_URL+"/storage/v1/object/site-orcamentos/"+f.caminho,{method:"DELETE",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken}})}catch(_){}}
+  await api("/rest/v1/site_mensagens?orcamento_id=eq."+encodeURIComponent(p.id),{method:"DELETE"});
+  await api("/rest/v1/site_orcamento_arquivos?orcamento_id=eq."+encodeURIComponent(p.id),{method:"DELETE"});
+  await api("/rest/v1/site_orcamentos?id=eq."+encodeURIComponent(p.id),{method:"DELETE"});
+  current=null;history.replaceState({},'',location.pathname);$("detail").innerHTML="<p>Pedido excluído.</p>";await load();
+ }catch(e){alert(e.message||"Não foi possível excluir o pedido.")}
+}
+function inputField(label,key,value,type="text"){return '<label>'+esc(label)+'<input data-key="'+esc(key)+'" value="'+esc(value||"")+'"></label>'}
+async function loadSiteEditor(){
+ const rows=await api("/rest/v1/site_conteudo?select=chave,dados");
+ const cfg={};(rows||[]).forEach(x=>cfg[x.chave]=x.dados||{});
+ const h=cfg.hero||{},q=cfg.orcamento||{},a=cfg.sobre||{},ct=cfg.contato||{},s=cfg.servicos||{};
+ const services=(s.itens||[]).map((x,i)=>"<div class='serviceEdit'><b>Serviço "+(i+1)+"</b>"+inputField("Título","s.titulo."+i,x.titulo)+inputField("Descrição","s.descricao."+i,x.descricao)+inputField("Imagem (URL)","s.imagem."+i,x.imagem)+"</div>").join("");
+ $("siteEditor").innerHTML=
+ "<div class='editCard'><h4>🌿 Capa / início</h4>"+inputField("Título pequeno","h.eyebrow",h.eyebrow)+inputField("Título","h.titulo",h.titulo)+"<label>Descrição<textarea data-key='h.descricao'>"+esc(h.descricao||"")+"</textarea></label>"+inputField("Botão principal","h.botao_principal",h.botao_principal)+inputField("Botão secundário","h.botao_secundario",h.botao_secundario)+inputField("Imagem da capa (URL)","h.hero_imagem",h.hero_imagem)+"<button class='btn primary full' onclick='saveSiteSection(\"hero\")' type='button'>Salvar capa</button></div>"+
+ "<div class='editCard'><h4>🛠️ Serviços</h4>"+inputField("Título pequeno","s.titulo_pequeno",s.titulo_pequeno)+inputField("Título","s.titulo",s.titulo)+services+"<button class='btn primary full' onclick='saveSiteSection(\"servicos\")' type='button'>Salvar serviços</button></div>"+
+ "<div class='editCard'><h4>💰 Orçamento</h4>"+inputField("Título pequeno","q.eyebrow",q.eyebrow)+inputField("Título","q.titulo",q.titulo)+"<label>Descrição<textarea data-key='q.descricao'>"+esc(q.descricao||"")+"</textarea></label>"+(q.lista||[]).map((x,i)=>inputField("Item "+(i+1),"q.lista."+i,x)).join("")+"<button class='btn primary full' onclick='saveSiteSection(\"orcamento\")' type='button'>Salvar orçamento</button></div>"+
+ "<div class='editCard'><h4>🏡 Sobre</h4>"+inputField("Título pequeno","a.eyebrow",a.eyebrow)+inputField("Título","a.titulo",a.titulo)+"<label>Texto<textarea data-key='a.descricao'>"+esc(a.descricao||"")+"</textarea></label><button class='btn primary full' onclick='saveSiteSection(\"sobre\")' type='button'>Salvar sobre</button></div>"+
+ "<div class='editCard'><h4>📞 Contato</h4>"+inputField("WhatsApp (somente números)","ct.whatsapp",ct.whatsapp)+inputField("Instagram","ct.instagram",ct.instagram)+inputField("Google Maps","ct.google",ct.google)+"<button class='btn primary full' onclick='saveSiteSection(\"contato\")' type='button'>Salvar contato</button></div>";
+}
+function getEditorValue(key){const e=document.querySelector("[data-key='"+CSS.escape(key)+"']");return e?e.value:""}
+async function saveSiteSection(section){
+ try{
+  const rows=await api("/rest/v1/site_conteudo?select=chave,dados");const cfg={};(rows||[]).forEach(x=>cfg[x.chave]=x.dados||{});
+  const map={hero:"h",servicos:"s",orcamento:"q",sobre:"a",contato:"ct"};const prefix=map[section];let d=cfg[section]||{};
+  if(section==="hero"){d={...d,eyebrow:getEditorValue("h.eyebrow"),titulo:getEditorValue("h.titulo"),descricao:getEditorValue("h.descricao"),botao_principal:getEditorValue("h.botao_principal"),botao_secundario:getEditorValue("h.botao_secundario"),hero_imagem:getEditorValue("h.hero_imagem")}}
+  if(section==="sobre"){d={...d,eyebrow:getEditorValue("a.eyebrow"),titulo:getEditorValue("a.titulo"),descricao:getEditorValue("a.descricao")}}
+  if(section==="contato"){d={...d,whatsapp:getEditorValue("ct.whatsapp"),instagram:getEditorValue("ct.instagram"),google:getEditorValue("ct.google")}}
+  if(section==="orcamento"){d={...d,eyebrow:getEditorValue("q.eyebrow"),titulo:getEditorValue("q.titulo"),descricao:getEditorValue("q.descricao"),lista:(d.lista||[]).map((_,i)=>getEditorValue("q.lista."+i))}}
+  if(section==="servicos"){d={...d,titulo_pequeno:getEditorValue("s.titulo_pequeno"),titulo:getEditorValue("s.titulo"),itens:(d.itens||[]).map((x,i)=>({...x,titulo:getEditorValue("s.titulo."+i),descricao:getEditorValue("s.descricao."+i),imagem:getEditorValue("s.imagem."+i)}))}}
+  await api("/rest/v1/site_conteudo?chave=eq."+encodeURIComponent(section),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({dados:d,atualizado_em:new Date().toISOString()})});
+  $("siteEditorMsg").textContent="✅ Alterações salvas. Abra o site novamente para visualizar.";loadSiteEditor();
+ }catch(e){$("siteEditorMsg").textContent="❌ "+e.message}
+}
+loadSiteEditor().catch(e=>{if($("siteEditorMsg"))$("siteEditorMsg").textContent=e.message});
+async function analytics(days=7){
+ const msg=$('#amsg'); if(msg)msg.textContent='Carregando estatísticas...';
+ try{
+  const since=new Date(Date.now()-days*864e5).toISOString();
+  const evRaw=await api('/rest/v1/site_analytics_events?select=event_type,session_id,created_at,metadata&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.asc&limit=10000');
+  const ev=Array.isArray(evRaw)?evRaw:[];
+  const v=ev.filter(x=>x.event_type==='page_view');
+  const clicks=ev.filter(x=>x.event_type==='click');
+  const unique=new Set(v.map(x=>x.session_id).filter(Boolean)).size;
+  const orders=Array.isArray(pedidos)?pedidos:[];
+  const orderCount=orders.filter(x=>x?.criado_em && new Date(x.criado_em)>=new Date(since)).length;
+  const cv=unique?orderCount/unique*100:0;
+  $('#astats').innerHTML=[
+   ['👤','Pessoas',unique],['👁️','Visitas',v.length],['🖱️','Cliques',clicks.length],
+   ['💰','Orçamentos',orderCount],['🎯','Conversão',cv.toFixed(1)+'%']
+  ].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+esc(x[2])+'</b><span>'+x[1]+'</span></div>').join('');
+  bars('av',v,days);
+  const om={};
+  orders.forEach(x=>{if(!x?.criado_em)return;const d=new Date(x.criado_em);if(d>=new Date(since)){const k=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});om[k]=(om[k]||0)+1}});
+  bars('ao',Object.entries(om).map(x=>({created_at:x[0],n:x[1]})),days,true);
+  const cm={}; clicks.forEach(x=>cm[x.element||x.metadata?.element||'Outro']=(cm[x.element||x.metadata?.element||'Outro']||0)+1);
+  $('#ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique no período.</span>';
+  const meta=v.map(x=>x.metadata||{});
+  rank('asrc',group(meta.map(x=>sourceName(x.referrer))));
+  rank('acity',group(meta.map(x=>x.city?(x.city+(x.region?', '+x.region:'')):null)));
+  rank('adev',group(meta.map(x=>x.device)));
+  rank('abro',group(meta.map(x=>x.browser)));
+  const recent=v.slice(-10).reverse();
+  $('#arecent').innerHTML=recent.length?'<div class="recentRow recentHead"><span>Horário</span><span>Local</span><span>Origem</span><span>Dispositivo / navegador</span></div>'+recent.map(x=>{const m=x.metadata||{};return '<div class="recentRow"><strong>'+new Date(x.created_at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</strong><span>'+esc(m.city?(m.city+(m.region?', '+m.region:'')):(m.country||'Não disponível'))+'</span><span>'+esc(sourceName(m.referrer))+'</span><span>'+esc((m.device||'—')+' · '+(m.browser||'—'))+'</span></div>'}).join(''):'<span class="small">Nenhuma visita no período.</span>';
+  $('#ai').innerHTML='<div class="ind">👤 Pessoas únicas <b>'+unique+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(unique?(v.length/unique).toFixed(1):0)+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(v.length?(clicks.length/v.length).toFixed(1):0)+'</b></div><div class="ind">💰 Conversão em orçamento <b>'+cv.toFixed(1)+'%</b></div>';
+  if(msg)msg.textContent='Últimos '+days+' dias · '+v.length+' visitas registradas · atualizado agora.';
+ }catch(e){
+  console.error('analytics',e);
+  $('#astats').innerHTML='<div style="grid-column:1/-1"><b>Não foi possível carregar os dados.</b><span>Toque em Atualizar para tentar novamente.</span></div>';
+  $('#av').innerHTML='';$('#ao').innerHTML='';$('#ac').innerHTML='';$('#ai').innerHTML='';
+  if(msg)msg.textContent='Erro nas estatísticas: '+(e.message||e);
+ }
+}
+$('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').onclick=()=>analytics(7);
+</script>
+<script>
+(function(){
+ function bindLoginFallback(){
+  const b=document.getElementById('entrar'), em=document.getElementById('email'), pw=document.getElementById('senha');
+  if(!b||!em||!pw)return;
+  b.onclick=async function(){
+   const email=em.value.trim(), senha=pw.value;
+   const msg=document.getElementById('loginMsg');
+   if(!email||!senha){if(msg)msg.textContent='Informe e-mail e senha.';return}
+   b.disabled=true;if(msg)msg.textContent='Entrando...';
+   try{
+    const r=await fetch('https://lttqucegcmzwfsnrtdyj.supabase.co/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':'sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG','Content-Type':'application/json'},body:JSON.stringify({email,password:senha})});
+    const j=await r.json().catch(()=>null);
+    if(!r.ok||!j?.access_token)throw new Error(j?.error_description||j?.msg||j?.message||'E-mail ou senha inválidos.');
+    window.accessToken=j.access_token;localStorage.setItem('cs_admin_access',j.access_token);
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('logout').style.display='block';
+    if(typeof window.showApp==='function')await window.showApp();
+    else if(msg)msg.textContent='Acesso confirmado.';
+   }catch(e){if(msg)msg.textContent='❌ '+e.message}
+   finally{b.disabled=false}
+  };
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindLoginFallback);else bindLoginFallback();
+})();
+</script><script>
+(function(){
+ const KEY="sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG";
+ const URL="https://lttqucegcmzwfsnrtdyj.supabase.co";
+ const PUB="BFDjjO2A7cSv14BXx4y48KGCOmAIBLwdKkVpu0Fsst-YhEafkzWaMmqcBnlb0DVysrw25YpRYAIdUTXBTyUx5CU";
+ function b64(s){const p='='.repeat((4-s.length%4)%4),x=(s+p).replace(/-/g,'+').replace(/_/g,'/'),r=atob(x);return Uint8Array.from([...r],c=>c.charCodeAt(0))}
+ async function push(){
+  const b=document.getElementById('enablePush'); if(!b)return;
+  try{
+   if(!window.isSecureContext||!('serviceWorker'in navigator)||!('PushManager'in window)||!('Notification'in window)){b.textContent='🔔 Push não disponível';return}
+   if(Notification.permission==='denied'){
+    b.textContent='🔴 Permissão bloqueada';
+    alert('As notificações estão bloqueadas para este site. No Chrome: ⋮ → Configurações → Configurações do site → Notificações → CS Jardinagem → Permitir. Depois feche e abra o painel novamente.');
+    return
+   }
+   if(Notification.permission==='default'){const p=await Notification.requestPermission();if(p!=='granted'){b.textContent='🔔 Ativar notificações';return}}
+   const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push2');
+   await navigator.serviceWorker.ready;
+   let sub=await reg.pushManager.getSubscription();
+   if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(PUB)});
+   const j=sub.toJSON(),tok=localStorage.getItem('cs_admin_access');
+   if(!tok)throw new Error('Sessão administrativa não encontrada.');
+   const u=await fetch(URL+'/auth/v1/user',{headers:{apikey:KEY,Authorization:'Bearer '+tok}}).then(x=>x.json());
+   if(!u?.id)throw new Error('Não foi possível identificar o usuário.');
+   const rr=await fetch(URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+tok,Prefer:'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'},body:JSON.stringify({user_id:u.id,endpoint:j.endpoint,p256dh:j.keys?.p256dh,auth:j.keys?.auth,user_agent:navigator.userAgent})});
+   if(!rr.ok)throw new Error(await rr.text());
+   b.textContent='🟢 Notificações ativas';
+  }catch(e){console.error(e);b.textContent='🔔 Ativar notificações';alert('Não foi possível ativar agora. '+(e.message||e))}
+ }
+ async function refreshPushState(){
+  const b=document.getElementById('enablePush'); if(!b)return;
+  try{
+    if(!('Notification'in window)||Notification.permission!=='granted'){b.textContent='🔔 Ativar notificações';return}
+    const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push3');
+    const sub=await reg.pushManager.getSubscription();
+    b.textContent=sub?'🟢 Notificações ativas':'🔔 Ativar notificações';
+  }catch(e){b.textContent='🔔 Ativar notificações'}
+ }
+ function bind(){
+  const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar'),pb=document.getElementById('enablePush');
+  if(p7)p7.onclick=()=>window.analytics(7);
+  if(p30)p30.onclick=()=>window.analytics(30);
+  if(up)up.onclick=()=>window.analytics(7);
+  if(pb)pb.onclick=push;
+  refreshPushState();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+})();
+</script><script>
+(function(){
+ const U='https://lttqucegcmzwfsnrtdyj.supabase.co',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+ async function stats(days){
+  const token=localStorage.getItem('cs_admin_access');
+  const msg=document.getElementById('amsg'), up=document.getElementById('ar');
+  if(!token){if(msg)msg.textContent='Sessão não encontrada.';return}
+  if(up){up.textContent='⟳ Atualizando...';up.disabled=true}
+  try{
+   window._statsDays=days;
+   const q=await fetch(U+'/rest/v1/rpc/site_admin_analytics',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({p_days:days}),cache:'no-store'});
+   const data=await q.json().catch(()=>null);
+   if(!q.ok)throw new Error(data?.message||data?.hint||('Estatísticas: HTTP '+q.status));
+   if(data?.error)throw new Error(data.error);
+   const ev=Array.isArray(data?.events)?data.events:[],orders=Array.isArray(data?.orders)?data.orders:[];
+   const v=ev.filter(x=>x.event_type==='page_view'),cl=ev.filter(x=>x.event_type==='click');
+   const unique=new Set(v.map(x=>x.session_id).filter(Boolean)).size;
+   document.getElementById('astats').innerHTML=[['👤','Pessoas',unique],['👁️','Visitas',v.length],['🖱️','Cliques',cl.length],['💰','Orçamentos',orders.length]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
+   const day=(date)=>new Date(date).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+   const by={};v.forEach(x=>{const d=day(x.created_at);by[d]=(by[d]||0)+1});
+   document.getElementById('av').innerHTML=Object.entries(by).map(x=>'<div style="display:inline-flex;flex-direction:column;align-items:center;margin:0 4px;vertical-align:bottom"><b style="font-size:11px">'+x[1]+'</b><div style="height:'+Math.max(8,x[1]*12)+'px;width:14px;background:#15803d;border-radius:5px 5px 0 0"></div><span style="font-size:9px">'+x[0]+'</span></div>').join('')||'<span class="small">Nenhuma visita.</span>';
+   const bo={};orders.forEach(x=>{const d=day(x.criado_em);bo[d]=(bo[d]||0)+1});
+   document.getElementById('ao').innerHTML=Object.entries(bo).map(x=>'<div style="display:inline-flex;flex-direction:column;align-items:center;margin:0 4px;vertical-align:bottom"><b style="font-size:11px">'+x[1]+'</b><div style="height:'+Math.max(8,x[1]*12)+'px;width:14px;background:#15803d;border-radius:5px 5px 0 0"></div><span style="font-size:9px">'+x[0]+'</span></div>').join('')||'<span class="small">Nenhum orçamento.</span>';
+   const cm={};cl.forEach(x=>{const k=x.element||x.metadata?.element||'Outro';cm[k]=(cm[k]||0)+1});
+   document.getElementById('ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique.</span>';
+   const pvMeta=v.map(x=>x.metadata||{});
+   const srcName=(r)=>{if(!r)return 'Acesso direto';try{const h=new URL(r).hostname.replace(/^www\./,'');if(h.includes('google'))return 'Google';if(h.includes('instagram'))return 'Instagram';if(h.includes('facebook'))return 'Facebook';if(h.includes('tiktok'))return 'TikTok';if(h.includes('whatsapp'))return 'WhatsApp';if(h.includes('karlosgsjw-lgtm.github.io'))return 'Seu app/site';return h}catch(_){return r}};
+   const src={};pvMeta.forEach(x=>{const k=srcName(x.referrer);src[k]=(src[k]||0)+1});
+   document.getElementById('asrc').innerHTML=Object.entries(src).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados.</span>';
+   const cities={};pvMeta.forEach(x=>{const k=x.city?(x.city+(x.region?', '+x.region:'')):'Não identificado';cities[k]=(cities[k]||0)+1});
+   document.getElementById('acity').innerHTML=Object.entries(cities).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados.</span>';
+   const dev={};pvMeta.forEach(x=>{const k=x.device||'Não identificado';dev[k]=(dev[k]||0)+1});
+   document.getElementById('adev').innerHTML=Object.entries(dev).sort((a,b)=>b[1]-a[1]).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados.</span>';
+   const br={};pvMeta.forEach(x=>{const k=x.browser||'Não identificado';br[k]=(br[k]||0)+1});
+   document.getElementById('abro').innerHTML=Object.entries(br).sort((a,b)=>b[1]-a[1]).map(x=>'<div class="clickRow"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados.</span>';
+   document.getElementById('arecent').innerHTML=v.slice(-10).reverse().map(x=>{const m=x.metadata||{};return '<div class="clickRow"><span>'+new Date(x.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})+' · '+(m.city||'Local não identificado')+'</span><b>'+(m.device||'—')+'</b></div>'}).join('')||'<span class="small">Nenhuma visita.</span>';
+   const conv=v.length?((orders.length/v.length)*100).toFixed(1):'0.0';
+   document.getElementById('ai').innerHTML='<div class="clickRow"><span>Taxa de conversão</span><b>'+conv+'%</b></div><div class="clickRow"><span>Pessoas únicas</span><b>'+unique+'</b></div><div class="clickRow"><span>Período</span><b>'+days+' dias</b></div>';
+   if(msg)msg.textContent='Últimos '+days+' dias · '+v.length+' visitas · atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch(e){console.error(e);if(msg)msg.textContent='❌ '+e.message;document.getElementById('astats').innerHTML='<div style="grid-column:1/-1"><b>Erro ao carregar estatísticas</b><span>'+e.message+'</span></div>'}
+  finally{if(up){up.textContent='↻ Atualizar';up.disabled=false}}
+ }
+ function bind(){
+ const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar');
+ const run=async(d)=>{[p7,p30].forEach(x=>x&&x.classList.remove('active'));const b=d===7?p7:p30;if(b)b.classList.add('active');await stats(d)};
+ if(p7)p7.onclick=()=>run(7);
+ if(p30)p30.onclick=()=>run(30);
+ if(up)up.onclick=()=>run(window._statsDays||7);
+ window._statsDays=7;
+ if(localStorage.getItem('cs_admin_access'))setTimeout(()=>run(7),1200)
+}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+ window.statsDiretas=stats;
+})();
+</script><style>
+#siteAnalytics #a7.active,#siteAnalytics #a30.active{background:#15803d!important;color:#fff!important;border-color:#15803d!important}
+</style>
+<script>
+(function(){
+ function force(){
+  const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar');
+  if(!p7||!p30||!up||!window.statsDiretas)return;
+  const run=async d=>{window._statsDays=d;p7.style.background=d===7?'#15803d':'';p7.style.color=d===7?'#fff':'';p30.style.background=d===30?'#15803d':'';p30.style.color=d===30?'#fff':'';await window.statsDiretas(d)};
+  p7.onclick=()=>run(7);p30.onclick=()=>run(30);up.onclick=()=>run(window._statsDays||7);
+  setTimeout(()=>run(window._statsDays||7),300);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',force);else force();
+ setTimeout(force,1500);
+})();
+</script></body></html>
