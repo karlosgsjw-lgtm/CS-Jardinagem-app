@@ -312,7 +312,8 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL='https://lttqucegcmzwfsnrtdyj.supabase.co';
 const SUPABASE_KEY='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
 const dbClient=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
+
+window.csLoginDirect=async function(){const msg=document.getElementById('loginMsg'),email=(document.getElementById('email')?.value||'').trim(),password=document.getElementById('password')?.value||'';if(msg)msg.textContent='Entrando...';try{const r=await dbClient.auth.signInWithPassword({email,password});if(r.error){if(msg)msg.textContent=r.error.message;return}if(msg)msg.textContent='Login realizado. Abrindo...';me=r.data.user;await start()}catch(e){console.error(e);if(msg)msg.textContent='Erro ao entrar: '+(e.message||'tente novamente')}};let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])), iso=d=>{let x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)}, dot=s=>s==='red'?'red':s==='yellow'?'yellow':'green';
 function parseMoney(v){if(typeof v==='number')return v||0;let s=String(v??'').trim().replace(/R\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}return Number(s)||0}
 function moneyInputValue(v){return parseMoney(v).toFixed(2).replace('.',',')}
