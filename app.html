@@ -248,6 +248,9 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 </style>
 
 <style>
+<style>
+.financePeriodBox{margin:10px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff}.financePeriodTitle{font-weight:800;margin-bottom:8px}.financePeriodControls{display:grid;grid-template-columns:1.2fr 1fr 1.5fr;gap:8px}.financePeriodControls select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#f8faf9;font:inherit}.financePeriodLabel{margin-top:8px;font-size:12px;color:var(--muted)}.financePeriodCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}.financePeriodCards>div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.financePeriodCards span{display:block;font-size:11px;color:var(--muted);font-weight:700}.financePeriodCards b{display:block;margin-top:3px;font-size:17px}@media(max-width:700px){.financePeriodControls{grid-template-columns:1fr 1fr}.financePeriodControls select:first-child{grid-column:1/-1}.financePeriodCards{grid-template-columns:repeat(2,minmax(0,1fr))}.financePeriodCards b{font-size:15px}}
+</style>
 /* V40.12.4 — Orçamentos + Dashboard financeiro */
 .orcGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .orcFormActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;position:sticky;bottom:0;background:#fff;padding:10px 0;border-top:1px solid var(--line);z-index:3}
@@ -1031,37 +1034,67 @@ window.addEventListener('popstate',function(){
   if($('printOverlay'))closePrintPreview(true);
 });
 
+function getFinanceRange(){
+  let p=window.financePeriod||{mode:'month',year:new Date().getFullYear(),month:new Date().getMonth(),part:1};
+  let y=Number(p.year)||new Date().getFullYear(), startMonth=0, endMonth=11;
+  if(p.mode==='month'){startMonth=Number(p.month)||0;endMonth=startMonth}
+  else if(p.mode==='quarter'){let q=Math.max(1,Math.min(4,Number(p.part)||1));startMonth=(q-1)*3;endMonth=startMonth+2}
+  else if(p.mode==='semester'){let h=Math.max(1,Math.min(2,Number(p.part)||1));startMonth=(h-1)*6;endMonth=startMonth+5}
+  return {start:new Date(y,startMonth,1,12),end:new Date(y,endMonth+1,0,12),year:y,startMonth,endMonth};
+}
+function financeRangeLabel(){
+  let r=getFinanceRange(),p=window.financePeriod||{};
+  if(p.mode==='month')return r.start.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  if(p.mode==='quarter')return (p.part||1)+'º trimestre de '+r.year;
+  if(p.mode==='semester')return (p.part||1)+'º semestre de '+r.year;
+  return 'Ano de '+r.year;
+}
+function financePeriodOptions(){
+  let p=window.financePeriod||{mode:'month',year:new Date().getFullYear(),month:new Date().getMonth(),part:1};
+  let years='';let nowY=new Date().getFullYear();
+  for(let y=nowY-5;y<=nowY+5;y++)years+=`<option value="${y}" ${Number(p.year)===y?'selected':''}>${y}</option>`;
+  let parts=p.mode==='quarter'?'<option value="1">1º trimestre (jan–mar)</option><option value="2">2º trimestre (abr–jun)</option><option value="3">3º trimestre (jul–set)</option><option value="4">4º trimestre (out–dez)</option>':p.mode==='semester'?'<option value="1">1º semestre (jan–jun)</option><option value="2">2º semestre (jul–dez)</option>':'';
+  let months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i)=>`<option value="${i}" ${Number(p.month)===i?'selected':''}>${m}</option>`).join('');
+  return `<div class="financePeriodBox"><div class="financePeriodTitle">📅 Período dos dados</div><div class="financePeriodControls"><select id="financePeriodMode" onchange="changeFinancePeriod('mode',this.value)"><option value="month" ${p.mode==='month'?'selected':''}>Mês específico</option><option value="quarter" ${p.mode==='quarter'?'selected':''}>Trimestre</option><option value="semester" ${p.mode==='semester'?'selected':''}>Semestre</option><option value="year" ${p.mode==='year'?'selected':''}>Ano</option></select><select onchange="changeFinancePeriod('year',this.value)"><option value="">Ano</option>${years}</select>${p.mode==='month'?`<select onchange="changeFinancePeriod('month',this.value)">${months}</select>`:p.mode==='year'?'':`<select onchange="changeFinancePeriod('part',this.value)">${parts}</select>`}</div><div class="financePeriodLabel">Exibindo: <b>${financeRangeLabel()}</b></div></div>`;
+}
+window.changeFinancePeriod=function(key,value){
+  let now=new Date(),p=window.financePeriod||{mode:'month',year:now.getFullYear(),month:now.getMonth(),part:1};
+  if(key==='year')p.year=Number(value)||now.getFullYear();
+  else if(key==='month')p.month=Number(value)||0;
+  else if(key==='part')p.part=Number(value)||1;
+  else if(key==='mode'){p.mode=value;if(value==='month')p.month=p.month??now.getMonth();if(value!=='month'&&value!=='year')p.part=p.part||1}
+  window.financePeriod=p;financePage();
+};
 function financePage(){
-  let now=new Date(), day=(now.getDay()+6)%7, mon=new Date(now); mon.setHours(12,0,0,0); mon.setDate(now.getDate()-day);
-  let sun=new Date(mon); sun.setDate(mon.getDate()+6);
-  let w1=iso(mon), w2=iso(sun);
-  let y=month.getFullYear(),m=month.getMonth();
-  let arr=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===y&&d.getMonth()===m});
+  let now=new Date(), range=getFinanceRange(), startIso=iso(range.start), endIso=iso(range.end);
+  let arr=appts.filter(a=>String(a.data_atendimento||'')>=startIso&&String(a.data_atendimento||'')<=endIso);
   let earned=arr.reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
   let received=arr.filter(a=>a.pago).reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
   let help=arr.reduce((s,a)=>s+[1,2,3,4,5].reduce((z,i)=>z+Number(a['ajudante_'+i+'_valor']||0),0),0);
-  let worked={};
+  let unpaid=arr.filter(a=>!a.pago&&String(a.data_atendimento||'')<=iso(now)).sort((a,b)=>String(a.data_atendimento).localeCompare(String(b.data_atendimento)));
+  let unpaidTotal=unpaid.reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
+  let clientsCount=new Set(arr.map(a=>a.cliente_id).filter(Boolean)).size;
+  let payErr=window.helperPayLoadError?'<div class="notice"><b>Pagamento dos ajudantes:</b> '+esc(window.helperPayLoadError)+'<br><span class="small">Execute o SQL da tabela de pagamentos dos ajudantes no Supabase.</span></div>':'';
+  let day=(now.getDay()+6)%7,mon=new Date(now);mon.setHours(12,0,0,0);mon.setDate(now.getDate()-day);
+  let sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  let w1=iso(mon),w2=iso(sun),worked={};
   appts.filter(a=>a.data_atendimento>=w1&&a.data_atendimento<=w2).forEach(a=>{for(let i=1;i<=5;i++){let hid=a['ajudante_'+i+'_id'];if(hid)worked[hid]=(worked[hid]||0)+Number(a['ajudante_'+i+'_valor']||0)}});
   let owedRows=helperList.filter(h=>worked[h.id]).map(h=>({h,v:Number(worked[h.id]||0)})).filter(x=>!helperPayments.some(p=>String(p.ajudante_id)===String(x.h.id)&&p.semana_inicio===w1&&p.pago));
   let owedTotal=owedRows.reduce((s,x)=>s+x.v,0);
-  let todayIso=iso(new Date());
-  let unpaid=appts.filter(a=>!a.pago&&String(a.data_atendimento||'')<=todayIso).sort((a,b)=>String(a.data_atendimento).localeCompare(String(b.data_atendimento)));
-  let unpaidTotal=unpaid.reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
-  let payErr=window.helperPayLoadError?`<div class="notice"><b>Pagamento dos ajudantes:</b> ${esc(window.helperPayLoadError)}<br><span class="small">Execute o SQL da tabela de pagamentos dos ajudantes no Supabase.</span></div>`:'';
-  $('content').innerHTML=`<div class="toolbar financeToolbar"><h2>💰 Financeiro</h2><button type="button" class="btn alt privacyToggle" onclick="toggleMoneyVisibility()" aria-label="Ocultar valores" title="Ocultar valores">🙈</button><div class="compactStats"><div class="compactStat"><span class="statIcon">💰</span><div><span class="statLabel">Serviços no mês</span><b>${money(earned)}</b></div></div><div class="compactStat"><span class="statIcon">✅</span><div><span class="statLabel">Recebido</span><b>${money(received)}</b></div></div><div class="compactStat"><span class="statIcon">👷</span><div><span class="statLabel">Ajudantes no mês</span><b>${money(help)}</b></div></div></div></div>${payErr}<div class="financeAccordion">
+  $('content').innerHTML=`<div class="toolbar financeToolbar"><h2>💰 Financeiro</h2><button type="button" class="btn alt privacyToggle" onclick="toggleMoneyVisibility()" aria-label="Ocultar valores" title="Ocultar valores">🙈</button><div class="compactStats"><div class="compactStat"><span class="statIcon">💰</span><div><span class="statLabel">Serviços no período</span><b>${money(earned)}</b></div></div><div class="compactStat"><span class="statIcon">✅</span><div><span class="statLabel">Recebido</span><b>${money(received)}</b></div></div><div class="compactStat"><span class="statIcon">👷</span><div><span class="statLabel">Ajudantes</span><b>${money(help)}</b></div></div></div></div>${financePeriodOptions()}${payErr}<div class="financePeriodCards"><div><span>Atendimentos</span><b>${arr.length}</b></div><div><span>Clientes atendidos</span><b>${clientsCount}</b></div><div><span>Em aberto</span><b>${money(unpaidTotal)}</b></div><div><span>Líquido após ajudantes</span><b>${money(earned-help)}</b></div></div><div class="financeAccordion">
     <div class="financeAccItem" id="financeAccHelpers">
       <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccHelpers')"><div class="financeAccTitle"><span class="financeAccIcon">👷</span><div class="financeAccText"><b>A pagar aos ajudantes</b><span>Esta semana · ${owedRows.length} ajudante(s) pendente(s)</span></div></div><div class="financeAccSummary"><b>${money(owedTotal)}</b><span>total a pagar</span></div><span class="financeAccArrow">⌄</span></button>
       <div class="financeAccBody"><div class="panel"><h3>👷 A pagar aos ajudantes nesta semana</h3><p class="muted small">${mon.toLocaleDateString('pt-BR')} até ${sun.toLocaleDateString('pt-BR')}</p>${owedRows.map(x=>`<div class="helperPayRow"><div class="helperPayInfo"><b>${esc(x.h.nome)}</b><div class="small muted">${money(x.v)}</div></div><label class="helperPayCheck"><input type="checkbox" onchange="confirmHelperPaid(this,${x.h.id},'${w1}','${w2}')"><span>Pago</span></label></div>`).join('')||'<p class="muted">Nenhum ajudante pendente de pagamento nesta semana.</p>'}<div class="row financeTotal"><b>Total a pagar</b><b class="right">${money(owedTotal)}</b></div></div></div>
     </div>
     <div class="financeAccItem" id="financeAccClients">
-      <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccClients')"><div class="financeAccTitle"><span class="financeAccIcon">🔴</span><div class="financeAccText"><b>Clientes a pagar</b><span>${unpaid.length} atendimento(s) em aberto</span></div></div><div class="financeAccSummary"><b>${money(unpaidTotal)}</b><span>total em aberto</span></div><span class="financeAccArrow">⌄</span></button>
-      <div class="financeAccBody"><div class="panel"><h3>🔴 Clientes que ainda não pagaram</h3><p class="muted small">Somente atendimentos de hoje ou anteriores que ainda não foram pagos aparecem aqui. Atendimentos futuros ficam fora desta lista até chegar o dia.</p>${unpaid.map(a=>{let c=clients.find(x=>x.id===a.cliente_id);return `<div class="row infoLine unpaidRow"><div><b>${esc(c?.nome||'Cliente')}</b><div class="small muted">${new Date(a.data_atendimento+'T12:00:00').toLocaleDateString('pt-BR')} · ${esc(a.nota||'Serviço')}</div></div><div class="right unpaidActions"><b>${money(a.valor_servico??a.valor??0)}</b><label class="payCheck"><input type="checkbox" onchange="confirmAppointmentPaid(this,${a.id})"><span>Marcar como pago</span></label></div></div>`}).join('')||'<p class="muted">🎉 Nenhum cliente em aberto.</p>'}<div class="row financeTotal"><b>Total em aberto</b><b class="right">${money(unpaidTotal)}</b></div></div></div>
+      <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccClients')"><div class="financeAccTitle"><span class="financeAccIcon">🔴</span><div class="financeAccText"><b>Clientes a pagar</b><span>${unpaid.length} atendimento(s) em aberto no período</span></div></div><div class="financeAccSummary"><b>${money(unpaidTotal)}</b><span>total em aberto</span></div><span class="financeAccArrow">⌄</span></button>
+      <div class="financeAccBody"><div class="panel"><h3>🔴 Clientes que ainda não pagaram</h3><p class="muted small">Atendimentos do período selecionado que já ocorreram e ainda não foram pagos.</p>${unpaid.map(a=>{let c=clients.find(x=>x.id===a.cliente_id);return `<div class="row infoLine unpaidRow"><div><b>${esc(c?.nome||'Cliente')}</b><div class="small muted">${new Date(a.data_atendimento+'T12:00:00').toLocaleDateString('pt-BR')} · ${esc(a.nota||'Serviço')}</div></div><div class="right unpaidActions"><b>${money(a.valor_servico??a.valor??0)}</b><label class="payCheck"><input type="checkbox" onchange="confirmAppointmentPaid(this,${a.id})"><span>Marcar como pago</span></label></div></div>`}).join('')||'<p class="muted">🎉 Nenhum cliente em aberto neste período.</p>'}<div class="row financeTotal"><b>Total em aberto</b><b class="right">${money(unpaidTotal)}</b></div></div></div>
     </div>
     <div class="financeAccItem" id="financeAccDash">
-      <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccDash')"><div class="financeAccTitle"><span class="financeAccIcon">📊</span><div class="financeAccText"><b>Dashboard da empresa</b><span>Faturamento · atendimentos · recebimentos · ajudantes</span></div></div><div class="financeAccSummary"><b>${money(earned)}</b><span>faturamento no mês</span></div><span class="financeAccArrow">⌄</span></button>
+      <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccDash')"><div class="financeAccTitle"><span class="financeAccIcon">📊</span><div class="financeAccText"><b>Dashboard da empresa</b><span>${financeRangeLabel()} · faturamento · recebimentos · ajudantes</span></div></div><div class="financeAccSummary"><b>${money(earned)}</b><span>faturamento do período</span></div><span class="financeAccArrow">⌄</span></button>
       <div class="financeAccBody">${financeDashboardSection()}</div>
     </div>
-    <div class="panel"><b>Líquido após ajudantes no mês: ${money(earned-help)}</b></div>  </div>`;
+  </div>`;
 }
 window.toggleFinanceSection=function(id){let item=$(id);if(!item)return;document.querySelectorAll('.financeAccItem').forEach(x=>{if(x!==item)x.classList.remove('open')});item.classList.toggle('open');if(item.classList.contains('open')&&id==='financeAccDash'){dashboardFinanceiro()}};
 
@@ -1468,20 +1501,17 @@ window.whatsappOrcamento=async function(id){
 function dashMonthKey(d){let x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`}
 function dashMonthLabel(k){let [y,m]=k.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'short'}).format(new Date(y,m-1,1)).replace('.','')}
 function dashboardFinanceiro(){
-  let now=new Date(), months=[];for(let i=5;i>=0;i--){let d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)}
-  let rows=months.map(k=>({k,at:0,earned:0,received:0,helpers:0,clients:new Set()}));let map=Object.fromEntries(rows.map(x=>[x.k,x]));
+  let range=getFinanceRange(),p=window.financePeriod||{}, months=[];
+  for(let m=range.startMonth;m<=range.endMonth;m++)months.push(`${range.year}-${String(m+1).padStart(2,'0')}`);
+  let rows=months.map(k=>({k,at:0,earned:0,received:0,helpers:0,clients:new Set()})),map=Object.fromEntries(rows.map(x=>[x.k,x]));
   appts.forEach(a=>{let k=dashMonthKey(a.data_atendimento);if(!map[k])return;let r=map[k],v=Number(a.valor_servico??a.valor??0);r.at++;r.earned+=v;if(a.pago)r.received+=v;if(a.cliente_id)r.clients.add(a.cliente_id);for(let i=1;i<=5;i++)r.helpers+=Number(a['ajudante_'+i+'_valor']||0)});
-  let current=rows[rows.length-1],previous=rows[rows.length-2]||{earned:0,received:0,at:0,helpers:0,clients:new Set()};
-  let activeClients=new Set(appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).map(a=>a.cliente_id).filter(Boolean)).size;
-  let totalYear=appts.filter(a=>new Date(a.data_atendimento+'T12:00:00').getFullYear()===now.getFullYear()).reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
-  let pct=(a,b)=>b?((a-b)/b*100):null;let pFat=pct(current.earned,previous.earned),pAt=pct(current.at,previous.at);
-  let max=Math.max(1,...rows.map(r=>r.earned));
-  let maxAt=Math.max(1,...rows.map(r=>r.at));
+  let earned=rows.reduce((s,r)=>s+r.earned,0),received=rows.reduce((s,r)=>s+r.received,0),helpers=rows.reduce((s,r)=>s+r.helpers,0),at=rows.reduce((s,r)=>s+r.at,0),clients=new Set();rows.forEach(r=>r.clients.forEach(x=>clients.add(x)));
+  let max=Math.max(1,...rows.map(r=>r.earned)),maxAt=Math.max(1,...rows.map(r=>r.at));
   let bar=(r,key,maxv,cls='')=>`<div class="dashBarCol"><span class="dashBarValue">${key==='at'?r[key]:money(r[key])}</span><div class="dashBar ${cls}" style="height:${Math.max(2,(r[key]/maxv)*145)}px"></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`;
-  $('dashArea').innerHTML=`<div class="dashCards"><div class="dashCard"><span class="dashIcon">💰</span><div class="small muted">Faturamento no mês</div><div class="big">${money(current.earned)}</div><div class="small">${pFat==null?'Sem comparação':(pFat>=0?'▲ ':'▼ ')+Math.abs(pFat).toFixed(1)+'% vs. mês anterior'}</div></div><div class="dashCard"><span class="dashIcon">✅</span><div class="small muted">Recebido</div><div class="big">${money(current.received)}</div><div class="small">Em aberto: ${money(Math.max(0,current.earned-current.received))}</div></div><div class="dashCard"><span class="dashIcon">👥</span><div class="small muted">Clientes atendidos</div><div class="big">${activeClients}</div><div class="small">${pAt==null?'Sem comparação':(pAt>=0?'▲ ':'▼ ')+Math.abs(pAt).toFixed(1)+'% atendimentos'}</div></div><div class="dashCard"><span class="dashIcon">📈</span><div class="small muted">Resultado após ajudantes</div><div class="big">${money(current.earned-current.helpers)}</div><div class="small">Ajudantes: ${money(current.helpers)}</div></div></div>
-  <div class="dashChart"><h3>💰 Faturamento — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'earned',max)).join('')}</div><div class="dashLegend"><span>🟢 <b>Faturamento</b></span><span>Total no ano: <b>${money(totalYear)}</b></span></div></div>
-  <div class="dashChart"><h3>👥 Atendimentos — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'at',maxAt,'altBar')).join('')}</div><div class="dashLegend"><span>🟡 <b>Quantidade de atendimentos</b></span><span>Este mês: <b>${current.at}</b></span></div></div>
-  <div class="dashChart"><h3>💵 Entrou x paguei aos ajudantes</h3><div class="dashBars">${rows.map(r=>{let m=Math.max(1,...rows.map(x=>Math.max(x.received,x.helpers)));let rh=Math.max(2,(r.received/m)*120),hh=Math.max(2,(r.helpers/m)*120);return `<div class="dashCompareGroup"><div class="dashCompareBars"><div class="dashCompareItem"><span class="dashCompareValue receivedValue">${money(r.received)}</span><div class="dashBar receivedBar" style="height:${rh}px"></div></div><div class="dashCompareItem"><span class="dashCompareValue helperValue">${money(r.helpers)}</span><div class="dashBar helperBar" style="height:${hh}px"></div></div></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`}).join(String())}</div><div class="dashLegend"><span>🟢 Recebido</span><span>🔴 Pago aos ajudantes</span></div></div>`;
+  $('dashArea').innerHTML=`<div class="dashCards"><div class="dashCard"><span class="dashIcon">💰</span><div class="small muted">Faturamento</div><div class="big">${money(earned)}</div><div class="small">${financeRangeLabel()}</div></div><div class="dashCard"><span class="dashIcon">✅</span><div class="small muted">Recebido</div><div class="big">${money(received)}</div><div class="small">Em aberto: ${money(Math.max(0,earned-received))}</div></div><div class="dashCard"><span class="dashIcon">👥</span><div class="small muted">Clientes atendidos</div><div class="big">${clients.size}</div><div class="small">${at} atendimento(s)</div></div><div class="dashCard"><span class="dashIcon">📈</span><div class="small muted">Resultado após ajudantes</div><div class="big">${money(earned-helpers)}</div><div class="small">Ajudantes: ${money(helpers)}</div></div></div>
+  <div class="dashChart"><h3>💰 Faturamento — ${financeRangeLabel()}</h3><div class="dashBars">${rows.map(r=>bar(r,'earned',max)).join('')}</div><div class="dashLegend"><span>🟢 <b>Faturamento</b></span><span>Total: <b>${money(earned)}</b></span></div></div>
+  <div class="dashChart"><h3>👥 Atendimentos — ${financeRangeLabel()}</h3><div class="dashBars">${rows.map(r=>bar(r,'at',maxAt,'altBar')).join('')}</div><div class="dashLegend"><span>🟡 <b>Quantidade de atendimentos</b></span><span>Total: <b>${at}</b></span></div></div>
+  <div class="dashChart"><h3>💵 Recebido x ajudantes — ${financeRangeLabel()}</h3><div class="dashBars">${rows.map(r=>{let m=Math.max(1,...rows.map(x=>Math.max(x.received,x.helpers)));let rh=Math.max(2,(r.received/m)*120),hh=Math.max(2,(r.helpers/m)*120);return `<div class="dashCompareGroup"><div class="dashCompareBars"><div class="dashCompareItem"><span class="dashCompareValue receivedValue">${money(r.received)}</span><div class="dashBar receivedBar" style="height:${rh}px"></div></div><div class="dashCompareItem"><span class="dashCompareValue helperValue">${money(r.helpers)}</span><div class="dashBar helperBar" style="height:${hh}px"></div></div></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`}).join('')}</div><div class="dashLegend"><span>🟢 Recebido</span><span>🔴 Ajudantes</span></div></div>`;
 }
 function financeDashboardSection(){return `<div class="panel"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">📊 Dashboard da empresa</h3><div class="muted small">Acompanhe o crescimento com os atendimentos e valores já registrados no app.</div></div><button class="btn alt" type="button" onclick="dashboardFinanceiro()">🔄 Atualizar gráficos</button></div><div id="dashArea" style="margin-top:12px"></div></div>`}
 function usersPage(){if(profile?.perfil!=='master')return tab('inicio');dbClient.from('profiles').select('id,nome,ativo,perfil').order('nome').then(r=>{$('content').innerHTML=`<div class="toolbar"><h2>👥 Usuários</h2></div><div class="panel"><table class="table"><tr><th>Nome</th><th>Perfil</th><th>Ativo</th></tr>${(r.data||[]).map(x=>`<tr><td>${esc(x.nome)}</td><td>${x.perfil==='master'?'👑 Master':'Usuário'}</td><td>${x.ativo?'Sim':'Não'}</td></tr>`).join('')}</table></div>`})}
