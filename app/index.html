@@ -313,7 +313,23 @@ const SUPABASE_URL='https://lttqucegcmzwfsnrtdyj.supabase.co';
 const SUPABASE_KEY='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
 const dbClient=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
-window.csLoginDirect=async function(){const msg=document.getElementById('loginMsg'),email=(document.getElementById('email')?.value||'').trim(),password=document.getElementById('password')?.value||'';if(msg)msg.textContent='Entrando...';try{const r=await dbClient.auth.signInWithPassword({email,password});if(r.error){if(msg)msg.textContent=r.error.message;return}me=r.data.user;if(msg)msg.textContent='Login realizado. Abrindo...';await start()}catch(e){console.error(e);if(msg)msg.textContent='Erro ao entrar: '+(e.message||'tente novamente')}};let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
+window.csLoginDirect=async function(){
+ const msg=document.getElementById('loginMsg'),login=document.getElementById('loginScreen'),app=document.getElementById('app'),email=(document.getElementById('email')?.value||'').trim(),password=document.getElementById('password')?.value||'';
+ if(msg)msg.textContent='Entrando...';
+ try{
+  const r=await dbClient.auth.signInWithPassword({email,password});
+  if(r.error){if(msg)msg.textContent=r.error.message;return}
+  me=r.data.user;
+  // Esconde a tela de login diretamente, sem depender de outra rotina.
+  if(login)login.classList.add('hidden');
+  if(app)app.classList.remove('hidden');
+  if(msg)msg.textContent='';
+  try{await loadProfile()}catch(e){console.warn('Perfil:',e)}
+  try{await loadData()}catch(e){console.warn('Dados:',e)}
+  try{scheduleAndroidNotifications()}catch(e){}
+  try{if(typeof tab==='function')tab('inicio')}catch(e){}
+ }catch(e){console.error(e);if(msg)msg.textContent='Erro ao entrar: '+(e.message||'tente novamente')}
+};let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])), iso=d=>{let x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)}, dot=s=>s==='red'?'red':s==='yellow'?'yellow':'green';
 function parseMoney(v){if(typeof v==='number')return v||0;let s=String(v??'').trim().replace(/R\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}return Number(s)||0}
 function moneyInputValue(v){return parseMoney(v).toFixed(2).replace('.',',')}
