@@ -22,18 +22,21 @@ function b64ToUint8(base64){const pad='='.repeat((4-base64.length%4)%4);const s=
 async function enableSitePush(){
  const b=document.getElementById("enablePush");
  try{
+  if(b)b.textContent='⏳ Ativando...';
   if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){if(b)b.textContent='🔔 Push não disponível';return;}
   if(Notification.permission==='default')await Notification.requestPermission();
-  if(Notification.permission!=='granted'){if(b)b.textContent='🔔 Permissão bloqueada';return;}
-  const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push');
+  if(Notification.permission!=='granted'){if(b)b.textContent='🔕 Permissão bloqueada';return;}
+  const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push4');
+  await navigator.serviceWorker.ready;
   const existing=await reg.pushManager.getSubscription();
   const sub=existing||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToUint8(PUSH_PUBLIC_KEY)});
   const key=sub.toJSON();
   const authUser=await fetch(SB_URL+'/auth/v1/user',{headers:headers()}).then(x=>x.json());
-  if(!authUser?.id)return;
-  await fetch(SB_URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{...headers(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:authUser.id,endpoint:key.endpoint,p256dh:key.keys?.p256dh,auth:key.keys?.auth,user_agent:navigator.userAgent})});
-  if(b)b.textContent='🔔 Notificações ativas';
- }catch(e){if(b)b.textContent='🔔 Ativar notificações';console.warn('Web Push:',e)}
+  if(!authUser?.id)throw new Error('Sessão de administrador não encontrada. Entre novamente.');
+  const save=await fetch(SB_URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{...headers(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:authUser.id,endpoint:key.endpoint,p256dh:key.keys?.p256dh,auth:key.keys?.auth,user_agent:navigator.userAgent})});
+  if(!save.ok){const j=await save.json().catch(()=>null);throw new Error(j?.message||j?.hint||'Não foi possível salvar a inscrição de notificações.');}
+  if(b)b.textContent='✅ Notificações ativas';
+ }catch(e){if(b)b.textContent='❌ Falha ao ativar';console.warn('Web Push:',e);alert('Não foi possível ativar as notificações.\n\n'+(e?.message||e))}
 }
 async function showApp(){
  $("login").style.display="none";$("app").style.display="block";$("logout").style.display="block";
