@@ -313,7 +313,7 @@ const SUPABASE_URL='https://lttqucegcmzwfsnrtdyj.supabase.co';
 const SUPABASE_KEY='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
 const dbClient=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 
-window.csLoginDirect=async function(){const msg=document.getElementById('loginMsg'),email=(document.getElementById('email')?.value||'').trim(),password=document.getElementById('password')?.value||'';if(msg)msg.textContent='Entrando...';try{const r=await dbClient.auth.signInWithPassword({email,password});if(r.error){if(msg)msg.textContent=r.error.message;return}if(msg)msg.textContent='Login realizado. Abrindo...';me=r.data.user;await start()}catch(e){console.error(e);if(msg)msg.textContent='Erro ao entrar: '+(e.message||'tente novamente')}};let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
+window.csLoginDirect=async function(){const msg=document.getElementById('loginMsg'),email=(document.getElementById('email')?.value||'').trim(),password=document.getElementById('password')?.value||'';if(msg)msg.textContent='Entrando...';try{const r=await dbClient.auth.signInWithPassword({email,password});if(r.error){if(msg)msg.textContent=r.error.message;return}me=r.data.user;if(msg)msg.textContent='Login realizado. Abrindo...';await start()}catch(e){console.error(e);if(msg)msg.textContent='Erro ao entrar: '+(e.message||'tente novamente')}};let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],photos=[],month=new Date();month.setDate(1);
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])), iso=d=>{let x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)}, dot=s=>s==='red'?'red':s==='yellow'?'yellow':'green';
 function parseMoney(v){if(typeof v==='number')return v||0;let s=String(v??'').trim().replace(/R\$/g,'').replace(/\s/g,'');if(!s)return 0;if(s.includes(',')){s=s.replace(/\./g,'').replace(',','.')}return Number(s)||0}
 function moneyInputValue(v){return parseMoney(v).toFixed(2).replace('.',',')}
@@ -335,7 +335,18 @@ function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').for
 
 function loginMsg(t){$('loginMsg').textContent=t}
 async function boot(){let r=await dbClient.auth.getSession();if(r.error)return loginMsg(r.error.message);if(r.data.session){me=r.data.session.user;await start()}else showLogin();dbClient.auth.onAuthStateChange(async(_e,s)=>{if(s){me=s.user;await start()}else showLogin()})}
-async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
+let startBusy=false;
+async function start(){
+  if(startBusy)return;
+  startBusy=true;
+  // A autenticação já foi confirmada. Mostra o app imediatamente para não deixar
+  // o usuário preso na tela de login enquanto uma consulta do banco demora.
+  showApp();
+  try{await Promise.race([loadProfile(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('profile timeout')),8000))])}catch(e){console.warn('Perfil:',e)}
+  try{await Promise.race([loadData(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('data timeout')),12000))])}catch(e){console.warn('Dados:',e)}
+  try{scheduleAndroidNotifications();if(typeof tab==='function')tab(csCurrentTab||'inicio')}catch(e){console.warn('Atualização:',e)}
+  startBusy=false;
+}
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
 async function loadData(){const [c,a,h,hp,an]=await Promise.all([dbClient.from('clientes').select('*').order('nome'),dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento'),dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome'),dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por'),dbClient.from('agendas_anuais').select('*').order('data_agendada')]);clients=c.data||[];appts=a.data||[];helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';annuals=an.data||[]}
 function scheduleAndroidNotifications(){try{if(!window.AndroidNotifications)return;let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:a.clientes?.nome||'Cliente',value:Number(a.valor_servico??a.valor??0)}));if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid:unpaid});window.AndroidNotifications.scheduleNotifications(JSON.stringify(data))}catch(e){console.warn('Notificações Android:',e)}}
