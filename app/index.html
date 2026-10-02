@@ -321,8 +321,8 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 @media(max-width:720px){.day .appt.apptClient{font-size:8px;padding:4px 2px;margin:3px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.day .appt.apptClient .dot{display:none}}
 <style>
 /* V40.12.46 — indicador de sincronização suave e profissional */
-.csSyncIndicator{display:none;align-items:center;justify-content:center;width:19px;height:19px;vertical-align:middle;margin-left:5px;opacity:0;transform:scale(.88)}
-.csSyncIndicator.active{display:inline-flex;animation:csSyncPulse 1.5s ease-in-out infinite}
+.csSyncIndicator{display:none;width:0;height:0;overflow:hidden;margin:0;padding:0;vertical-align:middle;opacity:0}
+.csSyncIndicator.active{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;margin-left:5px;opacity:1;transform:scale(.88);animation:csSyncPulse 1.5s ease-in-out infinite}
 .csSyncIndicator svg{width:17px;height:17px;display:block;filter:drop-shadow(0 1px 2px #16653422)}
 @keyframes csSyncPulse{0%,100%{opacity:.58;transform:scale(.88)}50%{opacity:1;transform:scale(1)}}
 </style></style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
@@ -589,7 +589,10 @@ function showApp(){
  let syncBusy=false;
  function csSyncIndicator(active){
   const el=document.getElementById('csSyncIndicator');
-  if(el)el.classList.toggle('active',!!active);
+  if(!el)return;
+  el.classList.toggle('active',!!active);
+  if(!active){el.style.display='none';el.style.width='0';el.style.height='0';el.style.margin='0';}
+  else{el.style.display='inline-flex';el.style.width='19px';el.style.height='19px';el.style.marginLeft='5px';}
  }
  async function syncNow(){
   if(syncBusy||!navigator.onLine||!me)return;
