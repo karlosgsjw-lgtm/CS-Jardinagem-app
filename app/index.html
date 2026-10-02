@@ -485,19 +485,18 @@ async function csFlushOfflineQueue(){
  let q=csOfflineQueueRead();
  for(let i=0;i<q.length;i++){const x=q[i];let r;
   if(x.op==='insert'){
+   const tempId=x.payload?.id;
    r=await dbClient.from(x.table).insert(x.payload).select('id').maybeSingle();
-   if(!r.error&&r.data?.id!=null&&x.payload?.id!=null&&Number(x.payload.id)<0){
-    csOfflineReplaceTempId(x.payload.id,r.data.id,x.table);
-    q=csOfflineQueueRead();
-   }
+   if(r.error){console.warn('Alteração offline não sincronizada:',x.table,x.op,r.error.message);break}
+   q.splice(i,1);csOfflineQueueWrite(q);
+   if(r.data?.id!=null&&tempId!=null&&Number(tempId)<0)csOfflineReplaceTempId(tempId,r.data.id,x.table);
+   q=csOfflineQueueRead();i=-1;continue;
   }else if(x.op==='update')r=await dbClient.from(x.table).update(x.payload).eq('id',x.id);
   else if(x.op==='delete')r=await dbClient.from(x.table).delete().eq('id',x.id);
   else if(x.op==='deleteWhere')r=await dbClient.from(x.table).delete().eq(x.key,x.value);
   else continue;
   if(r.error){console.warn('Alteração offline não sincronizada:',x.table,x.op,r.error.message);break}
-  q=csOfflineQueueRead();
-  const pos=q.indexOf(x);
-  if(pos>=0)q.splice(pos,1);csOfflineQueueWrite(q);
+  q.splice(i,1);csOfflineQueueWrite(q);
   i=-1;
  }
  if(!q.length)try{localStorage.setItem('csj_offline_last_sync',String(Date.now()))}catch(e){}
