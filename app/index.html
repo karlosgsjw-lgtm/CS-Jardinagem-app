@@ -426,8 +426,8 @@ function csOfflineTempId(){let n=Number(localStorage.getItem(CS_OFFLINE_SEQ)||'-
 function csOfflinePersistData(){if(!me)return;try{localStorage.setItem('csj_data_cache_v2_'+me.id,JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}))}catch(e){console.warn('Cache offline:',e)}}
 function csOfflineArray(table){return table==='clientes'?clients:table==='atendimentos'?appts:table==='ajudantes'?helperList:table==='pagamentos_ajudantes'?helperPayments:table==='agendas_anuais'?annuals:table==='agenda_eventos'?events:null}
 function csOfflineAddRelation(table,row){if(table==='atendimentos'){const cc=clients.find(x=>String(x.id)===String(row.cliente_id));if(cc)row.clientes={nome:cc.nome,telefone:cc.telefone,endereco:cc.endereco,servico_principal:cc.servico_principal,observacoes:cc.observacoes,valor_servico:cc.valor_servico}}return row}
-async function csWriteInsert(table,payload){
- if(navigator.onLine)return dbClient.from(table).insert(payload).select('*').single();
+async function csWriteInsert(table,payload,wantData=false){
+ if(navigator.onLine){const q=dbClient.from(table).insert(payload);return wantData?q.select('*').single():q;}
  const row={...payload};if(row.id==null)row.id=csOfflineTempId();csOfflineAddRelation(table,row);
  const arr=csOfflineArray(table);if(!arr)throw new Error('Tabela não suportada offline: '+table);arr.push(row);
  const q=csOfflineQueueRead();q.push({op:'insert',table,payload:row});csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;
@@ -1190,7 +1190,7 @@ window.saveAppt=async id=>{
  let p={cliente_id:Number($('ac').value),data_atendimento:$('ad').value,horario_inicio,horario_fim,valor_servico:parseMoney($('av').value),valor:parseMoney($('av').value),situacao:$('as').value,nota:$('an').value,pago:$('ap').checked};
  for(let i=1;i<=5;i++){p['ajudante_'+i+'_id']=null;p['ajudante_'+i+'_valor']=0}
  let rows=[...document.querySelectorAll('#helperFields .helperItem')];rows.slice(0,5).forEach((row,idx)=>{let i=idx+1,s=row.querySelector(`#hid${i}`),v=row.querySelector(`#hval${i}`);if(s&&s.value){p['ajudante_'+i+'_id']=Number(s.value);p['ajudante_'+i+'_valor']=parseMoney(v?.value||0)}});
- let r=id?await csWriteUpdate('atendimentos',p,id):await csWriteInsert('atendimentos',{...p,responsavel_id:me.id});if(r.error)return alert(r.error.message);let savedId=id||r.data?.id;
+ let r=id?await csWriteUpdate('atendimentos',p,id):await csWriteInsert('atendimentos',{...p,responsavel_id:me.id},true);if(r.error)return alert(r.error.message);let savedId=id||r.data?.id;
  try{for(const f of pendingApptFiles)await saveAttachment('appt',savedId,f,'');pendingApptFiles=[]}catch(e){console.warn('Anexos do atendimento:',e)}
  const returnAnnual=annualCompleteReturnYear;await loadData();scheduleAndroidNotifications();if(returnAnnual){closeModal()}else{closeModal();agenda()}
 };
@@ -1230,7 +1230,7 @@ window.deleteClient=async function(id){
   await loadData();clientPage();
 };
 
-window.saveClient=async id=>{let base={nome:$('cn').value.trim(),telefone:$('ct').value,endereco:$('ce').value,servico_principal:$('cs').value,valor_servico:parseMoney($('cv').value),observacoes:$('co').value},map=$('cm').value.trim();if(!base.nome)return alert('Informe o nome.');let p={...base,mapa_url:map};let r=id?await csWriteUpdate('clientes',p,id):await csWriteInsert('clientes',p);if(r.error&&/mapa_url/i.test(r.error.message)){r=id?await csWriteUpdate('clientes',base,id):await csWriteInsert('clientes',base)}if(r.error)return alert(r.error.message);let savedId=id||r.data?.id;try{for(const f of pendingClientFiles)await saveAttachment('client',savedId,f,'');pendingClientFiles=[]}catch(e){console.warn('Anexos do cliente:',e)}closeModal();await loadData();clientPage()};
+window.saveClient=async id=>{let base={nome:$('cn').value.trim(),telefone:$('ct').value,endereco:$('ce').value,servico_principal:$('cs').value,valor_servico:parseMoney($('cv').value),observacoes:$('co').value},map=$('cm').value.trim();if(!base.nome)return alert('Informe o nome.');let p={...base,mapa_url:map};let r=id?await csWriteUpdate('clientes',p,id):await csWriteInsert('clientes',p,true);if(r.error&&/mapa_url/i.test(r.error.message)){r=id?await csWriteUpdate('clientes',base,id):await csWriteInsert('clientes',base)}if(r.error)return alert(r.error.message);let savedId=id||r.data?.id;try{for(const f of pendingClientFiles)await saveAttachment('client',savedId,f,'');pendingClientFiles=[]}catch(e){console.warn('Anexos do cliente:',e)}closeModal();await loadData();clientPage()};
 window.savePhoto=async id=>{if(!id)return alert('Salve o cliente primeiro.');let f=$('photoInput').files[0],data=cameraPendingData;if(!f&&!data)return alert('Escolha ou tire uma foto.');try{if(f)data=await fileToDataUrl(f);let r=await dbClient.from('cliente_fotos').insert({cliente_id:id,imagem_data:data,descricao:$('photoDesc').value});if(r.error)return alert(r.error.message);cameraPendingData=null;openClient(id)}catch(e){console.error(e);alert('Não foi possível carregar esta imagem. Tente outra foto.')}};
 
 
