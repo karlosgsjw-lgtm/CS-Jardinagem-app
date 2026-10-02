@@ -399,7 +399,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
 </script><script>
 /* V20261002-final — seleção de dia no painel administrativo */
 (function(){
- const U='https://lttqucegcmzwfsnrtdyj',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+ const U='https://lttqucegcmzwfsnrtdyj.supabase.co',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
  const state={days:7,selected:null,ev:[],orders:[]};
  const $=id=>document.getElementById(id);
  const dayKey=v=>{const d=new Date(v);if(isNaN(d))return '';const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),o={};p.forEach(x=>o[x.type]=x.value);return o.year+'-'+o.month+'-'+o.day};
