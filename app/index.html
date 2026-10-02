@@ -1026,7 +1026,7 @@ window.toggleEventForm=function(){
  }
 };
 window.buildEventPalette=function(){
- const palette=['#e8f5e9','#e3f2fd','#fff3e0','#fce4ec','#ede7f6','#e0f7fa','#f3e5f5','#fffde7','#f1f8e9','#fbe9e7','#e8eaf6','#efebe9','#e0f2f1','#fff8e1','#f9fbe7'];
+ const palette=['#e8f5e9','#e3f2fd','#fff3e0','#fce4ec','#ede7f6','#e0f7fa','#f3e5f5','#fffde7','#f1f8e9','#fbe9e7','#e8eaf6','#efebe9','#e0f2f1','#fff8e1','#f9fbe7','#ef5350','#42a5f5','#26a69a','#ab47bc','#ff7043','#7e57c2','#26c6da','#66bb6a','#ffa726','#ec407a'];
  const colors=$('eventColors');if(!colors)return;colors.innerHTML='';palette.forEach(col=>{const b=document.createElement('button');b.type='button';b.className='eventColorChoice';b.style.background=col;b.title='Selecionar cor';b.onclick=()=>selectEventColor(col);colors.appendChild(b)});selectEventColor(window._selectedEventColor||palette[0]);
 };
 window.toggleEventColors=function(){$('eventColors')?.classList.toggle('hidden')};
