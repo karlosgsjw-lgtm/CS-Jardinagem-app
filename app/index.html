@@ -408,14 +408,8 @@ async function boot(){
   try{
     // OFFLINE: nunca tenta autenticar nem consultar a rede.
     if(!navigator.onLine){
-      const cachedOffline=JSON.parse(localStorage.getItem('csj_profile_cache_v2_offline')||'null');
-      if(cachedOffline?.id){
-        const cachedData=JSON.parse(localStorage.getItem('csj_data_cache_v2_'+cachedOffline.id)||'null');
-        me={id:cachedOffline.id,email:cachedOffline.email||''};
-        profile=cachedOffline;
-        loginMsg(cachedData?'Dados locais encontrados. Abrindo aplicativo...':'Modo offline. Abrindo perfil salvo...');
-        $('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');
-        $('usersTab').classList.toggle('hidden',profile.perfil!=='master');
+      if(csLoadOfflineSnapshot()){
+        loginMsg('Modo offline. Abrindo dados salvos...');
         await loadData(true);
         scheduleAndroidNotifications();
         showApp();
@@ -449,7 +443,10 @@ async function loadProfile(){
  }
  let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();
  profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
- try{localStorage.setItem(key,JSON.stringify(profile))}catch(e){}
+ try{
+  localStorage.setItem(key,JSON.stringify(profile));
+  localStorage.setItem('csj_profile_cache_v2_offline',JSON.stringify(profile));
+ }catch(e){}
  $('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');
  $('usersTab').classList.toggle('hidden',profile.perfil!=='master');
 }
@@ -485,18 +482,9 @@ async function loadData(cacheOnly=false){
  window.csOfflineData=!navigator.onLine||csOfflineQueueRead().length>0;
  if(cacheOnly||!navigator.onLine)return;
 
- // Nunca apaga os dados locais só porque o WebView ficou sem rede.
- try{
-  const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),4500);
-  const probe=await fetch(SUPABASE_URL+'/rest/v1/clientes?select=id&limit=1',{headers:{apikey:SUPABASE_KEY},signal:ac.signal,cache:'no-store'});
-  clearTimeout(timer);
-  if(!probe.ok)throw new Error('Sem conexão com o Supabase');
- }catch(e){
-  console.warn('Sem conexão real; mantendo cache local:',e);
-  window.csOfflineData=true;
-  return;
- }
-
+ // ONLINE: consulta diretamente pelo cliente Supabase autenticado.
+ // O antigo "probe" REST com apenas a chave pública podia ser bloqueado
+ // pelas políticas RLS e fazia o app abandonar a carga mesmo com internet.
  const results=await Promise.allSettled([
   dbClient.from('clientes').select('*').order('nome'),
   dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento'),
@@ -507,6 +495,8 @@ async function loadData(cacheOnly=false){
   dbClient.from('necessidades').select('*').order('concluida',{ascending:true}).order('criado_em',{ascending:false})
  ]);
  const [c,a,h,hp,an,ev,n]=results;
+ const okCount=results.filter(x=>x.status==='fulfilled' && x.value && !x.value.error).length;
+ window.csDataLoadError=okCount?'' : results.map(x=>x.status==='rejected'?(x.reason?.message||'Falha de rede'):(x.value?.error?.message||'Falha')).join(' | ');
  if(c.status==='fulfilled'&&c.value?.data)clients=c.value.data;
  if(a.status==='fulfilled'&&a.value?.data)appts=a.value.data;
  if(h.status==='fulfilled'&&h.value?.data){helperList=h.value.data;window.helperLoadError=''}else if(!hadCache)window.helperLoadError=h.status==='fulfilled'?(h.value?.error?.message||''):(h.reason?.message||'');
