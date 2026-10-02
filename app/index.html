@@ -449,7 +449,7 @@ async function csWriteDelete(table,id){
 async function csWriteDeleteWhere(table,key,value){
  if(navigator.onLine)return dbClient.from(table).delete().eq(key,value);
  const arr=csOfflineArray(table);if(arr)for(let i=arr.length-1;i>=0;i--)if(String(arr[i]?.[key])===String(value)){const id=arr[i].id;arr.splice(i,1);let q=csOfflineQueueRead();const ins=q.findIndex(x=>x.op==='insert'&&x.table===table&&String(x.payload?.id)===String(id));if(ins>=0)q.splice(ins,1);else q.push({op:'delete',table,id});csOfflineQueueWrite(q)}
- if(table==='clientes'){for(const a of appts.filter(x=>String(x.cliente_id)===String(value)))await csWriteDelete('atendimentos',a.id);}
+ if(table==='clientes'){for(const child of ['cliente_fotos','agendas_anuais','atendimentos']){let q=csOfflineQueueRead();q.push({op:'deleteWhere',table:child,key:'cliente_id',value});csOfflineQueueWrite(q)}}
  csOfflinePersistData();window.csOfflineData=true;return {data:null,error:null};
 }
 async function csWriteAnnualUpsert(rows){
@@ -467,7 +467,7 @@ async function csFlushOfflineQueue(){
  if(!navigator.onLine||!me)return;if(!csOfflineQueueRead().length)return;
  let q=csOfflineQueueRead();
  for(let i=0;i<q.length;i++){const x=q[i];let r;
-  if(x.op==='insert')r=await dbClient.from(x.table).insert(x.payload);else if(x.op==='update')r=await dbClient.from(x.table).update(x.payload).eq('id',x.id);else if(x.op==='delete')r=await dbClient.from(x.table).delete().eq('id',x.id);else continue;
+  if(x.op==='insert')r=await dbClient.from(x.table).insert(x.payload);else if(x.op==='update')r=await dbClient.from(x.table).update(x.payload).eq('id',x.id);else if(x.op==='delete')r=await dbClient.from(x.table).delete().eq('id',x.id);else if(x.op==='deleteWhere')r=await dbClient.from(x.table).delete().eq(x.key,x.value);else continue;
   if(r.error){console.warn('Alteração offline não sincronizada:',x.table,x.op,r.error.message);break}
   q.splice(i,1);i--;csOfflineQueueWrite(q);
  }
@@ -554,7 +554,7 @@ function showApp(){
  async function syncNow(){
   if(syncBusy||!navigator.onLine||!me)return;
   syncBusy=true;
-  try{await loadProfile();await loadData();scheduleAndroidNotifications();window.csOfflineData=false;if(typeof tab==='function'){const t=csCurrentTab||'inicio';if(t==='necessidades')tab('necessidades');}}
+  try{await csFlushOfflineQueue();await loadProfile();await loadData();scheduleAndroidNotifications();window.csOfflineData=false;if(typeof tab==='function'){const t=csCurrentTab||'inicio';if(t==='necessidades')tab('necessidades');}}
   catch(e){console.warn('Sincronização:',e)}
   finally{syncBusy=false}
  }
@@ -1210,6 +1210,13 @@ window.deleteClient=async function(id){
   let c=clients.find(x=>String(x.id)===String(id));
   if(!c)return;
   if(!await csConfirm('Tem certeza que deseja excluir?'))return;
+  if(!navigator.onLine){
+    await csWriteDelete('clientes',id);
+    await csWriteDeleteWhere('atendimentos','cliente_id',id);
+    await csWriteDeleteWhere('agendas_anuais','cliente_id',id);
+    await csWriteDeleteWhere('cliente_fotos','cliente_id',id);
+    closeModal();clientPage();return;
+  }
   let steps=[
     dbClient.from('cliente_fotos').delete().eq('cliente_id',id),
     dbClient.from('agendas_anuais').delete().eq('cliente_id',id),
