@@ -449,6 +449,7 @@ async function csWriteDelete(table,id){
 async function csWriteDeleteWhere(table,key,value){
  if(navigator.onLine)return dbClient.from(table).delete().eq(key,value);
  const arr=csOfflineArray(table);if(arr)for(let i=arr.length-1;i>=0;i--)if(String(arr[i]?.[key])===String(value)){const id=arr[i].id;arr.splice(i,1);let q=csOfflineQueueRead();const ins=q.findIndex(x=>x.op==='insert'&&x.table===table&&String(x.payload?.id)===String(id));if(ins>=0)q.splice(ins,1);else q.push({op:'delete',table,id});csOfflineQueueWrite(q)}
+ if(!arr){let q=csOfflineQueueRead();q.push({op:'deleteWhere',table,key,value});csOfflineQueueWrite(q)}
  if(table==='clientes'){for(const child of ['cliente_fotos','agendas_anuais','atendimentos']){let q=csOfflineQueueRead();q.push({op:'deleteWhere',table:child,key:'cliente_id',value});csOfflineQueueWrite(q)}}
  csOfflinePersistData();window.csOfflineData=true;return {data:null,error:null};
 }
@@ -1020,7 +1021,7 @@ window.saveEvent=async id=>{
  if(!data)return alert('Escolha o dia do evento.');
  if(!dia_todo&&hora&&hora_fim&&hora_fim<hora)return alert('O horário de término não pode ser anterior ao horário de início.');
  const p={data,hora:dia_todo?null:hora,hora_fim:dia_todo?null:hora_fim,dia_todo,descricao,cor,atualizado_em:new Date().toISOString()};
- const r=id?await dbClient.from('agenda_eventos').update(p).eq('id',id):await dbClient.from('agenda_eventos').insert({...p,criado_por:me.id});
+ const r=id?await csWriteUpdate('agenda_eventos',p,id):await csWriteInsert('agenda_eventos',{...p,criado_por:me.id});
  if(r.error)return alert(r.error.message);
  await loadData();closeModal();agenda();
 };
@@ -1182,7 +1183,7 @@ window.saveAppt=async id=>{
  if($('isEvent')?.checked){
   const descricao=$('evDesc')?.value.trim(),data=$('evDate')?.value,hora=$('evTime')?.value||null,cor=window._selectedEventColor||'#e8f5e9';
   if(!descricao)return alert('Informe a descrição do evento.');if(!data)return alert('Escolha o dia do evento.');
-  let r=await dbClient.from('agenda_eventos').insert({data,hora,descricao,cor,criado_por:me.id});if(r.error)return alert(r.error.message);
+  let r=await csWriteInsert('agenda_eventos',{data,hora,descricao,cor,criado_por:me.id});if(r.error)return alert(r.error.message);
   await loadData();closeModal();agenda();return;
  }
  let horario_inicio=$('ahi')?.value||null,horario_fim=$('ahf')?.value||null;if(horario_inicio&&horario_fim&&horario_fim<horario_inicio)return alert('O horário de término não pode ser anterior ao horário de início.');
