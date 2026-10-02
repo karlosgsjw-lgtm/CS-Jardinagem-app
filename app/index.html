@@ -1430,7 +1430,81 @@ window.emissaoPrint=function(){let nome=$('emNome')?.value.trim(),end=$('emEnd')
 .calendarHead h2{margin:0;flex:0 1 auto;text-align:center}
 .calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
 @media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
-</head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div><div class="box"><p><b>Empresa / cliente:</b> ${esc(nome)}</p>${end?`<p><b>Endereço:</b> ${esc(end)}</p>`:''}<p><b>Período:</b> ${esc(mesNome)}</p>${venc?`<p><b>Vencimento:</b> ${fmtDate(venc)}</p>`:''}</div><div class="phrase">${esc(frase).replace(/\n/g,'<br>')}</div><table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>${itens.map(x=>`<tr><td>${fmtDate(x.data)}</td><td>${esc(x.desc)}</td><td>${money(x.valor)}</td></tr>`).join('')}</tbody></table><div class="total">Total: ${money(total)}</div><div class="box"><p><b>Forma de pagamento:</b> ${esc(forma||'Não informada')}</p>${obs?`<p><b>Observações:</b> ${esc(obs)}</p>`:''}</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script><div id="v40_9_complete" aria-hidden="true"></div></body></html>`);w.document.close()};
+</head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div><div class="box"><p><b>Empresa / cliente:</b> ${esc(nome)}</p>${end?`<p><b>Endereço:</b> ${esc(end)}</p>`:''}<p><b>Período:</b> ${esc(mesNome)}</p>${venc?`<p><b>Vencimento:</b> ${fmtDate(venc)}</p>`:''}</div><div class="phrase">${esc(frase).replace(/\n/g,'<br>')}</div><table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>${itens.map(x=>`<tr><td>${fmtDate(x.data)}</td><td>${esc(x.desc)}</td><td>${money(x.valor)}</td></tr>`).join('')}</tbody></table><div class="total">Total: ${money(total)}</div><div class="box"><p><b>Forma de pagamento:</b> ${esc(forma||'Não informada')}</p>${obs?`<p><b>Observações:</b> ${esc(obs)}</p>`:''}</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script><div id="v40_9_complete" aria-hidden="true"></div>
+<style>
+#csOfflineStatus{position:fixed;right:10px;bottom:10px;z-index:9998;display:none;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;background:#fff;border:1px solid #dce5df;box-shadow:0 4px 14px #0002;font-size:11px;font-weight:800;color:#166534;pointer-events:none}
+#csOfflineStatus .csosDot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex:none}
+#csOfflineStatus.offline{color:#9a3412;background:#fff7ed;border-color:#fed7aa}
+#csOfflineStatus.offline .csosDot{background:#f59e0b}
+#csOfflineStatus.sync{color:#1d4ed8;background:#eff6ff;border-color:#bfdbfe}
+#csOfflineStatus.sync .csosDot{background:#3b82f6}
+</style>
+<script>
+(function(){
+  const ID='csOfflineStatus';
+  function el(){
+    let d=document.getElementById(ID);
+    if(!d){
+      d=document.createElement('div');
+      d.id=ID;
+      d.innerHTML='<span class="csosDot"></span><span class="csosText"></span>';
+      document.body.appendChild(d);
+    }
+    return d;
+  }
+  function show(type,text,ms){
+    const d=el(),t=d.querySelector('.csosText');
+    d.className=type||'';
+    t.textContent=text;
+    d.style.display='flex';
+    clearTimeout(d._hide);
+    if(ms)d._hide=setTimeout(()=>{if(navigator.onLine&&!window.csOfflineData)d.style.display='none'},ms);
+  }
+  function cachedLabel(){
+    try{
+      const c=JSON.parse(localStorage.getItem('csj_data_cache_v1')||'null');
+      if(c?.savedAt){
+        const dt=new Date(c.savedAt);
+        return dt.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+      }
+    }catch(e){}
+    return '';
+  }
+  function refresh(){
+    if(navigator.onLine){
+      if(window.csOfflineData){
+        show('sync','Conexão voltou • sincronizando…');
+      }else{
+        const d=document.getElementById(ID);
+        if(d)d.style.display='none';
+      }
+    }else{
+      const when=cachedLabel();
+      show('offline','Offline • dados de '+(when||'última sincronização'));
+    }
+  }
+  window.addEventListener('offline',()=>show('offline','Offline • alterações aguardando conexão'));
+  window.addEventListener('online',()=>{
+    show('sync','Conexão voltou • sincronizando…');
+    setTimeout(refresh,2500);
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(refresh,250)});
+  const oldSync=window.csSyncNow;
+  if(typeof oldSync==='function'){
+    window.csSyncNow=async function(){
+      show('sync','Sincronizando…');
+      try{
+        const r=await oldSync.apply(this,arguments);
+        setTimeout(refresh,400);
+        return r;
+      }catch(e){show('offline','Falha na sincronização • tente novamente');throw e}
+    };
+  }
+  window.csOfflineStatusRefresh=refresh;
+  setTimeout(refresh,900);
+})();
+</script>
+</body></html>`);w.document.close()};
 
 /* =========================
    ORÇAMENTOS — V40.12.4
