@@ -112,7 +112,7 @@
 .calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
 @media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
 
-/* V40.12.48 — correções cirúrgicas de layout/pesquisa */
+/* V40.12.49 — correções cirúrgicas de layout/pesquisa */
 @media (max-width:700px){
   .agendaToolbar,
   .financeToolbar{
@@ -386,6 +386,20 @@ async function boot(){
       me=r.data.session.user;
       loginMsg('Sessão encontrada. Abrindo aplicativo...');
       await start();
+    }else if(!navigator.onLine && localStorage.getItem('csj_offline_ready_v1')==='1'){
+      const cached=JSON.parse(localStorage.getItem('csj_profile_cache_v2_offline')||'null');
+      if(cached?.id){
+        me={id:cached.id,email:cached.email||''};
+        profile=cached;
+        loginMsg('Modo offline. Abrindo dados salvos...');
+        await loadProfile();
+        await loadData();
+        scheduleAndroidNotifications();
+        showApp();
+      }else{
+        loginMsg('Sem internet. Faça o primeiro login com internet neste aparelho.');
+        showLogin();
+      }
     }else{
       loginMsg('Pronto. Faça o login.');
       showLogin();
@@ -640,8 +654,10 @@ window.login=async()=>{
     if(r.error){loginMsg('ERRO 2 — login: '+r.error.message);return;}
     if(!r.data?.user){loginMsg('ERRO 2 — login: Supabase não retornou usuário.');return;}
     me=r.data.user;
+    try{localStorage.setItem('csj_offline_ready_v1','1')}catch(e){}
     loginMsg('2/4 — login OK. Carregando perfil...');
     await loadProfile();
+    try{localStorage.setItem('csj_profile_cache_v2_offline',JSON.stringify({...profile,email:me.email}))}catch(e){}
     loginMsg('3/4 — perfil OK. Carregando dados...');
     await loadData();
     loginMsg('4/4 — dados OK. Abrindo agenda...');
@@ -651,7 +667,7 @@ window.login=async()=>{
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
   }
-};window.logout=()=>dbClient.auth.signOut();window.closeModal=()=>{const yr=annualCompleteReturnYear;annualCompleteReturnYear=null;$('modal').classList.add('hidden');if(yr){setTimeout(()=>openAnnualComplete(yr),0)}};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
+};window.logout=async()=>{try{localStorage.removeItem('csj_offline_ready_v1');localStorage.removeItem('csj_profile_cache_v2_offline')}catch(e){};return dbClient.auth.signOut()};window.closeModal=()=>{const yr=annualCompleteReturnYear;annualCompleteReturnYear=null;$('modal').classList.add('hidden');if(yr){setTimeout(()=>openAnnualComplete(yr),0)}};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
