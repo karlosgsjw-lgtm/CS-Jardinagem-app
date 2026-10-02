@@ -362,3 +362,38 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
 })();
 </script>
+<script>
+/* V20261002-fix2 — clique robusto nas barras, inclusive no gráfico legado */
+(function(){
+ function toKey(label){
+  const m=String(label||'').trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(!m)return null;
+  const y=new Date().getFullYear();
+  return y+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+ }
+ function bindBars(){
+  ['av','ao'].forEach(id=>{
+   const box=document.getElementById(id);
+   if(!box||box.dataset.dayClickBound)return;
+   box.dataset.dayClickBound='1';
+   box.addEventListener('click',e=>{
+    let el=e.target;
+    while(el&&el!==box){
+     const label=el.querySelector?.('span');
+     if(label){
+      const key=toKey(label.textContent);
+      if(key&&typeof window.selectAnalyticsDay==='function'){
+       e.preventDefault();e.stopPropagation();
+       window.selectAnalyticsDay(key);
+       return;
+      }
+     }
+     el=el.parentElement;
+    }
+   },true);
+  });
+ }
+ bindBars();
+ new MutationObserver(bindBars).observe(document.body,{subtree:true,childList:true});
+})();
+</script>
