@@ -377,6 +377,32 @@ window.csConfirm=function(question){return new Promise(resolve=>{
 function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').forEach(el=>{el.setAttribute('inputmode','numeric');el.setAttribute('autocomplete','off');if(!el.dataset.moneyBound){el.dataset.moneyBound='1';el.addEventListener('focus',()=>{setTimeout(()=>el.select(),0)});el.addEventListener('input',()=>formatMoneyInput(el));el.addEventListener('blur',()=>{if(!el.value.trim())el.value='0,00';else formatMoneyInput(el)});el.addEventListener('keydown',e=>{if(['e','E','+','-'].includes(e.key))e.preventDefault()})}})}
 
 function loginMsg(t){$('loginMsg').textContent=t}
+function csSaveOfflineSnapshot(){
+ try{
+  if(!me)return;
+  const snap={savedAt:Date.now(),me:{id:me.id,email:me.email||''},profile,clients,appts,helperList,helperPayments,annuals,events,needs};
+  localStorage.setItem('csj_offline_snapshot_v3',JSON.stringify(snap));
+ }catch(e){console.warn('Snapshot offline:',e)}
+}
+function csLoadOfflineSnapshot(){
+ try{
+  const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
+  if(!snap?.me?.id)return false;
+  me={id:snap.me.id,email:snap.me.email||''};
+  profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
+  clients=Array.isArray(snap.clients)?snap.clients:[];
+  appts=Array.isArray(snap.appts)?snap.appts:[];
+  helperList=Array.isArray(snap.helperList)?snap.helperList:[];
+  helperPayments=Array.isArray(snap.helperPayments)?snap.helperPayments:[];
+  annuals=Array.isArray(snap.annuals)?snap.annuals:[];
+  events=Array.isArray(snap.events)?snap.events:[];
+  needs=Array.isArray(snap.needs)?snap.needs:[];
+  $('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');
+  $('usersTab').classList.toggle('hidden',profile.perfil!=='master');
+  window.csOfflineData=true;
+  return true;
+ }catch(e){console.warn('Snapshot offline:',e);return false}
+}
 async function boot(){
   loginMsg('Diagnóstico: verificando sessão...');
   try{
@@ -490,6 +516,7 @@ async function loadData(cacheOnly=false){
  if(n.status==='fulfilled'&&n.value?.data)needs=n.value.data;
  csOverlayOfflineQueue();
  try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events,needs}))}catch(e){console.warn('Cache:',e)}
+ csSaveOfflineSnapshot();
  try{localStorage.setItem('csj_needs_cache_v1',JSON.stringify({savedAt:Date.now(),needs}))}catch(e){}
  window.csOfflineData=csOfflineQueueRead().length>0;
 }
@@ -498,7 +525,7 @@ const CS_OFFLINE_QUEUE='csj_offline_queue_v1',CS_OFFLINE_SEQ='csj_offline_seq_v1
 function csOfflineQueueRead(){try{return JSON.parse(localStorage.getItem(CS_OFFLINE_QUEUE)||'[]')}catch(e){return[]}}
 function csOfflineQueueWrite(q){try{localStorage.setItem(CS_OFFLINE_QUEUE,JSON.stringify(q))}catch(e){console.warn('Fila offline:',e)}}
 function csOfflineTempId(){let n=Number(localStorage.getItem(CS_OFFLINE_SEQ)||'-1');if(n>=0)n=-1;localStorage.setItem(CS_OFFLINE_SEQ,String(n-1));return n}
-function csOfflinePersistData(){if(!me)return;try{localStorage.setItem('csj_data_cache_v2_'+me.id,JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}))}catch(e){console.warn('Cache offline:',e)}}
+function csOfflinePersistData(){if(!me)return;try{localStorage.setItem('csj_data_cache_v2_'+me.id,JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events,needs}))}catch(e){console.warn('Cache offline:',e)}}
 function csOfflineArray(table){return table==='clientes'?clients:table==='atendimentos'?appts:table==='ajudantes'?helperList:table==='pagamentos_ajudantes'?helperPayments:table==='agendas_anuais'?annuals:table==='agenda_eventos'?events:null}
 function csOfflineAddRelation(table,row){if(table==='atendimentos'){const cc=clients.find(x=>String(x.id)===String(row.cliente_id));if(cc)row.clientes={nome:cc.nome,telefone:cc.telefone,endereco:cc.endereco,servico_principal:cc.servico_principal,observacoes:cc.observacoes,valor_servico:cc.valor_servico}}return row}
 async function csWriteInsert(table,payload,wantData=false){
@@ -1945,10 +1972,24 @@ let cats=[],items=[],selected=null,pending=[];
 const E=v=>esc(String(v??'')),cat=id=>cats.find(x=>String(x.id)===String(id)),tools=c=>String(c?.nome||'').toLowerCase()==='ferramentas';
 function money2(v){return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
 function date2(v){if(!v)return '';return new Date(v+'T00:00:00').toLocaleDateString('pt-BR')}
-async function load(){let a=await dbClient.from('necessidade_categorias').select('*').eq('ativo',true).order('ordem').order('id'),b=await dbClient.from('necessidade_itens').select('*').order('concluida').order('criado_em',{ascending:false});if(a.error)throw a.error;if(b.error)throw b.error;cats=a.data||[];items=b.data||[]}
+async function load(){
+ if(!navigator.onLine){
+  try{
+   const c=JSON.parse(localStorage.getItem('csj_needs_v2_cache_v1')||'null');
+   cats=Array.isArray(c?.cats)?c.cats:[];
+   items=Array.isArray(c?.items)?c.items:[];
+   if(!cats.length&&Array.isArray(needs)&&needs.length)cats=[{id:-1,nome:'Necessidades',ordem:1,ativo:true}];
+   if(cats.length||items.length)return;
+  }catch(e){}
+  cats=[];items=[];return;
+ }
+ let a=await dbClient.from('necessidade_categorias').select('*').eq('ativo',true).order('ordem').order('id'),b=await dbClient.from('necessidade_itens').select('*').order('concluida').order('criado_em',{ascending:false});
+ if(a.error)throw a.error;if(b.error)throw b.error;cats=a.data||[];items=b.data||[];
+ try{localStorage.setItem('csj_needs_v2_cache_v1',JSON.stringify({savedAt:Date.now(),cats,items}))}catch(e){}
+}
 async function render(){let box=$('nv2Wrap'),c=cat(selected),list=items.filter(x=>String(x.categoria_id)===String(selected));if(!box)return;box.innerHTML='<div class="needsV2Cats">'+cats.map(x=>'<div class="needsV2CatWrap"><button class="needsV2Cat '+(x.id==selected?'active':'')+'" onclick="nv2SelectCat('+x.id+')">'+E(x.nome)+'</button><button type="button" class="needsV2Hamb" title="Opções" aria-label="Opções" onclick="event.stopPropagation();nv2CatMenu('+x.id+',this)">☰</button></div>').join('')+'</div><div class="needsV2Tools"><button class="btn" onclick="nv2NewItem('+selected+')">＋ Adicionar item</button><button class="btn alt" onclick="nv2History()">🔧 Manutenções</button></div><div id="nv2Items">'+(list.length?list.map(itemHtml).join(''):'<div class="panel"><p class="muted">Nenhum item neste subcampo.</p></div>')+'</div>';const q=$('tabSearchInput');if(q)filterCurrentTab(q.value,'necessidades');setTimeout(loadPhotos,0)}
 function itemHtml(i){return '<div class="panel needsCard needsV2Item" id="nv2item_'+i.id+'"><button class="btn danger iconAction deleteAction" style="position:absolute;right:10px;top:10px" onclick="nv2DeleteItem('+i.id+')" title="Excluir item">🗑️</button><h3>'+E(i.titulo)+'</h3>'+(i.descricao?'<div class="muted" style="margin-top:5px;white-space:pre-wrap">'+E(i.descricao)+'</div>':'')+(i.imagem_data?'<div class="needsV2Thumbs"><img class="needsV2Thumb" src="'+E(i.imagem_data)+'" onclick="nv2OpenPhoto('+JSON.stringify(i.imagem_data)+','+JSON.stringify(i.titulo)+')" alt="Foto"></div>':'')+'<div class="needsV2Thumbs" id="nv2photos_'+i.id+'"><span class="needsV2Muted">Carregando fotos...</span></div><div class="needsV2PhotoActions"><button class="btn" onclick="nv2EditItem('+i.id+')">✏️ Editar</button><button class="btn alt" title="Alterar categoria" aria-label="Alterar categoria" onclick="nv2MoveItem('+i.id+')">↔️</button></div><div class="needsActions"><label class="needsCheck"><input type="checkbox" '+(i.concluida?'checked':'')+' onchange="nv2ToggleDone('+i.id+',this.checked)"><span>Concluir</span></label></div></div>'}
-async function loadPhotos(){for(const i of items.filter(x=>x.categoria_id==selected))await renderPhotos(i.id)}
+async function loadPhotos(){if(!navigator.onLine)return;for(const i of items.filter(x=>x.categoria_id==selected))await renderPhotos(i.id)}
 async function renderPhotos(id){let b=$('nv2photos_'+id);if(!b)return;let r=await dbClient.from('necessidade_fotos').select('*').eq('item_id',id).order('criado_em',{ascending:false});if(r.error){b.innerHTML='<span class="needsV2Muted">Erro ao carregar fotos.</span>';return}if(!r.data?.length){b.innerHTML='<span class="needsV2Muted">Nenhuma foto adicionada.</span>';return}b.innerHTML=r.data.map((p,n)=>'<div class="needsV2PhotoBox" data-photo-id="'+p.id+'" data-photo-path="'+E(p.caminho||'')+'"><img class="needsV2Thumb" src="'+E(p.url)+'" alt="Foto '+(n+1)+'"><button type="button" class="needsV2PhotoDelete" title="Excluir foto" aria-label="Excluir foto">🗑️</button></div>').join('');b.querySelectorAll('.needsV2Thumb').forEach(img=>img.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();let box=e.currentTarget.closest('.needsV2PhotoBox');nv2OpenPhoto(e.currentTarget.src,e.currentTarget.alt)}));b.querySelectorAll('.needsV2PhotoDelete').forEach(btn=>btn.addEventListener('click',async e=>{e.preventDefault();e.stopPropagation();let box=e.currentTarget.closest('.needsV2PhotoBox');if(!box)return;let pid=Number(box.dataset.photoId),pp=box.dataset.photoPath||'';await nv2DeletePhoto(pid,pp,id)}))}
 function nv2EnsureViewer(){if($('nv2PhotoViewer'))return;let d=document.createElement('div');d.id='nv2PhotoViewer';d.className='needsV2PhotoViewer';d.hidden=true;d.innerHTML='<button type="button" class="needsV2ViewerClose" aria-label="Fechar">✕</button><button type="button" class="needsV2ViewerZoom needsV2ViewerZoomOut" aria-label="Diminuir">−</button><button type="button" class="needsV2ViewerZoom" aria-label="Aumentar">＋</button><img id="nv2PhotoViewerImg" alt="Foto ampliada">';d.addEventListener('click',e=>{if(e.target===d)nv2ClosePhoto()});d.querySelector('.needsV2ViewerClose').addEventListener('click',e=>{e.preventDefault();nv2ClosePhoto()});d.querySelector('.needsV2ViewerZoom').addEventListener('click',e=>{e.preventDefault();nv2PhotoZoom(.5)});d.querySelector('.needsV2ViewerZoomOut').addEventListener('click',e=>{e.preventDefault();nv2PhotoZoom(-.5)});d.querySelector('#nv2PhotoViewerImg').addEventListener('click',e=>{e.preventDefault();nv2PhotoZoom(.5)});document.body.appendChild(d)}
 let nv2ViewerScale=1;
