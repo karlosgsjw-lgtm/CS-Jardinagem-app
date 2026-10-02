@@ -388,7 +388,7 @@ async function boot(){
     }
   }catch(e){loginMsg('ERRO 1 — boot: '+(e?.message||String(e)));}
 }
-async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
+async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp();if(navigator.onLine&&window.csSyncNow)setTimeout(()=>window.csSyncNow(),350)}
 async function loadProfile(){
  const key='csj_profile_cache_v2_'+me.id;
  if(!navigator.onLine){
@@ -496,6 +496,10 @@ async function csFlushOfflineQueue(){
    if(tempId!=null&&Number(tempId)<0)delete sendPayload.id;
    r=await dbClient.from(x.table).insert(sendPayload).select('id').maybeSingle();
    if(r.error){console.warn('Alteração offline não sincronizada:',x.table,x.op,r.error.message);break}
+   if(tempId!=null&&Number(tempId)<0&&!r.data?.id){
+    console.warn('Sincronização aguardando confirmação do ID:',x.table);
+    break;
+   }
    q.splice(i,1);csOfflineQueueWrite(q);
    if(r.data?.id!=null&&tempId!=null&&Number(tempId)<0)csOfflineReplaceTempId(tempId,r.data.id,x.table);
    q=csOfflineQueueRead();i=-1;continue;
