@@ -405,6 +405,23 @@ async function loadProfile(){
  $('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');
  $('usersTab').classList.toggle('hidden',profile.perfil!=='master');
 }
+function csOverlayOfflineQueue(){
+ const q=csOfflineQueueRead();if(!q.length)return;
+ const arrays={clientes,atendimentos:appts,ajudantes:helperList,pagamentos_ajudantes:helperPayments,agendas_anuais:annuals,agenda_eventos:events};
+ for(const x of q){
+  const arr=arrays[x.table];if(!arr)continue;
+  if(x.op==='insert'){
+   const id=x.payload?.id;
+   if(!arr.some(r=>id!=null&&String(r.id)===String(id)))arr.push(csOfflineAddRelation(x.table,{...x.payload}));
+  }else if(x.op==='update'){
+   const row=arr.find(r=>String(r.id)===String(x.id));if(row){Object.assign(row,x.payload);csOfflineAddRelation(x.table,row)}
+  }else if(x.op==='delete'){
+   for(let i=arr.length-1;i>=0;i--)if(String(arr[i]?.id)===String(x.id))arr.splice(i,1);
+  }else if(x.op==='deleteWhere'){
+   for(let i=arr.length-1;i>=0;i--)if(String(arr[i]?.[x.key])===String(x.value))arr.splice(i,1);
+  }
+ }
+}
 async function loadData(){
  const key='csj_data_cache_v2_'+me.id;
  if(!navigator.onLine){
@@ -413,10 +430,10 @@ async function loadData(){
    if(!cached){cached=JSON.parse(localStorage.getItem('csj_data_cache_v1')||'null')}
    if(cached){
     clients=cached.clients||[];appts=cached.appts||[];helperList=cached.helperList||[];helperPayments=cached.helperPayments||[];annuals=cached.annuals||[];events=cached.events||[];
-    window.csOfflineData=true;return;
+    csOverlayOfflineQueue();window.csOfflineData=true;return;
    }
   }catch(e){console.warn('Cache offline:',e)}
-  clients=[];appts=[];helperList=[];helperPayments=[];annuals=[];events=[];window.csOfflineData=true;return;
+  clients=[];appts=[];helperList=[];helperPayments=[];annuals=[];events=[];csOverlayOfflineQueue();window.csOfflineData=true;return;
  }
  let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];
  let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];
@@ -424,8 +441,9 @@ async function loadData(){
  let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';
  let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[];
  let ev=await dbClient.from('agenda_eventos').select('*').order('data').order('hora');events=ev.error?[]:(ev.data||[]);
+ csOverlayOfflineQueue();
  try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}))}catch(e){console.warn('Cache:',e)}
- window.csOfflineData=false;
+ window.csOfflineData=csOfflineQueueRead().length>0;
 }
 /* V40.12.44 — fila segura de alterações offline; não altera dbClient */
 const CS_OFFLINE_QUEUE='csj_offline_queue_v1',CS_OFFLINE_SEQ='csj_offline_seq_v1';
