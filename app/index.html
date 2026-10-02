@@ -1212,10 +1212,10 @@ window.deleteClient=async function(id){
   if(!c)return;
   if(!await csConfirm('Tem certeza que deseja excluir?'))return;
   if(!navigator.onLine){
-    await csWriteDelete('clientes',id);
-    await csWriteDeleteWhere('atendimentos','cliente_id',id);
-    await csWriteDeleteWhere('agendas_anuais','cliente_id',id);
     await csWriteDeleteWhere('cliente_fotos','cliente_id',id);
+    await csWriteDeleteWhere('agendas_anuais','cliente_id',id);
+    await csWriteDeleteWhere('atendimentos','cliente_id',id);
+    await csWriteDelete('clientes',id);
     closeModal();clientPage();return;
   }
   let steps=[
