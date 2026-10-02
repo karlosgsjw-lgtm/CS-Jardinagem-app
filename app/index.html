@@ -440,6 +440,7 @@ async function loadData(){
    const cached=JSON.parse(localStorage.getItem('csj_data_cache_v1')||'null');
    if(cached){
     clients=cached.clients||[];appts=cached.appts||[];helperList=cached.helperList||[];helperPayments=cached.helperPayments||[];annuals=cached.annuals||[];events=cached.events||[];
+    try{localStorage.setItem('csj_table_cache_v2',JSON.stringify({clientes:clients,atendimentos:appts,ajudantes:helperList,pagamentos_ajudantes:helperPayments,agendas_anuais:annuals,agenda_eventos:events}))}catch(e){}
     window.csOfflineData=true;return;
    }
   }catch(e){console.warn('Cache offline:',e)}
@@ -451,7 +452,7 @@ async function loadData(){
  let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';
  let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[];
  let ev=await dbClient.from('agenda_eventos').select('*').order('data').order('hora');events=ev.error?[]:(ev.data||[]);
- try{localStorage.setItem('csj_data_cache_v1',JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}))}catch(e){console.warn('Cache:',e)}
+ try{localStorage.setItem('csj_data_cache_v1',JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}));localStorage.setItem('csj_table_cache_v2',JSON.stringify({clientes:clients,atendimentos:appts,ajudantes:helperList,pagamentos_ajudantes:helperPayments,agendas_anuais:annuals,agenda_eventos:events}))}catch(e){console.warn('Cache:',e)}
  window.csOfflineData=false;
 }
 
