@@ -396,4 +396,67 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  bindBars();
  new MutationObserver(bindBars).observe(document.body,{subtree:true,childList:true});
 })();
+</script><script>
+/* V20261002-final — seleção de dia no painel administrativo */
+(function(){
+ const U='https://lttqucegcmzwfsnrtdyj',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+ const state={days:7,selected:null,ev:[],orders:[]};
+ const $=id=>document.getElementById(id);
+ const dayKey=v=>{const d=new Date(v);if(isNaN(d))return '';const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d),o={};p.forEach(x=>o[x.type]=x.value);return o.year+'-'+o.month+'-'+o.day};
+ const today=()=>dayKey(new Date());
+ const label=k=>{if(!k)return 'Período';const [y,m,d]=k.split('-');return d+'/'+m+'/'+y};
+ const esc=v=>String(v??'').replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
+ const source=r=>{if(!r)return 'Acesso direto';try{const h=new URL(r).hostname.replace(/^www\./,'');if(h.includes('google'))return 'Google';if(h.includes('instagram'))return 'Instagram';if(h.includes('facebook'))return 'Facebook';if(h.includes('tiktok'))return 'TikTok';if(h.includes('whatsapp'))return 'WhatsApp';if(h.includes('karlosgsjw-lgtm.github.io'))return 'Seu app/site';return h}catch(_){return r}};
+ const group=a=>{const m={};a.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+ function paintBars(by,ordersBy){
+  const mk=(obj,type)=>Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0])).map(([k,n])=>'<button type="button" class="barWrap analyticsDayBar '+(state.selected===k?'selected':'')+'" data-day="'+k+'" title="Ver dados de '+label(k)+'" onclick="window.selectAnalyticsDay(\''+k+'\');return false"><b class="barValue">'+n+'</b><span class="bar" style="height:'+Math.max(8,n*12)+'px"></span><span class="barLabel">'+k.slice(8,10)+'/'+k.slice(5,7)+'</span></button>').join('')||'<span class="small">'+(type==='v'?'Nenhuma visita.':'Nenhum orçamento.')+'</span>';
+  const av=$('av'),ao=$('ao');if(av)av.innerHTML='<div class="chart">'+mk(by,'v')+'</div>';if(ao)ao.innerHTML='<div class="chart">'+mk(ordersBy,'o')+'</div>';
+ }
+ function render(ev,orders){
+  const allV=ev.filter(x=>x.event_type==='page_view'),allC=ev.filter(x=>x.event_type==='click');
+  const v=state.selected?allV.filter(x=>dayKey(x.created_at)===state.selected):allV;
+  const cl=state.selected?allC.filter(x=>dayKey(x.created_at)===state.selected):allC;
+  const ord=state.selected?orders.filter(x=>dayKey(x.criado_em)===state.selected):orders;
+  const unique=new Set(v.map(x=>x.session_id).filter(Boolean)).size;
+  const cv=unique?(ord.length/unique*100):0;
+  if($('astats'))$('astats').innerHTML=[['👤','Pessoas',unique],['👁️','Visitas',v.length],['🖱️','Cliques',cl.length],['💰','Orçamentos',ord.length]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
+  const by={};allV.forEach(x=>{const k=dayKey(x.created_at);by[k]=(by[k]||0)+1});
+  const bo={};orders.forEach(x=>{const k=dayKey(x.criado_em);bo[k]=(bo[k]||0)+1});
+  paintBars(by,bo);
+  const cm={};cl.forEach(x=>{const k=x.element||x.metadata?.element||'Outro';cm[k]=(cm[k]||0)+1});
+  if($('ac'))$('ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique neste dia.</span>';
+  const meta=v.map(x=>x.metadata||{});
+  const fill=(id,arr,empty)=>{if($(id))$(id).innerHTML=group(arr).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">'+empty+'</span>'};
+  fill('asrc',meta.map(x=>source(x.referrer)),'Sem dados neste dia.');
+  fill('acity',meta.map(x=>x.city?(x.city+(x.region?', '+x.region:'')):null),'Sem dados neste dia.');
+  fill('adev',meta.map(x=>x.device||'Não identificado'),'Sem dados neste dia.');
+  fill('abro',meta.map(x=>x.browser||'Não identificado'),'Sem dados neste dia.');
+  const recent=v.slice(-10).reverse();
+  if($('arecent'))$('arecent').innerHTML=recent.length?recent.map(x=>{const m=x.metadata||{};return '<div class="clickRow"><span>'+new Date(x.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})+' · '+esc(m.city||'Local não identificado')+'</span><b>'+esc(m.device||'—')+'</b></div>'}).join(''):'<span class="small">Nenhuma visita neste dia.</span>';
+  if($('ai'))$('ai').innerHTML='<div class="clickRow"><span>Taxa de conversão</span><b>'+cv.toFixed(1)+'%</b></div><div class="clickRow"><span>Pessoas únicas</span><b>'+unique+'</b></div><div class="clickRow"><span>Dia selecionado</span><b>'+label(state.selected||today())+'</b></div>';
+  if($('amsg'))$('amsg').textContent=(state.selected?'📅 Dados de '+label(state.selected):'📅 Hoje')+' · gráficos: últimos '+state.days+' dias · toque em outra barra para mudar o dia.';
+ }
+ async function load(days,selected){
+  const token=localStorage.getItem('cs_admin_access');if(!token)return;
+  state.days=days;state.selected=selected||today();
+  const up=$('ar');if(up){up.textContent='⟳ Atualizando...';up.disabled=true}
+  try{
+   const q=await fetch(U+'/rest/v1/rpc/site_admin_analytics',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({p_days:days}),cache:'no-store'});
+   const data=await q.json();if(!q.ok)throw new Error(data?.message||data?.hint||('Estatísticas: HTTP '+q.status));
+   state.ev=Array.isArray(data?.events)?data.events:[];state.orders=Array.isArray(data?.orders)?data.orders:[];render(state.ev,state.orders);
+  }catch(e){console.error(e);if($('amsg'))$('amsg').textContent='❌ '+e.message}
+  finally{if(up){up.textContent='↻ Atualizar';up.disabled=false}}
+ }
+ window.selectAnalyticsDay=async k=>{state.selected=k;render(state.ev,state.orders)};
+ function bind(){
+  const p7=$('a7'),p30=$('a30'),up=$('ar');
+  if(p7)p7.onclick=()=>load(7,today());
+  if(p30)p30.onclick=()=>load(30,today());
+  if(up)up.onclick=()=>load(state.days,today());
+  load(7,today());
+ }
+ const css=document.createElement('style');css.textContent='.analyticsDayBar{transition:transform .25s ease,opacity .25s ease,filter .25s ease!important}.analyticsDayBar .bar{transition:background-color .3s ease,transform .3s ease,filter .3s ease!important;background:#15803d;border-radius:5px 5px 0 0}.analyticsDayBar.selected .bar{background:#064e3b!important;transform:scaleX(1.18);filter:brightness(1.05)}.analyticsDayBar.selected{transform:translateY(-3px);opacity:1}.analyticsDayBar:not(.selected){opacity:.82}';
+document.head.appendChild(css);
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(bind,250));else setTimeout(bind,250);
+})();
 </script>
