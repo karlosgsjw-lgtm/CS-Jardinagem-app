@@ -464,13 +464,41 @@ async function csWriteHelperPayment(p){
  if(old)Object.assign(old,p);else{let row={...p,id:csOfflineTempId()};helperPayments.push(row)}
  const q=csOfflineQueueRead(),row=old||helperPayments[helperPayments.length-1],ins=q.find(x=>x.op==='insert'&&x.table==='pagamentos_ajudantes'&&String(x.payload?.id)===String(row.id));if(ins)Object.assign(ins.payload,p);else if(old){const u=q.find(x=>x.op==='update'&&x.table==='pagamentos_ajudantes'&&String(x.id)===String(old.id));if(u)Object.assign(u.payload,p);else q.push({op:'update',table:'pagamentos_ajudantes',id:old.id,payload:p})}else q.push({op:'insert',table:'pagamentos_ajudantes',payload:row});csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;return {data:null,error:null};
 }
+function csOfflineReplaceTempId(tempId,realId,table){
+ const arr=csOfflineArray(table);
+ if(arr){const row=arr.find(x=>String(x.id)===String(tempId));if(row)row.id=realId}
+ const q=csOfflineQueueRead();
+ for(const x of q){
+  if(x.id!=null&&String(x.id)===String(tempId))x.id=realId;
+  if(x.op==='deleteWhere'&&String(x.value)===String(tempId))x.value=realId;
+  if(x.payload){
+   if(String(x.payload.id)===String(tempId))x.payload.id=realId;
+   if(table==='clientes'&&String(x.payload.cliente_id)===String(tempId))x.payload.cliente_id=realId;
+   if(table==='ajudantes'&&String(x.payload.ajudante_id)===String(tempId))x.payload.ajudante_id=realId;
+   if(table==='atendimentos'&&String(x.payload.atendimento_id)===String(tempId))x.payload.atendimento_id=realId;
+  }
+ }
+ csOfflineQueueWrite(q);csOfflinePersistData();
+}
 async function csFlushOfflineQueue(){
  if(!navigator.onLine||!me)return;if(!csOfflineQueueRead().length)return;
  let q=csOfflineQueueRead();
  for(let i=0;i<q.length;i++){const x=q[i];let r;
-  if(x.op==='insert')r=await dbClient.from(x.table).insert(x.payload);else if(x.op==='update')r=await dbClient.from(x.table).update(x.payload).eq('id',x.id);else if(x.op==='delete')r=await dbClient.from(x.table).delete().eq('id',x.id);else if(x.op==='deleteWhere')r=await dbClient.from(x.table).delete().eq(x.key,x.value);else continue;
+  if(x.op==='insert'){
+   r=await dbClient.from(x.table).insert(x.payload).select('id').maybeSingle();
+   if(!r.error&&r.data?.id!=null&&x.payload?.id!=null&&Number(x.payload.id)<0){
+    csOfflineReplaceTempId(x.payload.id,r.data.id,x.table);
+    q=csOfflineQueueRead();
+   }
+  }else if(x.op==='update')r=await dbClient.from(x.table).update(x.payload).eq('id',x.id);
+  else if(x.op==='delete')r=await dbClient.from(x.table).delete().eq('id',x.id);
+  else if(x.op==='deleteWhere')r=await dbClient.from(x.table).delete().eq(x.key,x.value);
+  else continue;
   if(r.error){console.warn('Alteração offline não sincronizada:',x.table,x.op,r.error.message);break}
-  q.splice(i,1);i--;csOfflineQueueWrite(q);
+  q=csOfflineQueueRead();
+  const pos=q.indexOf(x);
+  if(pos>=0)q.splice(pos,1);csOfflineQueueWrite(q);
+  i=-1;
  }
  if(!q.length)try{localStorage.setItem('csj_offline_last_sync',String(Date.now()))}catch(e){}
 }
