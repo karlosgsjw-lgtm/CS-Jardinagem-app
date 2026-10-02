@@ -314,7 +314,7 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
-  const IND='csPullRefresh',DURATION=2000,START=28;
+  const IND='csPullRefresh',DURATION=1200,START=28;
   let startY=0,active=false,raf=0,startAt=0,done=false;
   const el=()=>document.getElementById(IND);
   const paint=p=>{const x=el();if(!x)return;const deg=Math.round(Math.max(0,Math.min(1,p))*360);x.style.background='conic-gradient(var(--g) '+deg+'deg,#dfe8e2 '+deg+'deg)';const s=x.querySelector('span');if(s)s.textContent=Math.round(p*100)+'%';x.classList.toggle('ready',p>=1)};
