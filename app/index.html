@@ -380,6 +380,19 @@ function loginMsg(t){$('loginMsg').textContent=t}
 async function boot(){
   loginMsg('Diagnóstico: verificando sessão...');
   try{
+    const cachedOffline=JSON.parse(localStorage.getItem('csj_profile_cache_v2_offline')||'null');
+    const cachedData=JSON.parse(localStorage.getItem(cachedOffline?.id?'csj_data_cache_v2_'+cachedOffline.id:'')||'null');
+    if(cachedOffline?.id&&cachedData){
+      me={id:cachedOffline.id,email:cachedOffline.email||''};
+      profile=cachedOffline;
+      loginMsg('Dados locais encontrados. Abrindo aplicativo...');
+      await loadProfile();
+      await loadData(true);
+      scheduleAndroidNotifications();
+      showApp();
+      if(navigator.onLine&&window.csSyncNow)setTimeout(()=>window.csSyncNow(),350);
+      return;
+    }
     const r=await dbClient.auth.getSession();
     if(r.error){loginMsg('ERRO 1 — getSession: '+r.error.message);return;}
     if(r.data.session){
@@ -437,7 +450,7 @@ function csOverlayOfflineQueue(){
   }
  }
 }
-async function loadData(){
+async function loadData(cacheOnly=false){
  const key='csj_data_cache_v2_'+me.id;
  let hadCache=false;
  try{
@@ -450,7 +463,7 @@ async function loadData(){
   }
  }catch(e){console.warn('Cache offline:',e)}
  window.csOfflineData=!navigator.onLine||csOfflineQueueRead().length>0;
- if(!navigator.onLine)return;
+ if(cacheOnly||!navigator.onLine)return;
 
  // Nunca apaga os dados locais só porque o WebView ficou sem rede.
  try{
