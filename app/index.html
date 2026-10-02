@@ -376,7 +376,28 @@ async function boot(){
 }
 async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
 async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
-async function loadData(){let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];let h=await dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome');helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[];let ev=await dbClient.from('agenda_eventos').select('*').order('data').order('hora');events=ev.error?[]:(ev.data||[])}
+async function loadData(){
+ const offline=!navigator.onLine;
+ if(offline){
+  try{
+   const cached=JSON.parse(localStorage.getItem('csj_data_cache_v1')||'null');
+   if(cached){
+    clients=cached.clients||[];appts=cached.appts||[];helperList=cached.helperList||[];helperPayments=cached.helperPayments||[];annuals=cached.annuals||[];events=cached.events||[];
+    window.csOfflineData=true;return;
+   }
+  }catch(e){console.warn('Cache offline:',e)}
+  window.csOfflineData=true;return;
+ }
+ let c=await dbClient.from('clientes').select('*').order('nome');clients=c.data||[];
+ let a=await dbClient.from('atendimentos').select('*,clientes(nome,telefone,endereco,servico_principal,observacoes,valor_servico),profiles(nome)').order('data_atendimento');appts=a.data||[];
+ let h=await dbClient.from('ajudantes').select('*').eq('ativo',true).order('nome');helperList=h.error?[]:(h.data||[]);window.helperLoadError=h.error?.message||'';
+ let hp=await dbClient.from('pagamentos_ajudantes').select('id,ajudante_id,semana_inicio,pago,pago_em,pago_por');helperPayments=hp.error?[]:(hp.data||[]);window.helperPayLoadError=hp.error?.message||'';
+ let an=await dbClient.from('agendas_anuais').select('*').order('data_agendada');annuals=an.data||[];
+ let ev=await dbClient.from('agenda_eventos').select('*').order('data').order('hora');events=ev.error?[]:(ev.data||[]);
+ try{localStorage.setItem('csj_data_cache_v1',JSON.stringify({savedAt:Date.now(),clients,appts,helperList,helperPayments,annuals,events}))}catch(e){console.warn('Cache:',e)}
+ window.csOfflineData=false;
+}
+
 let csLocalNotified={};
 try{csLocalNotified=JSON.parse(localStorage.getItem('csj_local_notified')||'{}')}catch(e){}
 async function requestAppNotifications(){
@@ -430,6 +451,21 @@ function appCheckNotifications(){
 }
 setInterval(appCheckNotifications,60000);
 
+
+(function(){
+ let syncBusy=false;
+ async function syncNow(){
+  if(syncBusy||!navigator.onLine)return;
+  syncBusy=true;
+  try{await loadData();scheduleAndroidNotifications();if(typeof tab==='function'){const t=csCurrentTab||'inicio';if(t==='necessidades')tab('necessidades');}}
+  catch(e){console.warn('Sincronização:',e)}
+  finally{syncBusy=false}
+ }
+ window.addEventListener('online',()=>setTimeout(syncNow,800));
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(syncNow,300)});
+ setInterval(()=>{if(document.visibilityState==='visible'&&navigator.onLine)syncNow()},300000);
+ window.csSyncNow=syncNow;
+})();
 
 function showLogin(){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden')}
 let csCurrentTab='inicio';
