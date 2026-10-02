@@ -63,7 +63,7 @@ async function showApp(){
  try{await analytics(7)}catch(e){console.error("analytics",e)}
  
  let lastVisitCount=0;let analyticsReady=false;async function visitAlert(){try{const since=new Date(Date.now()-15*60e3).toISOString();const ev=await api('/rest/v1/site_analytics_events?select=*&event_type=eq.page_view&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.desc&limit=20');const count=ev.length;if(analyticsReady&&count>lastVisitCount&&'Notification'in window&&Notification.permission==='granted'){const m=ev[0]?.metadata||{};new Notification('Nova visita — CS Jardinagem',{body:(m.city?(m.city+', '+(m.region||'')):'Novo visitante')+' · '+(m.device||'dispositivo')})}lastVisitCount=count;analyticsReady=true}catch(e){}}setInterval(()=>load().catch(console.error),10000);setInterval(()=>visitAlert().catch(console.error),30000);visitAlert().catch(console.error);
- setInterval(()=>analytics(7).catch(console.error),30000);
+ setInterval(()=>{if(!window._analyticsDaySelection)analytics(7).catch(console.error)},30000);
 }async function load(){try{const data=await api("/rest/v1/site_orcamentos?select=*&order=criado_em.desc");const oldIds=new Set(pedidos.map(p=>p.id));pedidos=data||[];const newOnes=pedidos.filter(p=>p.status==="novo"&&!oldIds.has(p.id));renderList();$("newCount").textContent=pedidos.filter(p=>p.status==="novo").length;if(!firstLoad&&newOnes.length&&"Notification"in window&&Notification.permission==="granted"){new Notification("Novo orçamento — CS Jardinagem",{body:newOnes.length===1?newOnes[0].nome+" enviou uma solicitação.":newOnes.length+" novos orçamentos recebidos."});}firstLoad=false;if(current){const fresh=pedidos.find(p=>p.id===current.id);if(fresh)current=fresh}}catch(e){if(String(e.message).toLowerCase().includes("jwt")||String(e.message).toLowerCase().includes("token")||String(e.message).toLowerCase().includes("unauthorized")){$("list").innerHTML="<p>⚠️ Sessão expirada. Clique em Sair e entre novamente.</p>"}else $("list").innerHTML="<p>"+e.message+"</p>"}}function renderList(){$("list").innerHTML="";if(!pedidos.length){$("list").innerHTML="<p class='small'>Nenhum orçamento recebido ainda.</p>";return}pedidos.forEach(p=>{const d=document.createElement("div");d.className="item "+(p.status==="novo"?"new ":"")+(current&&current.id===p.id?"active":"");d.innerHTML="<strong>"+esc(p.nome)+"</strong><div class='small'>"+esc(p.telefone)+" · "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div><div class='small'>"+esc(p.status.replace("_"," "))+"</div>";d.onclick=()=>openOrder(p);$("list").appendChild(d)})}function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}async function openOrder(p){current=p;history.pushState({orderId:p.id},"","#pedido-"+p.id);renderList();$("detail").innerHTML="<p>Carregando pedido...</p>";try{const [ms,fs]=await Promise.all([api("/rest/v1/site_mensagens?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc"),api("/rest/v1/site_orcamento_arquivos?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc")]);$("detail").innerHTML="<div class='top'><div><h2>"+esc(p.nome)+"</h2><div class='small'>Recebido em "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div></div><span class='badge' style='background:#087f4b'>"+esc(p.status.replace("_"," "))+"</span></div><div class='statusbox'><strong>Telefone:</strong> "+esc(p.telefone)+"<br><strong>E-mail:</strong> "+esc(p.email||"não informado")+"<br><strong>Pedido:</strong><br>"+esc(p.mensagem||"Sem descrição")+"</div><div class='tools'><button type='button' class='danger' onclick='deleteOrder()'>🗑️ Excluir pedido</button><a target='_blank' href='https://wa.me/55"+p.telefone.replace(/\\D/g,"")+"'>💬 WhatsApp</a><a href='tel:"+esc(p.telefone)+"'>📞 Ligar</a>"+(p.email?"<a href='mailto:"+esc(p.email)+"'>✉️ E-mail</a>":"")+"</div><h3>📷 Fotos enviadas ("+(fs||[]).length+")</h3><div class='photos'>"+(fs||[]).map(f=>"<a target='_blank' href='"+esc(f.url)+"'><img src='"+esc(f.url)+"' alt='"+esc(f.nome_arquivo)+"'></a>").join("")+"</div><h3>💬 Conversa</h3><div id='msgs' class='messages'>"+((ms||[]).length?(ms||[]).map(m=>"<div class='m "+(m.autor_tipo==="empresa"?"me":"")+"'><strong>"+esc(m.autor_nome)+"</strong><br>"+esc(m.mensagem)+"</div>").join(""):"<span class='small'>Ainda não há mensagens.</span>")+"</div><form id='reply'><textarea id='replyText' rows='3' placeholder='Responder pelo chat do site...' required></textarea><button class='btn primary full'>Enviar resposta</button></form>";$("reply").onsubmit=sendReply;if(p.status==="novo"){await api("/rest/v1/site_orcamentos?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify({status:"em_andamento",atualizado_em:new Date().toISOString()})});p.status="em_andamento";$("newCount").textContent=pedidos.filter(x=>x.status==="novo").length;renderList()}}catch(e){$("detail").innerHTML="<p>"+e.message+"</p>"}}async function sendReply(e){e.preventDefault();const text=$("replyText").value.trim();if(!text)return;const b=e.currentTarget.querySelector("button");b.disabled=true;try{await api("/rest/v1/site_mensagens",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({orcamento_id:current.id,autor_tipo:"empresa",autor_nome:"CS Jardinagem",mensagem:text})});await openOrder(current)}catch(err){alert("Não foi possível enviar a resposta.")}finally{b.disabled=false}}$("entrar").onclick=login;$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("logout").onclick=()=>{localStorage.removeItem("cs_admin_access");location.reload()};$("enablePush").onclick=enableSitePush;
 async function loadGalleryAdmin(){try{const data=await api("/rest/v1/site_galeria?select=*&order=ordem.asc,criado_em.desc");$("galleryAdmin").innerHTML=(data||[]).map(x=>"<div class='galleryCard'><img src='"+esc(x.url)+"' alt='"+esc(x.titulo||"Trabalho")+"' loading='lazy'><div class='gaBody'><div class='small'>"+esc(x.titulo||"Trabalho CS Jardinagem")+"</div><button type='button' onclick='deleteGallery("+x.id+",\""+String(x.caminho).replace(/"/g,"&quot;")+"\")'>Excluir</button></div></div>").join("")||"<p class='small'>Nenhuma foto cadastrada.</p>"}catch(e){$("galleryAdmin").innerHTML="<p>"+esc(e.message)+"</p>"}}
 async function uploadGallery(){const input=$("galleryFiles"),msg=$("galleryMsg"),btn=$("galleryUploadBtn");if(!input.files.length){msg.textContent="Selecione pelo menos uma foto.";return}btn.disabled=true;msg.textContent="Enviando fotos...";try{let ordem=Date.now()%2147483647;for(const file of [...input.files]){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const path="trabalhos/"+crypto.randomUUID()+"-"+safe;const sr=await fetch(SB_URL+"/storage/v1/object/site-galeria/"+path,{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"image/jpeg","x-upsert":"false"},body:file});if(!sr.ok)throw new Error("Não foi possível enviar "+file.name);const url=SB_URL+"/storage/v1/object/public/site-galeria/"+path;await api("/rest/v1/site_galeria",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({titulo:"Trabalho CS Jardinagem",url,caminho:path,ordem:ordem++})})}input.value="";msg.textContent="Fotos adicionadas à galeria.";await loadGalleryAdmin()}catch(e){msg.textContent=e.message||"Falha ao enviar fotos."}finally{btn.disabled=false}}
@@ -295,3 +295,70 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
  setTimeout(force,1500);
 })();
 </script></body></html>
+<script>
+/* V20261002 — seleção de dia pelos gráficos */
+(function(){
+ const U='https://lttqucegcmzwfsnrtdyj.supabase.co',K='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
+ const todayKey=()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const o={};p.forEach(x=>o[x.type]=x.value);return o.year+'-'+o.month+'-'+o.day};
+ const keyOf=v=>{const d=new Date(v);if(isNaN(d))return '';const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const o={};p.forEach(x=>o[x.type]=x.value);return o.year+'-'+o.month+'-'+o.day};
+ const labelOf=k=>{if(!k)return '';const [y,m,d]=k.split('-');return d+'/'+m+'/'+y};
+ const token=()=>localStorage.getItem('cs_admin_access')||'';
+ const esc2=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ const srcName=r=>{if(!r)return 'Acesso direto';try{const h=new URL(r).hostname.replace(/^www\./,'');if(h.includes('google'))return 'Google';if(h.includes('instagram'))return 'Instagram';if(h.includes('facebook'))return 'Facebook';if(h.includes('tiktok'))return 'TikTok';if(h.includes('whatsapp'))return 'WhatsApp';if(h.includes('karlosgsjw-lgtm.github.io'))return 'Seu app/site';return h}catch(_){return r}};
+ const group=a=>{const m={};a.filter(Boolean).forEach(x=>m[x]=(m[x]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+ window._analyticsDaySelection=todayKey();
+
+ async function statsDay(days, selected){
+  const msg=document.getElementById('amsg'),up=document.getElementById('ar');
+  if(up){up.textContent='⟳ Atualizando...';up.disabled=true}
+  try{
+   const q=await fetch(U+'/rest/v1/rpc/site_admin_analytics',{method:'POST',headers:{apikey:K,Authorization:'Bearer '+token(),'Content-Type':'application/json'},body:JSON.stringify({p_days:days}),cache:'no-store'});
+   const data=await q.json().catch(()=>null);
+   if(!q.ok)throw new Error(data?.message||data?.hint||('Estatísticas: HTTP '+q.status));
+   if(data?.error)throw new Error(data.error);
+   const all=Array.isArray(data?.events)?data.events:[],allOrders=Array.isArray(data?.orders)?data.orders:[];
+   const v=selected?all.filter(x=>keyOf(x.created_at)===selected):all;
+   const orders=selected?allOrders.filter(x=>keyOf(x.criado_em)===selected):allOrders;
+   const clicks=v.filter(x=>x.event_type==='click'),visits=all.filter(x=>x.event_type==='page_view');
+   const dayLabel=selected?labelOf(selected):'Período';
+   const unique=new Set(v.filter(x=>x.event_type==='page_view').map(x=>x.session_id).filter(Boolean)).size;
+   const conv=unique?orders.length/unique*100:0;
+   document.getElementById('astats').innerHTML=[['👤','Pessoas',unique],['👁️','Visitas',v.filter(x=>x.event_type==='page_view').length],['🖱️','Cliques',clicks.length],['💰','Orçamentos',orders.length]].map(x=>'<div><span style="font-size:22px">'+x[0]+'</span><b>'+x[2]+'</b><span>'+x[1]+'</span></div>').join('');
+
+   const dayLabelShort=k=>labelOf(k).slice(0,5);
+   const by={};visits.forEach(x=>{const k=keyOf(x.created_at);by[k]=(by[k]||0)+1});
+   const bo={};allOrders.forEach(x=>{const k=keyOf(x.criado_em);bo[k]=(bo[k]||0)+1});
+   const makeBars=(obj,empty)=>Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0])).map(x=>'<div class="barWrap analyticsDayBar" data-day="'+x[0]+'" title="Ver dados de '+labelOf(x[0])+'" style="cursor:pointer"><b class="barValue">'+x[1]+'</b><div class="bar" style="height:'+Math.max(8,x[1]*12)+'px"></div><span class="barLabel">'+dayLabelShort(x[0])+'</span></div>').join('')||'<span class="small">'+empty+'</span>';
+   document.getElementById('av').innerHTML='<div class="chart">'+makeBars(by,'Nenhuma visita.')+'</div>';
+   document.getElementById('ao').innerHTML='<div class="chart">'+makeBars(bo,'Nenhum orçamento.')+'</div>';
+   document.querySelectorAll('.analyticsDayBar').forEach(el=>el.onclick=()=>window.selectAnalyticsDay(el.dataset.day));
+
+   const cm={};clicks.forEach(x=>{const k=x.element||x.metadata?.element||'Outro';cm[k]=(cm[k]||0)+1});
+   document.getElementById('ac').innerHTML=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc2(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Nenhum clique neste dia.</span>';
+
+   const pvMeta=v.filter(x=>x.event_type==='page_view').map(x=>x.metadata||{});
+   document.getElementById('asrc').innerHTML=group(pvMeta.map(x=>srcName(x.referrer))).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc2(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados neste dia.</span>';
+   document.getElementById('acity').innerHTML=group(pvMeta.map(x=>x.city?(x.city+(x.region?', '+x.region:'')):null)).slice(0,8).map(x=>'<div class="clickRow"><span>'+esc2(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados neste dia.</span>';
+   document.getElementById('adev').innerHTML=group(pvMeta.map(x=>x.device||'Não identificado')).map(x=>'<div class="clickRow"><span>'+esc2(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados neste dia.</span>';
+   document.getElementById('abro').innerHTML=group(pvMeta.map(x=>x.browser||'Não identificado')).map(x=>'<div class="clickRow"><span>'+esc2(x[0])+'</span><b>'+x[1]+'</b></div>').join('')||'<span class="small">Sem dados neste dia.</span>';
+   const recent=v.filter(x=>x.event_type==='page_view').slice(-10).reverse();
+   document.getElementById('arecent').innerHTML=recent.length?'<div class="recentRow recentHead"><span>Horário</span><span>Local</span><span>Origem</span><span>Dispositivo / navegador</span></div>'+recent.map(x=>{const m=x.metadata||{};return '<div class="recentRow"><strong>'+new Date(x.created_at).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'})+'</strong><span>'+esc2(m.city?(m.city+(m.region?', '+m.region:'')):(m.country||'Não disponível'))+'</span><span>'+esc2(srcName(m.referrer))+'</span><span>'+esc2((m.device||'—')+' · '+(m.browser||'—'))+'</span></div>'}).join(''):'<span class="small">Nenhuma visita neste dia.</span>';
+   document.getElementById('ai').innerHTML='<div class="ind">👤 Pessoas únicas <b>'+unique+'</b></div><div class="ind">👁️ Visitas/pessoa <b>'+(unique?(v.filter(x=>x.event_type==='page_view').length/unique).toFixed(1):0)+'</b></div><div class="ind">🖱️ Cliques/visita <b>'+(v.filter(x=>x.event_type==='page_view').length?(clicks.length/v.filter(x=>x.event_type==='page_view').length).toFixed(1):0)+'</b></div><div class="ind">💰 Conversão em orçamento <b>'+conv.toFixed(1)+'%</b></div>';
+   if(msg)msg.textContent='📅 Dados de '+dayLabel+' · período dos gráficos: últimos '+days+' dias · toque em outra barra para mudar o dia.';
+  }catch(e){console.error(e);if(msg)msg.textContent='❌ '+e.message}
+  finally{if(up){up.textContent='↻ Atualizar';up.disabled=false}}
+ }
+
+ window.selectAnalyticsDay=async k=>{window._analyticsDaySelection=k;await statsDay(window._statsDays||7,k)};
+ window.statsDiretas=async days=>{window._statsDays=days;await statsDay(days,window._analyticsDaySelection||todayKey())};
+ const resetToday=async days=>{window._analyticsDaySelection=todayKey();window._statsDays=days;await statsDay(days,window._analyticsDaySelection)};
+ function bind(){
+  const p7=document.getElementById('a7'),p30=document.getElementById('a30'),up=document.getElementById('ar');
+  if(p7)p7.onclick=()=>resetToday(7);
+  if(p30)p30.onclick=()=>resetToday(30);
+  if(up)up.onclick=()=>resetToday(window._statsDays||7);
+  if(localStorage.getItem('cs_admin_access'))setTimeout(()=>window.statsDiretas(window._statsDays||7),500);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();
+})();
+</script>
