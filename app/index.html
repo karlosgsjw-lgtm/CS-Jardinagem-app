@@ -24,7 +24,7 @@
 .plantAiCamera{display:none;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:16px;background:#f7faf8}
 .plantAiCamera video{display:block;width:100%;max-height:420px;object-fit:cover;border-radius:12px;background:#111}
 .plantAiCameraControls{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-/* V40.12.40 — Identificação de plantas por IA via Supabase */
+/* V40.12.41 — Identificação de plantas por IA via Supabase */
 .plantAiBox{max-width:760px}
 .plantAiPreview{display:block;width:min(520px,100%);max-height:420px;object-fit:contain;border-radius:16px;border:1px solid var(--line);background:#f5f7f5;margin-top:14px}
 .plantAiResult{margin-top:12px}
@@ -314,7 +314,7 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
-  const IND='csPullRefresh',DURATION=1200,START=28;
+  const IND='csPullRefresh',DURATION=800,START=28;
   let startY=0,active=false,raf=0,startAt=0,done=false;
   const el=()=>document.getElementById(IND);
   const paint=p=>{const x=el();if(!x)return;const deg=Math.round(Math.max(0,Math.min(1,p))*360);x.style.background='conic-gradient(var(--g) '+deg+'deg,#dfe8e2 '+deg+'deg)';const s=x.querySelector('span');if(s)s.textContent=Math.round(p*100)+'%';x.classList.toggle('ready',p>=1)};
