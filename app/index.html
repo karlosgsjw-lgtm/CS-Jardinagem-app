@@ -337,6 +337,187 @@ import {createClient} from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL='https://lttqucegcmzwfsnrtdyj.supabase.co';
 const SUPABASE_KEY='sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG';
 const dbClient=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+/* =========================
+   OFFLINE V2 — fila local de alterações
+   ========================= */
+(function(){
+  const QUEUE='csj_offline_queue_v2', TABLES='csj_table_cache_v2';
+  const core=['clientes','atendimentos','ajudantes','pagamentos_ajudantes','agendas_anuais','agenda_eventos'];
+  const originalFrom=dbClient.from.bind(dbClient);
+
+  function read(key,def){try{return JSON.parse(localStorage.getItem(key)||'null')??def}catch(e){return def}}
+  function write(key,val){try{localStorage.setItem(key,JSON.stringify(val));return true}catch(e){console.warn('Offline storage:',e);return false}}
+  function uuid(){return crypto?.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&3)|8;return v.toString(16)})}
+  function filtersMatch(row,filters){
+    return filters.every(f=>{
+      const v=row?.[f.col];
+      if(f.op==='eq')return String(v??'')===String(f.val??'');
+      if(f.op==='neq')return String(v??'')!==String(f.val??'');
+      if(f.op==='is')return f.val===null?v==null:v===f.val;
+      if(f.op==='in')return Array.isArray(f.val)&&f.val.map(String).includes(String(v));
+      return true;
+    });
+  }
+  function getCache(table){
+    const all=read(TABLES,{});
+    return Array.isArray(all[table])?all[table]:[];
+  }
+  function setCache(table,rows){
+    const all=read(TABLES,{});
+    all[table]=rows;
+    write(TABLES,all);
+    if(table==='clientes')clients=rows;
+    if(table==='atendimentos')appts=rows;
+    if(table==='ajudantes')helperList=rows;
+    if(table==='pagamentos_ajudantes')helperPayments=rows;
+    if(table==='agendas_anuais')annuals=rows;
+    if(table==='agenda_eventos')events=rows;
+  }
+  function remember(table,data){
+    if(!Array.isArray(data))return;
+    const all=read(TABLES,{});
+    all[table]=data;
+    write(TABLES,all);
+  }
+  function queuePush(op){
+    const q=read(QUEUE,[]);
+    q.push({...op,queueId:uuid(),createdAt:Date.now()});
+    write(QUEUE,q);
+  }
+  function optimistic(table,type,payload,filters){
+    let rows=getCache(table).slice();
+    const data=Array.isArray(payload)?payload:[payload];
+    if(type==='insert'){
+      const made=data.map(x=>({...x,id:x.id||uuid()}));
+      rows.push(...made); setCache(table,rows); return made;
+    }
+    if(type==='upsert'){
+      for(const item of data){
+        const idx=item.id?rows.findIndex(r=>String(r.id)===String(item.id)):-1;
+        if(idx>=0)rows[idx]={...rows[idx],...item};else rows.push({...item,id:item.id||uuid()});
+      }
+      setCache(table,rows); return data.map(x=>({...x,id:x.id||uuid()}));
+    }
+    if(type==='update'){
+      rows=rows.map(r=>filtersMatch(r,filters)?{...r,...payload}:r);setCache(table,rows);return rows.filter(r=>filtersMatch(r,filters));
+    }
+    if(type==='delete'){
+      const removed=rows.filter(r=>filtersMatch(r,filters));rows=rows.filter(r=>!filtersMatch(r,filters));setCache(table,rows);return removed;
+    }
+    return [];
+  }
+
+  function wrap(table){
+    const base=originalFrom(table);
+    let mutation=null,filters=[],single=false,limitN=null,orderBy=null,orderAsc=true;
+
+    const proxy=new Proxy(base,{
+      get(target,prop){
+        if(prop==='then' && mutation){
+          return (resolve,reject)=>{
+            if(navigator.onLine){
+              return Promise.resolve(target).then(resolve,reject);
+            }
+            try{
+              let result=optimistic(table,mutation.type,mutation.payload,filters);
+              queuePush({table,type:mutation.type,payload:mutation.payload,filters});
+              window.csOfflineData=true;
+              if(typeof window.csOfflineStatusRefresh==='function')window.csOfflineStatusRefresh();
+              if(mutation.type==='insert'||mutation.type==='upsert') result=result.slice(-((Array.isArray(mutation.payload)?mutation.payload.length:1)));
+              if(single||mutation.single){
+                result=result[0]||null;
+              }
+              resolve({data:result,error:null});
+            }catch(e){resolve({data:null,error:{message:e?.message||String(e)}})}
+          };
+        }
+        if(prop==='insert'||prop==='update'||prop==='upsert'||prop==='delete'){
+          return (...args)=>{
+            mutation={type:String(prop),payload:prop==='delete'?null:args[0],filters:[],single:false};
+            return proxy;
+          };
+        }
+        if(prop==='eq'||prop==='neq'||prop==='is'||prop==='in'){
+          return (...args)=>{
+            if(mutation){
+              filters.push({op:String(prop),col:args[0],val:args[1]});
+              mutation.filters=filters;
+              return proxy;
+            }
+            return target[prop](...args);
+          };
+        }
+        if(prop==='single'||prop==='maybeSingle'){
+          return (...args)=>{
+            if(mutation){single=true;mutation.single=true;return proxy}
+            return target[prop](...args);
+          };
+        }
+        if(prop==='select'){
+          return (...args)=>{
+            if(mutation)return proxy;
+            if(navigator.onLine){
+              const out=target.select(...args);
+              return new Proxy(out,{get(t,p){
+                if(p==='then')return (res,rej)=>Promise.resolve(t).then(v=>{try{remember(table,v.data)}catch(e){} return res(v)},rej);
+                return t[p];
+              }});
+            }
+            return proxy;
+          };
+        }
+        if(prop==='order'){
+          return (...args)=>{
+            if(mutation)return proxy;
+            orderBy=args[0];orderAsc=args[1]?.ascending!==false;return proxy;
+          };
+        }
+        if(prop==='limit'){
+          return (...args)=>{limitN=args[0];return proxy};
+        }
+        if(prop==='then' && !mutation){
+          return (resolve,reject)=>{
+            if(navigator.onLine)return target.then(resolve,reject);
+            try{
+              let rows=getCache(table).slice().filter(r=>filtersMatch(r,filters));
+              if(orderBy)rows.sort((a,b)=>String(a?.[orderBy]??'').localeCompare(String(b?.[orderBy]??''))* (orderAsc?1:-1));
+              if(limitN!=null)rows=rows.slice(0,limitN);
+              resolve({data:single?(rows[0]||null):rows,error:null});
+            }catch(e){resolve({data:null,error:{message:e?.message||String(e)}})}
+          };
+        }
+        return Reflect.get(target,prop);
+      }
+    });
+    return proxy;
+  }
+
+  dbClient.from=function(table){return wrap(table)};
+
+  async function replay(){
+    if(!navigator.onLine)return;
+    const q=read(QUEUE,[]);
+    if(!q.length)return;
+    const remaining=[];
+    for(const op of q){
+      try{
+        let b=originalFrom(op.table);
+        if(op.type==='insert') await b.insert(op.payload);
+        else if(op.type==='upsert') await b.upsert(op.payload);
+        else if(op.type==='update'){b=b.update(op.payload);for(const f of op.filters||[])b=b[f.op](f.col,f.val);await b}
+        else if(op.type==='delete'){b=b.delete();for(const f of op.filters||[])b=b[f.op](f.col,f.val);await b}
+      }catch(e){remaining.push(op);console.warn('Fila offline pendente:',e)}
+    }
+    write(QUEUE,remaining);
+    if(!remaining.length){window.csOfflineData=false;try{await loadData()}catch(e){}}
+    if(typeof window.csOfflineStatusRefresh==='function')window.csOfflineStatusRefresh();
+  }
+  window.csOfflineReplay=replay;
+  window.addEventListener('online',()=>setTimeout(replay,1200));
+  window.addEventListener('beforeunload',()=>{});
+})();
+
 let me=null,profile=null,clients=[],appts=[],helperList=[],helperPayments=[],annuals=[],events=[],photos=[],month=new Date();month.setDate(1);
 Object.defineProperty(window,'me',{configurable:true,get:()=>me});window.dbClient=dbClient;
 const $=id=>document.getElementById(id), money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}), esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])), iso=d=>{let x=new Date(d);return new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10)}, dot=s=>s==='red'?'red':s==='yellow'?'yellow':'green';
@@ -375,7 +556,10 @@ async function boot(){
   }catch(e){loginMsg('ERRO 1 — boot: '+(e?.message||String(e)));}
 }
 async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp()}
-async function loadProfile(){let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
+async function loadProfile(){
+ if(!navigator.onLine){const c=readCsOfflineProfile();profile=c||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master');return}
+ let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};try{localStorage.setItem('csj_profile_cache_v1',JSON.stringify(profile))}catch(e){}$('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');$('usersTab').classList.toggle('hidden',profile.perfil!=='master')}
+function readCsOfflineProfile(){try{return JSON.parse(localStorage.getItem('csj_profile_cache_v1')||'null')}catch(e){return null}}
 async function loadData(){
  const offline=!navigator.onLine;
  if(offline){
