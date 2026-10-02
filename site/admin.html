@@ -328,7 +328,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
    const dayLabelShort=k=>labelOf(k).slice(0,5);
    const by={};visits.forEach(x=>{const k=keyOf(x.created_at);by[k]=(by[k]||0)+1});
    const bo={};allOrders.forEach(x=>{const k=keyOf(x.criado_em);bo[k]=(bo[k]||0)+1});
-   const makeBars=(obj,empty)=>Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0])).map(x=>'<div class="barWrap analyticsDayBar" data-day="'+x[0]+'" title="Ver dados de '+labelOf(x[0])+'" style="cursor:pointer"><b class="barValue">'+x[1]+'</b><div class="bar" style="height:'+Math.max(8,x[1]*12)+'px"></div><span class="barLabel">'+dayLabelShort(x[0])+'</span></div>').join('')||'<span class="small">'+empty+'</span>';
+   const makeBars=(obj,empty)=>Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0])).map(x=>'<button type="button" class="barWrap analyticsDayBar" data-day="'+x[0]+'" title="Ver dados de '+labelOf(x[0])+'" style="cursor:pointer;border:0;background:transparent;padding:0;font:inherit;color:inherit" onclick="window.selectAnalyticsDay(\''+x[0]+'\');return false"><b class="barValue">'+x[1]+'</b><span class="bar" style="height:'+Math.max(8,x[1]*12)+'px"></span><span class="barLabel">'+dayLabelShort(x[0])+'</span></button>').join('')||'<span class="small">'+empty+'</span>';
    document.getElementById('av').innerHTML='<div class="chart">'+makeBars(by,'Nenhuma visita.')+'</div>';
    document.getElementById('ao').innerHTML='<div class="chart">'+makeBars(bo,'Nenhum orçamento.')+'</div>';
    document.querySelectorAll('.analyticsDayBar').forEach(el=>el.onclick=()=>window.selectAnalyticsDay(el.dataset.day));
