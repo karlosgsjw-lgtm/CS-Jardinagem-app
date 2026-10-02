@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20260930compact';
+    const key='csj_cache_reset_20261002loginfix';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -1841,6 +1841,6 @@ window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este r
 </script>
 </body></html>
 <script>
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261001-annualyear").catch(()=>{}));}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261002-loginfix").catch(()=>{}));}
 </script>
 <style>.eventClientLine{align-items:end}.eventToggleBox{min-width:90px}.eventAllDayBox{display:flex;align-items:end}.eventAllDayBox input{width:18px!important;height:18px!important;margin-left:8px}.eventInlineLabel{display:flex!important;align-items:center;gap:8px;white-space:nowrap}.eventInlineLabel input{width:18px!important;height:18px!important;margin:0}.checkLine input{width:18px!important;height:18px!important;margin:0}.eventForm{padding:10px 0}.eventColorPicker{position:relative}.eventColorBtn{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:700}.eventColorCircle,.eventColorChoice{display:inline-block;width:22px;height:22px;border-radius:50%;border:1px solid #aab8b0}.eventColors{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 8px 20px #0001}.eventColors.hidden{display:none}.eventColorChoice{cursor:pointer;padding:0}.agendaEventPill{font-size:10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eventDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}.day.hasAgendaEvent{transition:background .2s}.eventDetail .eventColorCircle{flex:0 0 auto}</style>
