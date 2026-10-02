@@ -386,7 +386,8 @@ async function boot(){
       me={id:cachedOffline.id,email:cachedOffline.email||''};
       profile=cachedOffline;
       loginMsg('Dados locais encontrados. Abrindo aplicativo...');
-      await loadProfile();
+      $('who').textContent=(profile.nome||me.email)+' · '+(profile.perfil==='master'?'👑 Master':'Usuário');
+      $('usersTab').classList.toggle('hidden',profile.perfil!=='master');
       await loadData(true);
       scheduleAndroidNotifications();
       showApp();
