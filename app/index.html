@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4018';
+    const key='csj_cache_reset_20261003v4019';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -390,6 +390,45 @@ header{padding-top:20px!important}
   overscroll-behavior-y:contain!important;
   touch-action:pan-y!important;
   -webkit-overflow-scrolling:touch!important;
+}
+</style><style id="v40_18_definitive">
+/* V40.18 — hard boundary below Android status bar.
+   The WebView is edge-to-edge on this device, so do not rely on safe-area env().
+   Keep every app element below a fixed 28px status strip. */
+#app{padding-top:28px!important}
+#app header{margin-top:0!important}
+#app .modal{top:28px!important;bottom:0!important;height:auto!important}
+#app .csConfirmOverlay,#app .loginAuxModal,#app .printOverlay{top:28px!important;height:auto!important}
+body:before{top:28px!important}
+
+/* Agenda anual completa: force a real, bounded one-finger scroll viewport. */
+.modalbox:has(.annualAllCalendar){
+  display:flex!important;
+  flex-direction:column!important;
+  height:calc(100dvh - 44px)!important;
+  max-height:none!important;
+  overflow:hidden!important;
+}
+.modalbox:has(.annualAllCalendar) .annualAllCalendar{
+  display:grid!important;
+  flex:1 1 0!important;
+  height:0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+  touch-action:pan-y!important;
+  scrollbar-width:none!important;
+}
+.modalbox:has(.annualAllCalendar) .annualAllCalendar::-webkit-scrollbar{display:none!important}
+.modalbox:has(.annualAllCalendar) .modalSaveBar{
+  flex:0 0 auto!important;
+  position:sticky!important;
+  bottom:0!important;
+  z-index:20!important;
+  margin-top:8px!important;
 }
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
