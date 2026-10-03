@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4023';
+    const key='csj_cache_reset_20261003v4024';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -916,7 +916,6 @@ function requestNativeNotifications(){
 }
 function scheduleAndroidNotifications(){
  try{
-  requestNativeNotifications();
   if(window.AndroidNotifications){
    let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);
    let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
