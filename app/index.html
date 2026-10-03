@@ -556,7 +556,7 @@ async function csWriteDelete(table,id){
   // em alguns Android/WebViews o estado da rede pode ficar momentaneamente atrasado.
   let q=csOfflineQueueRead();
   const arr=csOfflineArray(table);
-  const idx=arr?arr.findIndex(x=>String(x.id)===String(id):-1;
+  const idx=arr?arr.findIndex(x=>String(x.id)===String(id)):-1;
 
   // Registro criado offline (ID temporário): apenas cancela o insert pendente.
   const ins=q.findIndex(x=>x.op==='insert'&&x.table===table&&String(x.payload?.id)===String(id));
