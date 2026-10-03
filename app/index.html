@@ -551,6 +551,36 @@ async function csWriteUpdate(table,payload,id){
   csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;return {data:null,error:null};
 }
 async function csWriteDelete(table,id){
+  // Se o registro ainda é um insert offline pendente, ele não existe no Supabase.
+  // Nunca tente apagá-lo pelo ID temporário: o Supabase pode responder "sucesso"
+  // mesmo sem apagar nenhuma linha. Nesse caso, apenas cancelamos o insert local.
+  let q=csOfflineQueueRead();
+  const ins=q.findIndex(x=>x.op==='insert'&&x.table===table&&String(x.payload?.id)===String(id));
+  if(ins>=0){
+    const arr=csOfflineArray(table);
+    if(arr){
+      const idx=arr.findIndex(x=>String(x.id)===String(id));
+      if(idx>=0)arr.splice(idx,1);
+    }
+    q.splice(ins,1);
+    // Também remove alterações posteriores feitas nesse mesmo registro temporário.
+    q=q.filter(x=>!(String(x.table)===String(table)&&String(x.id)===String(id)));
+    csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;
+    return {data:null,error:null};
+  }
+
+  // IDs temporários nunca devem ser enviados ao Supabase.
+  if(Number(id)<0){
+    const arr=csOfflineArray(table);
+    if(arr){
+      const idx=arr.findIndex(x=>String(x.id)===String(id));
+      if(idx>=0)arr.splice(idx,1);
+    }
+    csOfflineQueueWrite(q.filter(x=>!(String(x.table)===String(table)&&String(x.id)===String(id))));
+    csOfflinePersistData();window.csOfflineData=true;
+    return {data:null,error:null};
+  }
+
   if(navigator.onLine){
     try{
       const r=await dbClient.from(table).delete().eq('id',id);
@@ -558,8 +588,17 @@ async function csWriteDelete(table,id){
       if(!csIsNetworkError(r.error))return r;
     }catch(e){if(!csIsNetworkError(e))throw e;}
   }
-  const arr=csOfflineArray(table);if(arr){const idx=arr.findIndex(x=>String(x.id)===String(id));if(idx>=0)arr.splice(idx,1)}
-  let q=csOfflineQueueRead();const ins=q.findIndex(x=>x.op==='insert'&&x.table===table&&String(x.payload?.id)===String(id));if(ins>=0)q.splice(ins,1);else q.push({op:'delete',table,id});csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;return {data:null,error:null};
+
+  const arr=csOfflineArray(table);
+  if(arr){
+    const idx=arr.findIndex(x=>String(x.id)===String(id));
+    if(idx>=0)arr.splice(idx,1);
+  }
+  q=csOfflineQueueRead();
+  const existingDelete=q.find(x=>x.op==='delete'&&x.table===table&&String(x.id)===String(id));
+  if(!existingDelete)q.push({op:'delete',table,id});
+  csOfflineQueueWrite(q);csOfflinePersistData();window.csOfflineData=true;
+  return {data:null,error:null};
 }
 async function csWriteDeleteWhere(table,key,value){
   if(navigator.onLine){
