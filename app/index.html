@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
     const key='csj_cache_reset_20260930compact';
@@ -325,7 +325,14 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 .csSyncIndicator.active{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;margin-left:5px;opacity:1;transform:scale(.88);animation:csSyncPulse 1.5s ease-in-out infinite}
 .csSyncIndicator svg{width:17px;height:17px;display:block;filter:drop-shadow(0 1px 2px #16653422)}
 @keyframes csSyncPulse{0%,100%{opacity:.58;transform:scale(.88)}50%{opacity:1;transform:scale(1)}}
-</style></style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
+</style></style>
+<style>
+/* V40.14 — zoom por pinça nas visualizações e impressões */
+.printImageWrap,.orcPreviewScroll,.a4Document,.printPanel,.modalbox:has(.annualAllCalendar){touch-action:pinch-zoom;-webkit-user-select:none;user-select:none}
+.printImageWrap img{touch-action:pinch-zoom;cursor:zoom-in}
+@media(max-width:700px){.printImageWrap img{width:auto!important;min-width:100%;max-width:none!important}}
+</style>
+</head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
   const IND='csPullRefresh',DURATION=800,START=28;
@@ -409,6 +416,12 @@ async function boot(){
     // OFFLINE: nunca tenta autenticar nem consultar a rede.
     if(!navigator.onLine){
       if(csLoadOfflineSnapshot()){
+        if(csBioCredId()){
+          loginMsg('Modo offline. Use sua biometria para entrar.');
+          showLogin();
+          csRenderBiometricButton();
+          return;
+        }
         loginMsg('Modo offline. Abrindo dados salvos...');
         await loadData(true);
         scheduleAndroidNotifications();
@@ -721,6 +734,7 @@ setInterval(appCheckNotifications,60000);
 function showLogin(){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden')}
 let csCurrentTab='inicio';
 function showApp(){
+  try{csEnsureNavHistory()}catch(e){}
   $('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');
   // V40.12.50: quando o Android restaurar o WebView, o HTML já contém
   // exatamente a tela que estava aberta. Não reconstruir a aba, pois isso
@@ -818,6 +832,51 @@ dbClient.auth.onAuthStateChange((event,session)=>{
   }
 });
 
+function csBioSupported(){return !!(window.PublicKeyCredential&&navigator.credentials&&window.crypto?.getRandomValues)}
+function csBioCredId(){try{return localStorage.getItem('csj_bio_cred_id')||''}catch(e){return''}}
+async function csEnableBiometric(){
+  if(!csBioSupported())return alert('A biometria não está disponível neste aparelho/navegador.');
+  try{
+    const challenge=crypto.getRandomValues(new Uint8Array(32));
+    const uid=crypto.getRandomValues(new Uint8Array(16));
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge,rp:{name:'CS Jardinagem',id:location.hostname},
+      user:{id:uid,name:me?.email||$('email')?.value||'usuario',displayName:profile?.nome||me?.email||'Usuário'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required'},
+      timeout:60000
+    }});
+    if(!cred)return false;
+    localStorage.setItem('csj_bio_cred_id',btoa(String.fromCharCode(...new Uint8Array(cred.rawId))));
+    localStorage.setItem('csj_bio_user',me?.email||$('email')?.value||'');
+    alert('Biometria ativada. No próximo acesso, use sua impressão digital ou biometria do aparelho.');
+    csRenderBiometricButton();
+    return true;
+  }catch(e){alert('Não foi possível ativar a biometria neste aparelho. '+(e?.message||''));return false}
+}
+async function csLoginBiometric(){
+  if(!csBioSupported()||!csBioCredId())return alert('Ative a biometria primeiro fazendo um login normal.');
+  try{
+    const raw=Uint8Array.from(atob(csBioCredId()),c=>c.charCodeAt(0));
+    const challenge=crypto.getRandomValues(new Uint8Array(32));
+    const cred=await navigator.credentials.get({publicKey:{challenge,rpId:location.hostname,allowCredentials:[{type:'public-key',id:raw}],userVerification:'required',timeout:60000}});
+    if(!cred)return;
+    const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
+    if(!snap?.me?.id){alert('Faça um login normal uma vez para preparar o acesso biométrico.');return}
+    me={id:snap.me.id,email:snap.me.email||localStorage.getItem('csj_bio_user')||''};
+    profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
+    clients=snap.clients||[];appts=snap.appts||[];helperList=snap.helperList||[];helperPayments=snap.helperPayments||[];annuals=snap.annuals||[];events=snap.events||[];needs=snap.needs||[];
+    showApp();
+  }catch(e){loginMsg('Biometria não validada: '+(e?.message||String(e)))}
+}
+function csRenderBiometricButton(){
+  let card=document.querySelector('#loginScreen .card');if(!card)return;
+  let old=$('bioLoginBtn');if(old)old.remove();
+  if(!csBioCredId())return;
+  let b=document.createElement('button');b.id='bioLoginBtn';b.type='button';b.className='btn alt';b.style.width='100%';b.style.marginTop='8px';b.textContent='🔐 Entrar com biometria';b.onclick=csLoginBiometric;
+  const forgot=$('forgotPasswordLink'); if(forgot)forgot.before(b); else card.appendChild(b);
+}
+setTimeout(csRenderBiometricButton,0);
 window.login=async()=>{
   const email=$('email').value.trim(), password=$('password').value;
   try{
@@ -835,6 +894,7 @@ window.login=async()=>{
     loginMsg('4/4 — dados OK. Abrindo agenda...');
     scheduleAndroidNotifications();
     showApp();
+    if(csBioSupported()&&!csBioCredId()){setTimeout(()=>csEnableBiometric(),500)}
   }catch(e){
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
@@ -1241,7 +1301,66 @@ function clearAllTransientFormStates(){
   try{Object.keys(localStorage).filter(k=>k.indexOf(FORM_STATE_PREFIX)===0||k===ORC_DRAFT_KEY).forEach(k=>localStorage.removeItem(k));}catch(e){}
 }
 
-window.tab=t=>{saveCurrentFormState();csCurrentTab=t;try{sessionStorage.setItem('csj_current_tab',t)}catch(e){}document.querySelectorAll('nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('#moreMenu button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));closeMoreMenu();try{if(t==='inicio')agenda();if(t==='anual')annualPage();if(t==='clientes')clientPage();if(t==='ajudantes')helpersPage();if(t==='financeiro')financePage();if(t==='emissao')emissaoPage();if(t==='necessidades')necessidadesPage();if(t==='orcamentos')orcamentosPage();if(t==='usuarios')usersPage();addTabSearch(t);applyMoneyVisibility();setTimeout(()=>restoreCurrentFormState(t),0)}catch(e){$('content').innerHTML='<div class="notice"><b>Erro nesta tela:</b> '+esc(e?.message||e)+'</div>'}};
+window.csTabRender=t=>{saveCurrentFormState();csCurrentTab=t;try{sessionStorage.setItem('csj_current_tab',t)}catch(e){}document.querySelectorAll('nav button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));document.querySelectorAll('#moreMenu button[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));closeMoreMenu();try{if(t==='inicio')agenda();if(t==='anual')annualPage();if(t==='clientes')clientPage();if(t==='ajudantes')helpersPage();if(t==='financeiro')financePage();if(t==='emissao')emissaoPage();if(t==='necessidades')necessidadesPage();if(t==='orcamentos')orcamentosPage();if(t==='usuarios')usersPage();addTabSearch(t);applyMoneyVisibility();setTimeout(()=>restoreCurrentFormState(t),0)}catch(e){$('content').innerHTML='<div class="notice"><b>Erro nesta tela:</b> '+esc(e?.message||e)+'</div>'}};
+const CS_TAB_ORDER=['inicio','clientes','ajudantes','financeiro','anual','emissao','necessidades','orcamentos','usuarios'];
+let csNavReady=false,csAllowExit=false;
+function csEnsureNavHistory(){
+  if(csNavReady)return;
+  csNavReady=true;
+  try{
+    history.replaceState({csRoot:true,tab:'inicio'},'',location.href);
+    history.pushState({csGuard:true,tab:'inicio'},'',location.href);
+  }catch(e){}
+}
+window.tab=function(t,opts={}){
+  const fromHistory=!!opts.fromHistory;
+  const current=csCurrentTab||'inicio';
+  if(t===current && !fromHistory){try{csEnsureNavHistory()}catch(e){}}
+  if(!fromHistory){
+    try{history.pushState({csTab:true,tab:t},'',location.href)}catch(e){}
+  }
+  window.csTabRender(t);
+};
+window.addEventListener('popstate',async function(e){
+  if($('printOverlay')){closePrintPreview(true);return}
+  if($('modal')&&!$('modal').classList.contains('hidden')){closeModal();return}
+  const state=e.state||{};
+  if(state.csTab){
+    csNavReady=true;
+    window.csTabRender(state.tab||'inicio');
+    return;
+  }
+  if(state.csGuard||state.csRoot){
+    const yes=await csConfirm('Tem certeza que deseja sair do aplicativo?');
+    if(yes){
+      csAllowExit=true;
+      try{history.go(-1)}catch(err){}
+    }else{
+      try{history.pushState({csGuard:true,tab:'inicio'},'',location.href)}catch(err){}
+      window.csTabRender('inicio');
+    }
+  }
+});
+function csSetupSwipe(){
+  let sx=0,sy=0,tracking=false;
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    const t=e.target;
+    if(t.closest('input,textarea,select,button,a,[contenteditable="true"],.modalbox,.printPanel')){tracking=false;return}
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;tracking=true;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!tracking)return;tracking=false;
+    const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+    if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.35)return;
+    let i=CS_TAB_ORDER.indexOf(csCurrentTab||'inicio');
+    if(i<0)i=0;
+    let ni=dx<0?Math.min(CS_TAB_ORDER.length-1,i+1):Math.max(0,i-1);
+    if(ni!==i)window.tab(CS_TAB_ORDER[ni]);
+  },{passive:true});
+}
+setTimeout(()=>{csEnsureNavHistory();csSetupSwipe()},0);
+
 function plannedForDate(ds){return annuals.filter(x=>x.data_agendada===ds)}
 window.openAnnualOverview=function(year=new Date().getFullYear()){
   return openAnnualComplete(year);
@@ -1779,14 +1898,40 @@ window.emissaoLoadServices=function(){let id=Number($('emCli')?.value||0),c=clie
 window.emissaoAddService=function(data){let box=$('emRows');if(!box)return;let item=document.createElement('div');item.className='emissaoItem';let d=data||{};item.innerHTML=`<div class="grid3"><div><label>Data</label><input class="field emDate" type="date" value="${d.data||iso(new Date())}"></div><div><label>Serviço realizado</label><input class="field emDesc" value="${esc(d.desc||'Serviço de jardinagem')}"></div><div><label>Valor</label><input class="field moneyInput emVal" value="${d.valor!=null?money(Number(d.valor)).replace('R$','').trim():'0,00'}" oninput="formatMoneyInput(this);emissaoTotal()"></div></div><button class="btn danger" style="margin-top:8px" onclick="this.closest('.emissaoItem').remove();emissaoTotal()">🗑️ Remover da emissão</button>`;if(box.querySelector('.muted'))box.innerHTML='';box.appendChild(item);emissaoTotal()};
 window.formatMoneyInput=function(el){if(!el)return;let raw=String(el.value||'').replace(/\D/g,'');let n=Number(raw||0)/100;el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})};
 window.emissaoTotal=function(){let total=0;document.querySelectorAll('.emVal').forEach(x=>total+=parseMoney(x.value));let e=$('emTotal');if(e)e.textContent=money(total);return total};
-window.emissaoPrint=function(){let nome=$('emNome')?.value.trim(),end=$('emEnd')?.value.trim(),mes=$('emMes')?.value||'',venc=$('emVenc')?.value||'',frase=$('emFrase')?.value||'',forma=$('emForma')?.value||'',obs=$('emObs')?.value||'';if(!nome)return alert('Informe ou selecione a empresa/cliente.');let itens=[...document.querySelectorAll('.emissaoItem')].map(x=>({data:x.querySelector('.emDate')?.value||'',desc:x.querySelector('.emDesc')?.value||'',valor:parseMoney(x.querySelector('.emVal')?.value||0)}));if(!itens.length)return alert('Adicione pelo menos um serviço.');let total=itens.reduce((s,x)=>s+x.valor,0),fmtDate=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'';let mesNome=mes?new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(mes+'-01T12:00:00')):'';salvarHistoricoEmissao({nome,end,mes,venc,frase,forma,obs,itens,total,cliente_id:Number($('emCli')?.value||0)||null});let w=window.open('','_blank');if(!w)return alert('Permita pop-ups para gerar a emissão.');w.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>CS Jardinagem — Recibo — ${esc(nome)}</title><style>body{font-family:Arial,sans-serif;color:#172018;margin:0;padding:30px;background:#fff}.doc{max-width:800px;margin:auto;border:1px solid #dce5df;border-radius:16px;padding:30px}.head{border-bottom:3px solid #166534;padding-bottom:16px;margin-bottom:22px}.brand{font-size:28px;font-weight:900;color:#166534}.muted{color:#68736b}.box{background:#f4f7f5;border-radius:12px;padding:14px;margin:14px 0}.box p{margin:5px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:11px 8px;border-bottom:1px solid #dce5df;text-align:left}th:last-child,td:last-child{text-align:right}.total{font-size:22px;font-weight:900;text-align:right;margin-top:18px;color:#166534}.phrase{margin:20px 0;padding:14px;border-left:4px solid #166534;background:#f4f7f5}.foot{margin-top:28px;font-size:12px;color:#68736b}@media print{body{padding:0}.doc{border:0;padding:10px;max-width:none}} .emissaoItem{border-bottom:1px solid var(--line);padding:12px 0}.emissaoItem:last-child{border-bottom:0}.photoCaptureBtns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.cameraModal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:16px;z-index:60}.cameraBox{background:#fff;border-radius:18px;padding:16px;width:min(620px,100%)}.cameraVideo{width:100%;max-height:62vh;background:#111;border-radius:14px;object-fit:cover}.cameraActions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}.pendingPhoto{display:flex;align-items:center;gap:10px;margin:10px 0;padding:10px;border:1px solid #dce5df;border-radius:12px;background:#f7faf8}.pendingPhoto img{width:86px;height:70px;object-fit:cover;border-radius:9px}.pendingPhoto span{font-size:13px;color:#68736b} .fileAttachBtns{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.fileAttachList{display:flex;flex-direction:column;gap:7px;margin-top:10px}.fileAttachItem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#f7faf8}.fileAttachInfo{min-width:0;display:flex;align-items:center;gap:8px}.fileAttachInfo b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fileAttachInfo span{display:block;font-size:10px;color:#68736b}.fileAttachActions{display:flex;gap:5px;flex:none}.fileAttachActions button{padding:6px 8px}.appVersion{font-size:9px;color:#9aa59e;text-align:center;margin:8px 0 0}.helperPayRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.helperPayInfo{min-width:0}.helperPayCheck{display:inline-flex;align-items:center;gap:7px;font-weight:800;color:var(--g);cursor:pointer;white-space:nowrap}.helperPayCheck input{width:20px;height:20px;accent-color:#16a34a;cursor:pointer}</style>
-/* V39.1 — somente ajustes solicitados: pesquisa e posição do + Agendar */
-.calendarHead{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:nowrap}
-.calendarHead h2{margin:0;flex:0 1 auto;text-align:center}
-.calendarAgendarBtn{min-width:42px!important;width:42px!important;height:42px;padding:0!important;display:inline-flex;align-items:center;justify-content:center;font-size:24px;line-height:1;border-radius:11px}
-@media(max-width:700px){.calendarHead{gap:7px}.calendarHead h2{font-size:26px;white-space:nowrap}.calendarAgendarBtn{width:38px!important;min-width:38px!important;height:38px;font-size:22px}.agendaToolbar .toolbarMetrics{width:100%}}
-</head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div><div class="box"><p><b>Empresa / cliente:</b> ${esc(nome)}</p>${end?`<p><b>Endereço:</b> ${esc(end)}</p>`:''}<p><b>Período:</b> ${esc(mesNome)}</p>${venc?`<p><b>Vencimento:</b> ${fmtDate(venc)}</p>`:''}</div><div class="phrase">${esc(frase).replace(/\n/g,'<br>')}</div><table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>${itens.map(x=>`<tr><td>${fmtDate(x.data)}</td><td>${esc(x.desc)}</td><td>${money(x.valor)}</td></tr>`).join('')}</tbody></table><div class="total">Total: ${money(total)}</div><div class="box"><p><b>Forma de pagamento:</b> ${esc(forma||'Não informada')}</p>${obs?`<p><b>Observações:</b> ${esc(obs)}</p>`:''}</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div><script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script><div id="v40_9_complete" aria-hidden="true"></div></body></html>`);w.document.close()};
-
+window.emissaoPrint=function(){
+  let nome=$('emNome')?.value.trim(),end=$('emEnd')?.value.trim(),mes=$('emMes')?.value||'',venc=$('emVenc')?.value||'',frase=$('emFrase')?.value||'',forma=$('emForma')?.value||'',obs=$('emObs')?.value||'';
+  if(!nome)return alert('Informe ou selecione a empresa/cliente.');
+  let itens=[...document.querySelectorAll('.emissaoItem')].map(x=>({data:x.querySelector('.emDate')?.value||'',desc:x.querySelector('.emDesc')?.value||'',valor:parseMoney(x.querySelector('.emVal')?.value||0)}));
+  if(!itens.length)return alert('Adicione pelo menos um serviço.');
+  let total=itens.reduce((sum,x)=>sum+x.valor,0);
+  let fmtDate=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'';
+  let mesNome=mes?new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(mes+'-01T12:00:00')):'';
+  salvarHistoricoEmissao({nome,end,mes,venc,frase,forma,obs,itens,total,cliente_id:Number($('emCli')?.value||0)||null});
+  let w=window.open('','_blank');
+  if(!w)return alert('Permita pop-ups para gerar a emissão.');
+  let rows=itens.map(x=>'<tr><td>'+fmtDate(x.data)+'</td><td>'+esc(x.desc)+'</td><td>'+money(x.valor)+'</td></tr>').join('');
+  w.document.open();
+  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><title>CS Jardinagem — Recibo — '+esc(nome)+'</title><style>'+
+    'body{font-family:Arial,sans-serif;color:#172018;margin:0;padding:30px;background:#fff;-webkit-text-size-adjust:100%}'+
+    '.doc{max-width:800px;margin:auto;border:1px solid #dce5df;border-radius:16px;padding:30px}'+
+    '.head{border-bottom:3px solid #166534;padding-bottom:16px;margin-bottom:22px}'+
+    '.brand{font-size:28px;font-weight:900;color:#166534}.muted{color:#68736b}'+
+    '.box{background:#f4f7f5;border-radius:12px;padding:14px;margin:14px 0}.box p{margin:5px 0}'+
+    'table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:11px 8px;border-bottom:1px solid #dce5df;text-align:left}th:last-child,td:last-child{text-align:right}'+
+    '.total{font-size:22px;font-weight:900;text-align:right;margin-top:18px;color:#166534}.phrase{margin:20px 0;padding:14px;border-left:4px solid #166534;background:#f4f7f5}.foot{margin-top:28px;font-size:12px;color:#68736b}'+
+    '@media print{body{padding:0}.doc{border:0;padding:10px;max-width:none}}'+
+    '</style></head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div>'+
+    '<div class="box"><p><b>Empresa / cliente:</b> '+esc(nome)+'</p>'+
+    (end?'<p><b>Endereço:</b> '+esc(end)+'</p>':'')+
+    '<p><b>Período:</b> '+esc(mesNome)+'</p>'+
+    (venc?'<p><b>Vencimento:</b> '+fmtDate(venc)+'</p>':'')+
+    '</div><div class="phrase">'+esc(frase).replace(/\n/g,'<br>')+'</div>'+
+    '<table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="total">Total: '+money(total)+'</div><div class="box"><p><b>Forma de pagamento:</b> '+esc(forma||'Não informada')+'</p>'+
+    (obs?'<p><b>Observações:</b> '+esc(obs)+'</p>':'')+
+    '</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>');
+  w.document.close();
+};
 /* =========================
    ORÇAMENTOS — V40.12.50
    ========================= */
