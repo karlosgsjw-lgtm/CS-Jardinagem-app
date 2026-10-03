@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20260930compact';
+    const key='csj_cache_reset_20261003printnav';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -332,7 +332,26 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 .printImageWrap img{touch-action:pinch-zoom;cursor:zoom-in}
 @media(max-width:700px){.printImageWrap img{width:auto!important;min-width:100%;max-width:none!important}}
 </style>
-</head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
+<style>
+/* V40.15 — impressão nativa, visualização ampliável e transição suave */
+#content.csSwipeExitLeft{animation:csSlideOutLeft .18s ease forwards}
+#content.csSwipeExitRight{animation:csSlideOutRight .18s ease forwards}
+#content.csSwipeEnterLeft{animation:csSlideInLeft .22s ease both}
+#content.csSwipeEnterRight{animation:csSlideInRight .22s ease both}
+@keyframes csSlideOutLeft{to{opacity:.15;transform:translateX(-28px)}}
+@keyframes csSlideOutRight{to{opacity:.15;transform:translateX(28px)}}
+@keyframes csSlideInLeft{from{opacity:.15;transform:translateX(28px)}to{opacity:1;transform:translateX(0)}}
+@keyframes csSlideInRight{from{opacity:.15;transform:translateX(-28px)}to{opacity:1;transform:translateX(0)}}
+.printImageViewport{position:relative;overflow:hidden;width:100%;height:calc(92vh - 115px);background:#f4f7f5;border-radius:10px;touch-action:none;overscroll-behavior:contain}
+.printImageViewport img{position:absolute;left:0;top:0;max-width:none!important;width:auto!important;height:auto!important;transform-origin:0 0;user-select:none;-webkit-user-drag:none}
+.printZoomBar{display:flex;align-items:center;justify-content:center;gap:8px;padding:7px 0;flex-wrap:wrap}
+.printZoomBar button{min-width:42px}
+.receiptPreviewOverlay{position:fixed;inset:0;background:#0007;z-index:80;display:grid;place-items:center;padding:12px}
+.receiptPreviewPanel{background:#fff;border-radius:18px;width:min(850px,100%);height:min(94vh,100%);display:flex;flex-direction:column;overflow:hidden}
+.receiptPreviewToolbar{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.receiptPreviewFrame{border:0;width:100%;flex:1;background:#fff}
+@media(max-width:700px){.receiptPreviewOverlay{padding:0}.receiptPreviewPanel{width:100%;height:100%;border-radius:0}.receiptPreviewToolbar{padding:8px}.receiptPreviewToolbar .btn{padding:9px 11px}}
+</style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
   const IND='csPullRefresh',DURATION=800,START=28;
@@ -1313,15 +1332,18 @@ function csEnsureNavHistory(){
   }catch(e){}
 }
 window.tab=function(t,opts={}){
-  const fromHistory=!!opts.fromHistory;
-  const current=csCurrentTab||'inicio';
-  if(t===current && !fromHistory){try{csEnsureNavHistory()}catch(e){}}
-  if(!fromHistory){
-    try{history.pushState({csTab:true,tab:t},'',location.href)}catch(e){}
-  }
-  window.csTabRender(t);
+  const fromHistory=!!opts.fromHistory,current=csCurrentTab||'inicio';
+  if(t===current&&!fromHistory){try{csEnsureNavHistory()}catch(e){};return}
+  const oldIndex=CS_TAB_ORDER.indexOf(current),newIndex=CS_TAB_ORDER.indexOf(t),dir=newIndex>=oldIndex?'left':'right';
+  if(!fromHistory){try{history.pushState({csTab:true,tab:t},'',location.href)}catch(e){}}
+  const c=$('content');
+  if(!c){window.csTabRender(t);return}
+  c.classList.remove('csSwipeExitLeft','csSwipeExitRight','csSwipeEnterLeft','csSwipeEnterRight');
+  c.classList.add(dir==='left'?'csSwipeExitLeft':'csSwipeExitRight');
+  setTimeout(()=>{window.csTabRender(t);c.classList.remove('csSwipeExitLeft','csSwipeExitRight');c.classList.add(dir==='left'?'csSwipeEnterLeft':'csSwipeEnterRight');setTimeout(()=>c.classList.remove('csSwipeEnterLeft','csSwipeEnterRight'),230)},170);
 };
 window.addEventListener('popstate',async function(e){
+  if($('receiptPreviewOverlay')){const ov=$('receiptPreviewOverlay');ov.remove();return}
   if($('printOverlay')){closePrintPreview(true);return}
   if($('modal')&&!$('modal').classList.contains('hidden')){closeModal();return}
   const state=e.state||{};
@@ -1706,39 +1728,41 @@ window.closePrintPreview=function(fromPop){
 window.printAnnualImage=async function(cid,year){
   const c=clients.find(x=>x.id===cid);
   const dates=annuals.filter(x=>x.cliente_id===cid&&Number(x.ano)===Number(year)).map(x=>x.data_agendada);
-  const cv=document.createElement('canvas');
-  const W=1600,H=1100;
-  const ctx=cv.getContext('2d');
-  cv.width=W; cv.height=H;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#166534'; ctx.font='bold 38px Arial';
-  ctx.fillText(`Agenda anual — ${c?.nome||''}`,55,58);
-  ctx.fillStyle='#555'; ctx.font='20px Arial'; ctx.fillText(String(year),55,92);
-  const gx=35,gy=125,cw=380,ch=300,gap=15;
-  const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const cv=document.createElement('canvas'),W=1600,H=1100; const ctx=cv.getContext('2d'); cv.width=W;cv.height=H;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#166534';ctx.font='bold 38px Arial';
+  ctx.fillText('Agenda anual — '+(c?.nome||''),55,58);ctx.fillStyle='#555';ctx.font='20px Arial';ctx.fillText(String(year),55,92);
+  const gx=35,gy=125,cw=380,ch=300,gap=15,names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   for(let m=0;m<12;m++){
-    const x=gx+(m%4)*(cw+gap), y=gy+Math.floor(m/4)*(ch+gap);
-    ctx.strokeStyle='#dce5df'; ctx.strokeRect(x,y,cw,ch);
-    ctx.fillStyle='#172018'; ctx.font='bold 21px Arial'; ctx.fillText(names[m],x+15,y+30);
-    ctx.font='14px Arial';
+    const x=gx+(m%4)*(cw+gap),y=gy+Math.floor(m/4)*(ch+gap);ctx.strokeStyle='#dce5df';ctx.strokeRect(x,y,cw,ch);
+    ctx.fillStyle='#172018';ctx.font='bold 21px Arial';ctx.fillText(names[m],x+15,y+30);ctx.font='14px Arial';
     ['D','S','T','Q','Q','S','S'].forEach((n,i)=>ctx.fillText(n,x+20+i*50,y+55));
-    const first=new Date(year,m,1).getDay(), last=new Date(year,m+1,0).getDate();
-    for(let d=1;d<=last;d++){
-      const idx=first+d-1,col=idx%7,row=Math.floor(idx/7);
-      const px=x+20+col*50,py=y+83+row*31,ds=iso(new Date(year,m,d));
-      if(dates.includes(ds)){
-        ctx.fillStyle='#ef4444'; ctx.beginPath(); ctx.arc(px,py-5,14,0,Math.PI*2); ctx.fill(); ctx.fillStyle='#fff';
-      }else ctx.fillStyle='#172018';
-      ctx.font='14px Arial'; ctx.fillText(String(d),px-4,py);
+    const first=new Date(year,m,1).getDay(),last=new Date(year,m+1,0).getDate();
+    for(let d=1;d<=last;d++){const idx=first+d-1,col=idx%7,row=Math.floor(idx/7),px=x+20+col*50,py=y+83+row*31,ds=iso(new Date(year,m,d));
+      if(dates.includes(ds)){ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(px,py-5,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff'}else ctx.fillStyle='#172018';
+      ctx.font='14px Arial';ctx.fillText(String(d),px-4,py);
     }
   }
   const url=cv.toDataURL('image/png');
-  const old=$('printOverlay'); if(old)old.remove();
-  const ov=document.createElement('div');
-  ov.id='printOverlay'; ov.className='printOverlay';
-  ov.innerHTML=`<div class="printPanel"><div class="printToolbar"><b>🖨️ Agenda anual</b><div class="row" style="margin-left:auto"><button type="button" class="btn" onclick="imprimirOrcamentoNativo()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div><div class="printImageWrap"><img src="${url}" alt="Agenda anual"></div></div>`;
-  document.body.appendChild(ov);
-  history.pushState({csPrintPreview:true},'',location.href);
+  const old=$('printOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay';
+  ov.innerHTML='<div class="printPanel"><div class="printToolbar"><b>🖨️ Agenda anual</b><div class="row" style="margin-left:auto"><button type="button" class="btn" onclick="csPrintAnnualNative()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual"></div></div>';
+  document.body.appendChild(ov); history.pushState({csPrintPreview:true},'',location.href); csInitPrintPanZoom();
+};
+let csPrintZoomState={scale:1,x:0,y:0};
+function csApplyPrintZoom(){const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;im.style.transform='translate('+csPrintZoomState.x+'px,'+csPrintZoomState.y+'px) scale('+csPrintZoomState.scale+')';const z=$('printZoomLabel');if(z)z.textContent=Math.round(csPrintZoomState.scale*100)+'%'}
+function csPrintFit(){const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;const vw=vp.clientWidth,vh=vp.clientHeight,iw=1600,ih=1100;csPrintZoomState={scale:Math.min(vw/iw,vh/ih),x:Math.max(0,(vw-iw*Math.min(vw/iw,vh/ih))/2),y:Math.max(0,(vh-ih*Math.min(vw/iw,vh/ih))/2)};csApplyPrintZoom()}
+function csPrintZoom(delta){const vp=$('printImageViewport');if(!vp)return;const old=csPrintZoomState.scale,n=Math.max(.35,Math.min(4,old+delta)),cx=vp.clientWidth/2,cy=vp.clientHeight/2;csPrintZoomState.x=cx-(cx-csPrintZoomState.x)*(n/old);csPrintZoomState.y=cy-(cy-csPrintZoomState.y)*(n/old);csPrintZoomState.scale=n;csApplyPrintZoom()}
+function csInitPrintPanZoom(){
+  const vp=$('printImageViewport');if(!vp)return;setTimeout(csPrintFit,20);
+  let p1=null,p2=null,start=null,startDist=0,startScale=1;
+  vp.ontouchstart=e=>{if(e.touches.length===1){p1=e.touches[0];start={x:csPrintZoomState.x,y:csPrintZoomState.y,tx:p1.clientX,ty:p1.clientY}}else if(e.touches.length===2){start=null;p2=e.touches[1];p1=e.touches[0];startDist=Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY);startScale=csPrintZoomState.scale}};
+  vp.ontouchmove=e=>{e.preventDefault();if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY),n=Math.max(.35,Math.min(4,startScale*d/startDist));csPrintZoomState.scale=n;csApplyPrintZoom()}else if(e.touches.length===1&&start&&csPrintZoomState.scale>0.8){const t=e.touches[0];csPrintZoomState.x=start.x+t.clientX-start.tx;csPrintZoomState.y=start.y+t.clientY-start.ty;csApplyPrintZoom()}};
+}
+window.csPrintAnnualNative=function(){const img=$('printAnnualImg');if(!img)return;const html='<html><head><meta name="viewport" content="width=device-width"><style>body{margin:0;text-align:center}img{width:100%;height:auto}</style></head><body><img src="'+img.src+'"></body></html>';csNativePrint(html,'Agenda anual')};
+window.csNativePrint=function(html,title){
+  try{if(window.AndroidPrint&&AndroidPrint.printHtml){AndroidPrint.printHtml(html,title||'CS Jardinagem');return true}}catch(e){console.warn(e)}
+  let w=window.open('','_blank');if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>w.print(),500);return true}
+  alert('A impressão não pôde ser aberta neste aparelho.');return false;
 };
 
 window.addEventListener('popstate',function(){
@@ -1903,35 +1927,19 @@ window.emissaoPrint=function(){
   if(!nome)return alert('Informe ou selecione a empresa/cliente.');
   let itens=[...document.querySelectorAll('.emissaoItem')].map(x=>({data:x.querySelector('.emDate')?.value||'',desc:x.querySelector('.emDesc')?.value||'',valor:parseMoney(x.querySelector('.emVal')?.value||0)}));
   if(!itens.length)return alert('Adicione pelo menos um serviço.');
-  let total=itens.reduce((sum,x)=>sum+x.valor,0);
-  let fmtDate=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'';
+  let total=itens.reduce((sum,x)=>sum+x.valor,0),fmtDate=d=>d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'';
   let mesNome=mes?new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(new Date(mes+'-01T12:00:00')):'';
   salvarHistoricoEmissao({nome,end,mes,venc,frase,forma,obs,itens,total,cliente_id:Number($('emCli')?.value||0)||null});
-  let w=window.open('','_blank');
-  if(!w)return alert('Permita pop-ups para gerar a emissão.');
   let rows=itens.map(x=>'<tr><td>'+fmtDate(x.data)+'</td><td>'+esc(x.desc)+'</td><td>'+money(x.valor)+'</td></tr>').join('');
-  w.document.open();
-  w.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><title>CS Jardinagem — Recibo — '+esc(nome)+'</title><style>'+
-    'body{font-family:Arial,sans-serif;color:#172018;margin:0;padding:30px;background:#fff;-webkit-text-size-adjust:100%}'+
-    '.doc{max-width:800px;margin:auto;border:1px solid #dce5df;border-radius:16px;padding:30px}'+
-    '.head{border-bottom:3px solid #166534;padding-bottom:16px;margin-bottom:22px}'+
-    '.brand{font-size:28px;font-weight:900;color:#166534}.muted{color:#68736b}'+
-    '.box{background:#f4f7f5;border-radius:12px;padding:14px;margin:14px 0}.box p{margin:5px 0}'+
-    'table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:11px 8px;border-bottom:1px solid #dce5df;text-align:left}th:last-child,td:last-child{text-align:right}'+
-    '.total{font-size:22px;font-weight:900;text-align:right;margin-top:18px;color:#166534}.phrase{margin:20px 0;padding:14px;border-left:4px solid #166534;background:#f4f7f5}.foot{margin-top:28px;font-size:12px;color:#68736b}'+
-    '@media print{body{padding:0}.doc{border:0;padding:10px;max-width:none}}'+
-    '</style></head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div>'+
-    '<div class="box"><p><b>Empresa / cliente:</b> '+esc(nome)+'</p>'+
-    (end?'<p><b>Endereço:</b> '+esc(end)+'</p>':'')+
-    '<p><b>Período:</b> '+esc(mesNome)+'</p>'+
-    (venc?'<p><b>Vencimento:</b> '+fmtDate(venc)+'</p>':'')+
-    '</div><div class="phrase">'+esc(frase).replace(/\n/g,'<br>')+'</div>'+
-    '<table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="total">Total: '+money(total)+'</div><div class="box"><p><b>Forma de pagamento:</b> '+esc(forma||'Não informada')+'</p>'+
-    (obs?'<p><b>Observações:</b> '+esc(obs)+'</p>':'')+
-    '</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div><script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script></body></html>');
-  w.document.close();
+  let html='<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:Arial;color:#172018;margin:0;padding:30px;background:#fff}.doc{max-width:800px;margin:auto;border:1px solid #dce5df;border-radius:16px;padding:30px}.head{border-bottom:3px solid #166534;padding-bottom:16px;margin-bottom:22px}.brand{font-size:28px;font-weight:900;color:#166534}.muted{color:#68736b}.box{background:#f4f7f5;border-radius:12px;padding:14px;margin:14px 0}.box p{margin:5px 0}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{padding:11px 8px;border-bottom:1px solid #dce5df;text-align:left}th:last-child,td:last-child{text-align:right}.total{font-size:22px;font-weight:900;text-align:right;margin-top:18px;color:#166534}.phrase{margin:20px 0;padding:14px;border-left:4px solid #166534;background:#f4f7f5}.foot{margin-top:28px;font-size:12px;color:#68736b}@media print{body{padding:0}.doc{border:0;padding:10px;max-width:none}}</style></head><body><div class="doc"><div class="head"><div class="brand">🌿 CS Jardinagem</div><div class="muted">Recibo de cobrança</div></div><div class="box"><p><b>Empresa / cliente:</b> '+esc(nome)+'</p>'+(end?'<p><b>Endereço:</b> '+esc(end)+'</p>':'')+'<p><b>Período:</b> '+esc(mesNome)+'</p>'+(venc?'<p><b>Vencimento:</b> '+fmtDate(venc)+'</p>':'')+'</div><div class="phrase">'+esc(frase).replace(/\n/g,'<br>')+'</div><table><thead><tr><th>Data</th><th>Serviço realizado</th><th>Valor</th></tr></thead><tbody>'+rows+'</tbody></table><div class="total">Total: '+money(total)+'</div><div class="box"><p><b>Forma de pagamento:</b> '+esc(forma||'Não informada')+'</p>'+(obs?'<p><b>Observações:</b> '+esc(obs)+'</p>':'')+'</div><div class="foot">Documento de cobrança emitido pelo CS Jardinagem.</div></div></body></html>';
+  const old=$('receiptPreviewOverlay');if(old)old.remove();
+  const ov=document.createElement('div');ov.id='receiptPreviewOverlay';ov.className='receiptPreviewOverlay';
+  ov.innerHTML='<div class="receiptPreviewPanel"><div class="receiptPreviewToolbar"><b>🧾 Recibo</b><button type="button" class="btn" onclick="csPrintReceipt()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="csCloseReceiptPreview()">Fechar</button></div><iframe id="receiptPreviewFrame" class="receiptPreviewFrame" title="Visualização do recibo"></iframe></div>';
+  document.body.appendChild(ov);$('receiptPreviewFrame').srcdoc=html;history.pushState({csReceiptPreview:true},'',location.href);window._csReceiptHtml=html;
 };
+window.csPrintReceipt=function(){if(window._csReceiptHtml)csNativePrint(window._csReceiptHtml,'Recibo CS Jardinagem')};
+window.csCloseReceiptPreview=function(){const ov=$('receiptPreviewOverlay');if(ov)ov.remove();if(history.state&&history.state.csReceiptPreview)history.back()};
+
 /* =========================
    ORÇAMENTOS — V40.12.50
    ========================= */
