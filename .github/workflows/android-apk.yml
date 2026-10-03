@@ -29,6 +29,69 @@ jobs:
       - name: Criar projeto Android
         run: npx cap add android
 
+      - name: Adicionar ponte nativa de impressão Android
+        run: |
+          mkdir -p android/app/src/main/java/com/csjardinagem/app
+          cat > android/app/src/main/java/com/csjardinagem/app/MainActivity.java <<'JAVA'
+          package com.csjardinagem.app;
+
+          import android.app.Activity;
+          import android.content.Context;
+          import android.print.PrintAttributes;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              private WebView printWebView;
+
+              @Override
+              public void onStart() {
+                  super.onStart();
+                  getBridge().getWebView().addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
+              }
+
+              private class PrintBridge {
+                  private final Activity activity;
+                  PrintBridge(Activity activity) { this.activity = activity; }
+
+                  @JavascriptInterface
+                  public void printHtml(final String html, final String title) {
+                      activity.runOnUiThread(() -> {
+                          try {
+                              if (printWebView != null) {
+                                  printWebView.stopLoading();
+                                  printWebView.destroy();
+                              }
+                              printWebView = new WebView(activity);
+                              printWebView.getSettings().setJavaScriptEnabled(false);
+                              printWebView.setWebViewClient(new WebViewClient() {
+                                  @Override
+                                  public void onPageFinished(WebView view, String url) {
+                                      try {
+                                          PrintManager pm = (PrintManager) activity.getSystemService(Context.PRINT_SERVICE);
+                                          String jobName = (title == null || title.trim().isEmpty()) ? "CS Jardinagem" : title;
+                                          PrintAttributes attrs = new PrintAttributes.Builder()
+                                                  .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                                  .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                                                  .build();
+                                          pm.print(jobName, view.createPrintDocumentAdapter(jobName), attrs);
+                                      } catch (Exception ignored) {
+                                      }
+                                  }
+                              });
+                              printWebView.loadDataWithBaseURL("https://csjardinagem.local/", html, "text/html", "UTF-8", null);
+                          } catch (Exception ignored) {
+                          }
+                      });
+                  }
+              }
+          }
+          JAVA
+
       - name: Instalar conversor de ícones
         run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
 
