@@ -39,23 +39,89 @@ async function api(path,opt={},retried=false){
 function b64ToUint8(base64){const pad='='.repeat((4-base64.length%4)%4);const s=(base64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s);return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
 async function enableSitePush(){
  const b=document.getElementById("enablePush");
+ const fail=(msg)=>{if(b)b.textContent='❌ Falha ao ativar';alert(msg)};
  try{
-  if(b)b.textContent='⏳ Ativando...';
-  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){if(b)b.textContent='🔔 Push não disponível';return;}
-  if(Notification.permission==='default')await Notification.requestPermission();
-  if(Notification.permission!=='granted'){if(b)b.textContent='🔕 Permissão bloqueada';return;}
-  const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push4');
+  if(b)b.textContent='⏳ Preparando...';
+  if(!window.isSecureContext||!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){
+    return fail('Este navegador não disponibiliza Web Push nesta página.');
+  }
+  if(Notification.permission==='denied'){
+    return fail('As notificações estão bloqueadas para este site. No Chrome: ⋮ → Configurações → Configurações do site → Notificações → CS Jardinagem → Permitir. Depois volte e tente novamente.');
+  }
+  if(Notification.permission==='default'){
+    const p=await Notification.requestPermission();
+    if(p!=='granted')return fail('A permissão de notificações não foi concedida.');
+  }
+
+  // Recuperação de inscrições antigas: o painel já passou por versões diferentes
+  // do Service Worker. Remova a inscrição antiga antes de criar uma nova quando
+  // ela estiver vinculada a uma chave VAPID diferente.
+  const SW_URL='/CS-Jardinagem-app/site/sw.js?v=20261003-push5';
+  const SW_SCOPE='/CS-Jardinagem-app/site/';
+  const reg=await navigator.serviceWorker.register(SW_URL,{scope:SW_SCOPE,updateViaCache:'none'});
+  await reg.update().catch(()=>{});
   await navigator.serviceWorker.ready;
-  const existing=await reg.pushManager.getSubscription();
-  const sub=existing||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToUint8(PUSH_PUBLIC_KEY)});
+
+  let sub=await reg.pushManager.getSubscription();
+  if(sub){
+    let sameKey=false;
+    try{
+      const oldKey=sub.options?.applicationServerKey;
+      const wanted=b64ToUint8(PUSH_PUBLIC_KEY);
+      if(oldKey){
+        const a=new Uint8Array(oldKey), b2=new Uint8Array(wanted);
+        sameKey=a.length===b2.length&&a.every((v,i)=>v===b2[i]);
+      }
+    }catch(_){}
+    if(!sameKey){
+      try{await sub.unsubscribe()}catch(_){}
+      sub=null;
+    }
+  }
+
+  if(!sub){
+    try{
+      sub=await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:b64ToUint8(PUSH_PUBLIC_KEY)
+      });
+    }catch(e){
+      const detail=String(e?.message||e);
+      console.error('Push subscribe failed',e);
+      if(/push service error|registration failed/i.test(detail)){
+        return fail('O serviço de notificações do Chrome recusou a inscrição agora. O cadastro antigo foi limpo. Feche esta aba, abra novamente o painel e toque em “Ativar notificações” uma vez. Se o Chrome perguntar novamente, toque em Permitir.');
+      }
+      return fail('Não foi possível criar a inscrição de notificações. '+detail);
+    }
+  }
+
   const key=sub.toJSON();
   const authUser=await fetch(SB_URL+'/auth/v1/user',{headers:headers()}).then(x=>x.json());
   if(!authUser?.id)throw new Error('Sessão de administrador não encontrada. Entre novamente.');
-  const save=await fetch(SB_URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{method:'POST',headers:{...headers(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:authUser.id,endpoint:key.endpoint,p256dh:key.keys?.p256dh,auth:key.keys?.auth,user_agent:navigator.userAgent})});
-  if(!save.ok){const j=await save.json().catch(()=>null);throw new Error(j?.message||j?.hint||'Não foi possível salvar a inscrição de notificações.');}
+
+  const save=await fetch(SB_URL+'/rest/v1/site_push_subscriptions?on_conflict=endpoint',{
+    method:'POST',
+    headers:{...headers(),Prefer:'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({
+      user_id:authUser.id,
+      endpoint:key.endpoint,
+      p256dh:key.keys?.p256dh,
+      auth:key.keys?.auth,
+      user_agent:navigator.userAgent
+    })
+  });
+  if(!save.ok){
+    const j=await save.json().catch(()=>null);
+    throw new Error(j?.message||j?.hint||'Não foi possível salvar a inscrição de notificações.');
+  }
   if(b)b.textContent='✅ Notificações ativas';
- }catch(e){if(b)b.textContent='❌ Falha ao ativar';console.warn('Web Push:',e);alert('Não foi possível ativar as notificações.\n\n'+(e?.message||e))}
+  alert('Notificações ativadas com sucesso neste painel.');
+ }catch(e){
+  console.error('Web Push:',e);
+  fail('Não foi possível ativar as notificações.\\n\\n'+(e?.message||e));
+ }
 }
+
 async function showApp(){
  $("login").style.display="none";$("app").style.display="block";$("logout").style.display="block";
  try{await load()}catch(e){console.error("load",e)}
@@ -65,6 +131,16 @@ async function showApp(){
  let lastVisitCount=0;let analyticsReady=false;async function visitAlert(){try{const since=new Date(Date.now()-15*60e3).toISOString();const ev=await api('/rest/v1/site_analytics_events?select=*&event_type=eq.page_view&created_at=gte.'+encodeURIComponent(since)+'&order=created_at.desc&limit=20');const count=ev.length;if(analyticsReady&&count>lastVisitCount&&'Notification'in window&&Notification.permission==='granted'){const m=ev[0]?.metadata||{};new Notification('Nova visita — CS Jardinagem',{body:(m.city?(m.city+', '+(m.region||'')):'Novo visitante')+' · '+(m.device||'dispositivo')})}lastVisitCount=count;analyticsReady=true}catch(e){}}setInterval(()=>load().catch(console.error),10000);setInterval(()=>visitAlert().catch(console.error),30000);visitAlert().catch(console.error);
  setInterval(()=>{if(!window._analyticsDaySelection)analytics(7).catch(console.error)},30000);
 }async function load(){try{const data=await api("/rest/v1/site_orcamentos?select=*&order=criado_em.desc");const oldIds=new Set(pedidos.map(p=>p.id));pedidos=data||[];const newOnes=pedidos.filter(p=>p.status==="novo"&&!oldIds.has(p.id));renderList();$("newCount").textContent=pedidos.filter(p=>p.status==="novo").length;if(!firstLoad&&newOnes.length&&"Notification"in window&&Notification.permission==="granted"){new Notification("Novo orçamento — CS Jardinagem",{body:newOnes.length===1?newOnes[0].nome+" enviou uma solicitação.":newOnes.length+" novos orçamentos recebidos."});}firstLoad=false;if(current){const fresh=pedidos.find(p=>p.id===current.id);if(fresh)current=fresh}}catch(e){if(String(e.message).toLowerCase().includes("jwt")||String(e.message).toLowerCase().includes("token")||String(e.message).toLowerCase().includes("unauthorized")){$("list").innerHTML="<p>⚠️ Sessão expirada. Clique em Sair e entre novamente.</p>"}else $("list").innerHTML="<p>"+e.message+"</p>"}}function renderList(){$("list").innerHTML="";if(!pedidos.length){$("list").innerHTML="<p class='small'>Nenhum orçamento recebido ainda.</p>";return}pedidos.forEach(p=>{const d=document.createElement("div");d.className="item "+(p.status==="novo"?"new ":"")+(current&&current.id===p.id?"active":"");d.innerHTML="<strong>"+esc(p.nome)+"</strong><div class='small'>"+esc(p.telefone)+" · "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div><div class='small'>"+esc(p.status.replace("_"," "))+"</div>";d.onclick=()=>openOrder(p);$("list").appendChild(d)})}function esc(v){return String(v??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]))}async function openOrder(p){current=p;history.pushState({orderId:p.id},"","#pedido-"+p.id);renderList();$("detail").innerHTML="<p>Carregando pedido...</p>";try{const [ms,fs]=await Promise.all([api("/rest/v1/site_mensagens?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc"),api("/rest/v1/site_orcamento_arquivos?select=*&orcamento_id=eq."+encodeURIComponent(p.id)+"&order=criado_em.asc")]);$("detail").innerHTML="<div class='top'><div><h2>"+esc(p.nome)+"</h2><div class='small'>Recebido em "+new Date(p.criado_em).toLocaleString("pt-BR")+"</div></div><span class='badge' style='background:#087f4b'>"+esc(p.status.replace("_"," "))+"</span></div><div class='statusbox'><strong>Telefone:</strong> "+esc(p.telefone)+"<br><strong>E-mail:</strong> "+esc(p.email||"não informado")+"<br><strong>Pedido:</strong><br>"+esc(p.mensagem||"Sem descrição")+"</div><div class='tools'><button type='button' class='danger' onclick='deleteOrder()'>🗑️ Excluir pedido</button><a target='_blank' href='https://wa.me/55"+p.telefone.replace(/\\D/g,"")+"'>💬 WhatsApp</a><a href='tel:"+esc(p.telefone)+"'>📞 Ligar</a>"+(p.email?"<a href='mailto:"+esc(p.email)+"'>✉️ E-mail</a>":"")+"</div><h3>📷 Fotos enviadas ("+(fs||[]).length+")</h3><div class='photos'>"+(fs||[]).map(f=>"<a target='_blank' href='"+esc(f.url)+"'><img src='"+esc(f.url)+"' alt='"+esc(f.nome_arquivo)+"'></a>").join("")+"</div><h3>💬 Conversa</h3><div id='msgs' class='messages'>"+((ms||[]).length?(ms||[]).map(m=>"<div class='m "+(m.autor_tipo==="empresa"?"me":"")+"'><strong>"+esc(m.autor_nome)+"</strong><br>"+esc(m.mensagem)+"</div>").join(""):"<span class='small'>Ainda não há mensagens.</span>")+"</div><form id='reply'><textarea id='replyText' rows='3' placeholder='Responder pelo chat do site...' required></textarea><button class='btn primary full'>Enviar resposta</button></form>";$("reply").onsubmit=sendReply;if(p.status==="novo"){await api("/rest/v1/site_orcamentos?id=eq."+encodeURIComponent(p.id),{method:"PATCH",body:JSON.stringify({status:"em_andamento",atualizado_em:new Date().toISOString()})});p.status="em_andamento";$("newCount").textContent=pedidos.filter(x=>x.status==="novo").length;renderList()}}catch(e){$("detail").innerHTML="<p>"+e.message+"</p>"}}async function sendReply(e){e.preventDefault();const text=$("replyText").value.trim();if(!text)return;const b=e.currentTarget.querySelector("button");b.disabled=true;try{await api("/rest/v1/site_mensagens",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({orcamento_id:current.id,autor_tipo:"empresa",autor_nome:"CS Jardinagem",mensagem:text})});await openOrder(current)}catch(err){alert("Não foi possível enviar a resposta.")}finally{b.disabled=false}}$("entrar").onclick=login;$("senha").addEventListener("keydown",e=>{if(e.key==="Enter")login()});$("logout").onclick=()=>{localStorage.removeItem("cs_admin_access");location.reload()};$("enablePush").onclick=enableSitePush;
+(async function refreshPushState(){
+ const b=document.getElementById('enablePush'); if(!b)return;
+ try{
+   if(!('Notification'in window)||Notification.permission!=='granted'){b.textContent='🔔 Ativar notificações';return}
+   const reg=await navigator.serviceWorker.register('/CS-Jardinagem-app/site/sw.js?v=20261003-push5',{scope:'/CS-Jardinagem-app/site/',updateViaCache:'none'});
+   await reg.update().catch(()=>{});
+   const sub=await reg.pushManager.getSubscription();
+   b.textContent=sub?'🟢 Notificações ativas':'🔔 Ativar notificações';
+ }catch(e){b.textContent='🔔 Ativar notificações'}
+})();
 async function loadGalleryAdmin(){try{const data=await api("/rest/v1/site_galeria?select=*&order=ordem.asc,criado_em.desc");$("galleryAdmin").innerHTML=(data||[]).map(x=>"<div class='galleryCard'><img src='"+esc(x.url)+"' alt='"+esc(x.titulo||"Trabalho")+"' loading='lazy'><div class='gaBody'><div class='small'>"+esc(x.titulo||"Trabalho CS Jardinagem")+"</div><button type='button' onclick='deleteGallery("+x.id+",\""+String(x.caminho).replace(/"/g,"&quot;")+"\")'>Excluir</button></div></div>").join("")||"<p class='small'>Nenhuma foto cadastrada.</p>"}catch(e){$("galleryAdmin").innerHTML="<p>"+esc(e.message)+"</p>"}}
 async function uploadGallery(){const input=$("galleryFiles"),msg=$("galleryMsg"),btn=$("galleryUploadBtn");if(!input.files.length){msg.textContent="Selecione pelo menos uma foto.";return}btn.disabled=true;msg.textContent="Enviando fotos...";try{let ordem=Date.now()%2147483647;for(const file of [...input.files]){const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");const path="trabalhos/"+crypto.randomUUID()+"-"+safe;const sr=await fetch(SB_URL+"/storage/v1/object/site-galeria/"+path,{method:"POST",headers:{"apikey":SB_KEY,"Authorization":"Bearer "+accessToken,"Content-Type":file.type||"image/jpeg","x-upsert":"false"},body:file});if(!sr.ok)throw new Error("Não foi possível enviar "+file.name);const url=SB_URL+"/storage/v1/object/public/site-galeria/"+path;await api("/rest/v1/site_galeria",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({titulo:"Trabalho CS Jardinagem",url,caminho:path,ordem:ordem++})})}input.value="";msg.textContent="Fotos adicionadas à galeria.";await loadGalleryAdmin()}catch(e){msg.textContent=e.message||"Falha ao enviar fotos."}finally{btn.disabled=false}}
 document.getElementById("galleryUploadBtn")?.addEventListener("click",uploadGallery);document.getElementById("backBtn")?.addEventListener("click",()=>{if(history.length>1)history.back();else location.href="index.html"});window.addEventListener("popstate",()=>{if(!location.hash.startsWith("#pedido-")){current=null;$("detail").innerHTML="<p>Selecione um pedido.</p>";renderList()}});
@@ -193,7 +269,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
     return
    }
    if(Notification.permission==='default'){const p=await Notification.requestPermission();if(p!=='granted'){b.textContent='🔔 Ativar notificações';return}}
-   const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push2');
+   const reg=await navigator.serviceWorker.register('./sw.js?v=20261003-push5');
    await navigator.serviceWorker.ready;
    let sub=await reg.pushManager.getSubscription();
    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(PUB)});
@@ -210,7 +286,7 @@ $('#a7').onclick=()=>analytics(7);$('#a30').onclick=()=>analytics(30);$('#ar').o
   const b=document.getElementById('enablePush'); if(!b)return;
   try{
     if(!('Notification'in window)||Notification.permission!=='granted'){b.textContent='🔔 Ativar notificações';return}
-    const reg=await navigator.serviceWorker.register('./sw.js?v=20260930-push3');
+    const reg=await navigator.serviceWorker.register('./sw.js?v=20261003-push5');
     const sub=await reg.pushManager.getSubscription();
     b.textContent=sub?'🟢 Notificações ativas':'🔔 Ativar notificações';
   }catch(e){b.textContent='🔔 Ativar notificações'}
