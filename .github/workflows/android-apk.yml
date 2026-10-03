@@ -39,6 +39,9 @@ jobs:
           import android.content.Context;
           import android.graphics.Color;
           import android.os.Build;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.widget.FrameLayout;
           import android.view.Window;
           import android.view.WindowInsets;
           import android.print.PrintAttributes;
@@ -56,25 +59,10 @@ jobs:
               public void onStart() {
                   super.onStart();
 
-                  // V40.20: use the real Android system-bar inset.
-                  // Do not simulate the status-bar area with HTML padding.
+                  // V40.21: hard native separation between Android system status bar
+                  // and the WebView. Do not rely on HTML/CSS safe-area padding.
                   final WebView webView = getBridge().getWebView();
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                      webView.setOnApplyWindowInsetsListener((v, insets) -> {
-                          int top = 0;
-                          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                              top = insets.getInsets(WindowInsets.Type.statusBars()).top;
-                          } else {
-                              int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
-                              if (id > 0) top = getResources().getDimensionPixelSize(id);
-                          }
-                          v.setPadding(v.getPaddingLeft(), top, v.getPaddingRight(), v.getPaddingBottom());
-                          return insets;
-                      });
-                      webView.requestApplyInsets();
-                  }
 
-                  // Give the system notification area its own fixed background.
                   try {
                       Window window = getWindow();
                       window.setStatusBarColor(Color.rgb(22, 101, 52));
@@ -84,6 +72,64 @@ jobs:
                   } catch (Exception ignored) {
                   }
 
+                  webView.setPadding(0, 0, 0, 0);
+
+                  webView.setOnApplyWindowInsetsListener((v, insets) -> {
+                      int top = 0;
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                          top = insets.getInsets(WindowInsets.Type.statusBars()).top;
+                      } else {
+                          int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+                          if (id > 0) top = getResources().getDimensionPixelSize(id);
+                      }
+
+                      final int statusTop = Math.max(top, 24);
+                      v.post(() -> {
+                          try {
+                              ViewGroup parent = (ViewGroup) v.getParent();
+                              if (parent == null) return;
+
+                              parent.setBackgroundColor(Color.rgb(22, 101, 52));
+
+                              // Native spacer: the WebView can never draw in this area.
+                              View spacer = parent.findViewWithTag("CS_STATUS_SPACER");
+                              if (spacer == null) {
+                                  spacer = new View(MainActivity.this);
+                                  spacer.setTag("CS_STATUS_SPACER");
+                                  spacer.setBackgroundColor(Color.rgb(22, 101, 52));
+                                  parent.addView(spacer, 0);
+                              }
+
+                              ViewGroup.LayoutParams sp = spacer.getLayoutParams();
+                              if (sp instanceof FrameLayout.LayoutParams) {
+                                  FrameLayout.LayoutParams slp = (FrameLayout.LayoutParams) sp;
+                                  slp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                  slp.height = statusTop;
+                                  slp.leftMargin = 0;
+                                  slp.topMargin = 0;
+                                  slp.rightMargin = 0;
+                                  slp.bottomMargin = 0;
+                                  spacer.setLayoutParams(slp);
+                              }
+
+                              ViewGroup.LayoutParams raw = v.getLayoutParams();
+                              if (raw instanceof FrameLayout.LayoutParams) {
+                                  FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) raw;
+                                  lp.topMargin = statusTop;
+                                  lp.bottomMargin = 0;
+                                  v.setLayoutParams(lp);
+                              } else {
+                                  v.setTranslationY(statusTop);
+                              }
+                              v.setPadding(0, 0, 0, 0);
+                          } catch (Exception ignored) {
+                          }
+                      });
+
+                      return insets;
+                  });
+
+                  webView.requestApplyInsets();
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
               }
 
