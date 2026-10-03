@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4022';
+    const key='csj_cache_reset_20261003v4023';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -649,7 +649,7 @@ async function boot(){
     }
   }catch(e){loginMsg('ERRO 1 — boot: '+(e?.message||String(e)));}
 }
-async function start(){await loadProfile();await loadData();scheduleAndroidNotifications();showApp();if(navigator.onLine&&window.csSyncNow)setTimeout(()=>window.csSyncNow(),350)}
+async function start(){await loadProfile();await loadData();requestNativeNotifications();scheduleAndroidNotifications();showApp();if(navigator.onLine&&window.csSyncNow)setTimeout(()=>window.csSyncNow(),350)}
 async function loadProfile(){
  const key='csj_profile_cache_v2_'+me.id;
  if(!navigator.onLine){
@@ -899,8 +899,24 @@ async function appNotify(title,body,tag){
   new Notification(title,{body,tag,icon:'./icon.svg',badge:'./icon.svg',silent:false});
  }catch(e){console.warn('Notificação:',e)}
 }
+window.csNativeNotificationsReady=function(){
+  try{scheduleAndroidNotifications()}catch(e){}
+};
+window.csNativeNotificationsError=function(msg){
+  console.warn('Notificações Android:',msg);
+};
+function requestNativeNotifications(){
+  try{
+    if(window.AndroidNotifications&&window.AndroidNotifications.requestNotificationPermission){
+      window.AndroidNotifications.requestNotificationPermission();
+      return true;
+    }
+  }catch(e){console.warn('Permissão de notificações:',e)}
+  return false;
+}
 function scheduleAndroidNotifications(){
  try{
+  requestNativeNotifications();
   if(window.AndroidNotifications){
    let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);
    let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
@@ -1053,6 +1069,26 @@ async function csEnableBiometric(){
   }catch(e){alert('Não foi possível ativar a biometria neste aparelho. '+(e?.message||''));return false}
 }
 async function csLoginBiometric(){
+  if(window.AndroidBiometric && window.AndroidBiometric.isBiometricAvailable){
+    try{
+      loginMsg('Confirme sua impressão digital no aparelho...');
+      window.csNativeBiometricSuccess=async function(){
+        try{
+          const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
+          if(!snap?.me?.id){loginMsg('Faça um login normal uma vez para preparar o acesso biométrico.');return}
+          me={id:snap.me.id,email:snap.me.email||localStorage.getItem('csj_bio_user')||''};
+          profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
+          clients=snap.clients||[];appts=snap.appts||[];helperList=snap.helperList||[];helperPayments=snap.helperPayments||[];
+          annuals=snap.annuals||[];events=snap.events||[];needs=snap.needs||[];
+          scheduleAndroidNotifications();
+          showApp();
+        }catch(e){loginMsg('Erro ao abrir os dados: '+(e?.message||String(e)))}
+      };
+      window.csNativeBiometricError=function(msg){loginMsg('Biometria: '+(msg||'não validada.'))};
+      window.AndroidBiometric.authenticateBiometric();
+      return;
+    }catch(e){loginMsg('Biometria não disponível: '+(e?.message||String(e)));return}
+  }
   if(!csBioSupported()||!csBioCredId())return alert('Ative a biometria primeiro fazendo um login normal.');
   try{
     const raw=Uint8Array.from(atob(csBioCredId()),c=>c.charCodeAt(0));
@@ -1067,10 +1103,12 @@ async function csLoginBiometric(){
     showApp();
   }catch(e){loginMsg('Biometria não validada: '+(e?.message||String(e)))}
 }
+
 function csRenderBiometricButton(){
   let card=document.querySelector('#loginScreen .card');if(!card)return;
   let old=$('bioLoginBtn');if(old)old.remove();
-  if(!csBioCredId())return;
+  const nativeBio=!!(window.AndroidBiometric&&window.AndroidBiometric.isBiometricAvailable&&window.AndroidBiometric.isBiometricAvailable());
+  if(!nativeBio&&!csBioCredId())return;
   let b=document.createElement('button');b.id='bioLoginBtn';b.type='button';b.className='btn alt';b.style.width='100%';b.style.marginTop='8px';b.textContent='🔐 Entrar com biometria';b.onclick=csLoginBiometric;
   const forgot=$('forgotPasswordLink'); if(forgot)forgot.before(b); else card.appendChild(b);
 }
@@ -1090,9 +1128,10 @@ window.login=async()=>{
     loginMsg('3/4 — perfil OK. Carregando dados...');
     await loadData();
     loginMsg('4/4 — dados OK. Abrindo agenda...');
+    requestNativeNotifications();
     scheduleAndroidNotifications();
     showApp();
-    if(csBioSupported()&&!csBioCredId()){setTimeout(()=>csEnableBiometric(),500)}
+    if(csBioSupported()&&!csBioCredId()&&!window.AndroidBiometric){setTimeout(()=>csEnableBiometric(),500)}
   }catch(e){
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
