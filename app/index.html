@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4020';
+    const key='csj_cache_reset_20261003v4021';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -486,6 +486,41 @@ body:before{top:24px!important}
   .modalbox:has(.annualAllCalendar){height:calc(100dvh - 40px)!important}
   .modalbox:has(.annualAllCalendar) .annualAllCalendar{
     grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+</style><style id="v40_20_native_insets_and_receipt">
+/* V40.20: status-bar spacing is now supplied by native Android.
+   Remove every previous HTML workaround that moved the whole app down. */
+html,body{margin:0!important;padding:0!important}
+#app{padding-top:0!important;min-height:100vh!important}
+#app header{margin-top:0!important;padding-top:20px!important}
+#app .modal{top:0!important;bottom:0!important;height:auto!important}
+#app .csConfirmOverlay,#app .loginAuxModal,#app .printOverlay{top:0!important;height:auto!important}
+body:before{top:0!important}
+
+/* Receipt: actions belong at the bottom, never in the status-bar/header area. */
+.receiptPreviewPanel{
+  position:relative!important;
+  height:100%!important;
+  max-height:none!important;
+}
+.receiptPreviewToolbar{
+  order:2!important;
+  flex:0 0 auto!important;
+  border-top:1px solid var(--line)!important;
+  border-bottom:0!important;
+  background:#fff!important;
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;
+}
+.receiptPreviewFrame{
+  order:1!important;
+  min-height:0!important;
+  flex:1 1 auto!important;
+}
+.receiptPreviewToolbar b{margin-right:auto!important}
+@media(max-width:700px){
+  .receiptPreviewToolbar{
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))!important;
   }
 }
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
