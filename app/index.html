@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4021';
+    const key='csj_cache_reset_20261003v4022';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
