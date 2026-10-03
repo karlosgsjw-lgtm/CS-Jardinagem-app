@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4017';
+    const key='csj_cache_reset_20261003v4018';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -366,19 +366,28 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 .modalbox:has(.annualAllCalendar) .modalCloseBar{flex:0 0 auto!important;position:sticky!important;bottom:0!important;margin-left:-10px!important;margin-right:-10px!important;padding:10px!important}
 @media(max-width:700px){.printOverlay{padding-top:42px!important}.printToolbar{padding:8px!important}.printZoomBar{padding:6px 0!important}.printBottomBar{padding:9px 8px calc(9px + env(safe-area-inset-bottom,0px))!important}}
 </style><style id="v40_17_fixes">
-@media(max-width:760px){
-  header{padding-top:calc(42px + env(safe-area-inset-top,0px))!important}
-}
+/* V40.17.1 — Android edge-to-edge: reserve only the status-bar strip.
+   The green header itself must start immediately below the phone information. */
+html{background:var(--bg)!important}
+body{padding-top:max(env(safe-area-inset-top,0px),24px)!important}
+#app{min-height:calc(100vh - max(env(safe-area-inset-top,0px),24px))!important}
+header{padding-top:20px!important}
+
+/* Annual complete: the month grid is the actual one-finger scroll area. */
 .modalbox:has(.annualAllCalendar){
   height:calc(100dvh - 24px)!important;
   max-height:calc(100dvh - 24px)!important;
   overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  touch-action:pan-y!important;
 }
 .modalbox:has(.annualAllCalendar) .annualAllCalendar{
   flex:1 1 auto!important;
   min-height:0!important;
-  overflow-y:auto!important;
+  overflow-y:scroll!important;
   overflow-x:hidden!important;
+  overscroll-behavior-y:contain!important;
   touch-action:pan-y!important;
   -webkit-overflow-scrolling:touch!important;
 }
