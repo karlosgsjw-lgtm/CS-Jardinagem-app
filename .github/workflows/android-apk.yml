@@ -44,6 +44,23 @@ jobs:
           import android.widget.FrameLayout;
           import android.view.Window;
           import android.view.WindowInsets;
+          import android.os.Bundle;
+          import android.app.AlarmManager;
+          import android.app.PendingIntent;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.provider.Settings;
+          import android.net.Uri;
+          import android.Manifest;
+          import android.content.pm.PackageManager;
+          import android.hardware.biometrics.BiometricPrompt;
+          import android.os.CancellationSignal;
+          import java.util.concurrent.Executor;
+          import java.util.concurrent.Executors;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
           import android.print.PrintAttributes;
           import android.print.PrintManager;
           import android.webkit.JavascriptInterface;
@@ -133,9 +150,120 @@ jobs:
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
               }
 
+              @Override
+              public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                  if (requestCode == 7101) {
+                      boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                      getBridge().getWebView().evaluateJavascript(ok ? "window.csNativeNotificationsReady()" : "window.csNativeNotificationsError('Permissão de notificações não concedida. Ative-a nas configurações do Android.')", null);
+                  }
+              }
+
               private class PrintBridge {
                   private final Activity activity;
                   PrintBridge(Activity activity) { this.activity = activity; }
+
+                  @JavascriptInterface
+                  public boolean isBiometricAvailable() {
+                      if (Build.VERSION.SDK_INT < 28) return false;
+                      android.hardware.biometrics.BiometricManager bm = (android.hardware.biometrics.BiometricManager) activity.getSystemService(Context.BIOMETRIC_SERVICE);
+                      return bm != null && bm.canAuthenticate() == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS;
+                  }
+
+                  @JavascriptInterface
+                  public void authenticateBiometric() {
+                      if (Build.VERSION.SDK_INT < 28) {
+                          activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError('Biometria não disponível neste Android')", null));
+                          return;
+                      }
+                      activity.runOnUiThread(() -> {
+                          try {
+                              Executor executor = Executors.newSingleThreadExecutor();
+                              BiometricPrompt prompt = new BiometricPrompt.Builder(activity)
+                                      .setTitle("CS Jardinagem")
+                                      .setSubtitle("Entrar com a biometria do aparelho")
+                                      .setDescription("Confirme sua impressão digital ou biometria para entrar.")
+                                      .setNegativeButton("Cancelar", executor, (d, w) -> {})
+                                      .build();
+                              prompt.authenticate(new CancellationSignal(), executor, new BiometricPrompt.AuthenticationCallback() {
+                                  @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricSuccess()", null));
+                                  }
+                                  @Override public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError("+JSONObject.quote(String.valueOf(errString))+")", null));
+                                  }
+                                  @Override public void onAuthenticationFailed() {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError('Biometria não reconhecida. Tente novamente.')", null));
+                                  }
+                              });
+                          } catch (Exception e) {
+                              getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError("+JSONObject.quote(e.getMessage()==null?"Não foi possível abrir a biometria.":e.getMessage())+")", null);
+                          }
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public void requestNotificationPermission() {
+                      activity.runOnUiThread(() -> {
+                          try {
+                              if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                  activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7101);
+                              } else {
+                                  createNotificationChannel();
+                                  getBridge().getWebView().evaluateJavascript("window.csNativeNotificationsReady()", null);
+                              }
+                          } catch (Exception e) {
+                              getBridge().getWebView().evaluateJavascript("window.csNativeNotificationsError("+JSONObject.quote(e.getMessage()==null?"Não foi possível ativar as notificações.":e.getMessage())+")", null);
+                          }
+                      });
+                  }
+
+                  private void createNotificationChannel() {
+                      if (Build.VERSION.SDK_INT >= 26) {
+                          NotificationManager nm = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
+                          NotificationChannel ch = new NotificationChannel("cs_jardinagem_alertas", "CS Jardinagem", NotificationManager.IMPORTANCE_HIGH);
+                          ch.setDescription("Lembretes de serviços e cobranças");
+                          nm.createNotificationChannel(ch);
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void scheduleNotifications(String json) {
+                      try {
+                          JSONArray arr = new JSONArray(json);
+                          AlarmManager am = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
+                          createNotificationChannel();
+                          for (int i=0;i<arr.length();i++) {
+                              JSONObject x=arr.getJSONObject(i);
+                              String date=x.optString("date","");
+                              if(date.isEmpty()) continue;
+                              java.text.SimpleDateFormat sdf=new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+                              sdf.setLenient(false);
+                              java.util.Date day=sdf.parse(date);
+                              java.util.Calendar cal=java.util.Calendar.getInstance();
+                              cal.setTime(day);
+                              boolean monthEnd="monthEnd".equals(x.optString("type",""));
+                              cal.set(java.util.Calendar.HOUR_OF_DAY, monthEnd?18:8);
+                              cal.set(java.util.Calendar.MINUTE,0);cal.set(java.util.Calendar.SECOND,0);cal.set(java.util.Calendar.MILLISECOND,0);
+                              if(cal.getTimeInMillis()<=System.currentTimeMillis()) continue;
+                              int id=Math.abs((x.optString("type","service")+"-"+x.optString("id","")).hashCode());
+                              Intent in=new Intent(activity, CSNotificationReceiver.class);
+                              String title=monthEnd?"💰 CS Jardinagem":"🌿 CS Jardinagem";
+                              String body;
+                              if(monthEnd){
+                                  JSONArray unpaid=x.optJSONArray("unpaid");
+                                  body="Há "+(unpaid==null?0:unpaid.length())+" atendimento(s) em aberto neste mês.";
+                              } else {
+                                  body="Hoje tem serviço: "+x.optString("client","")+(x.optDouble("value",0)>0?" · R$ "+String.format(java.util.Locale.US,"%.2f",x.optDouble("value",0)).replace('.',','):"");
+                              }
+                              in.putExtra("title",title); in.putExtra("body",body); in.putExtra("id",id);
+                              PendingIntent pi=PendingIntent.getBroadcast(activity,id,in,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+                              am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pi);
+                          }
+                      } catch(Exception e) {
+                          android.util.Log.e("CSJ", "scheduleNotifications", e);
+                      }
+                  }
 
                   @JavascriptInterface
                   public void printHtml(final String html, final String title) {
@@ -170,6 +298,63 @@ jobs:
               }
           }
           JAVA
+
+      - name: Adicionar biometria e notificações nativas
+        run: |
+          cat > android/app/src/main/java/com/csjardinagem/app/CSNotificationReceiver.java <<'JAVA'
+          package com.csjardinagem.app;
+
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          import androidx.core.app.NotificationCompat;
+
+          public class CSNotificationReceiver extends BroadcastReceiver {
+              public static final String CHANNEL_ID = "cs_jardinagem_alertas";
+
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "CS Jardinagem", NotificationManager.IMPORTANCE_HIGH);
+                      ch.setDescription("Lembretes de serviços e cobranças");
+                      nm.createNotificationChannel(ch);
+                  }
+                  Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+                  PendingIntent pi = PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                  String title = intent.getStringExtra("title");
+                  String body = intent.getStringExtra("body");
+                  int id = intent.getIntExtra("id", (int)(System.currentTimeMillis() & 0x7fffffff));
+                  NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
+                          .setSmallIcon(context.getApplicationInfo().icon)
+                          .setContentTitle(title == null ? "CS Jardinagem" : title)
+                          .setContentText(body == null ? "" : body)
+                          .setStyle(new NotificationCompat.BigTextStyle().bigText(body == null ? "" : body))
+                          .setAutoCancel(true)
+                          .setContentIntent(pi)
+                          .setPriority(NotificationCompat.PRIORITY_HIGH);
+                  nm.notify(id, b.build());
+              }
+          }
+          JAVA
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          perms='    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
+          marker='<application'
+          if 'android.permission.USE_BIOMETRIC' not in s:
+              s=s.replace(marker,perms+marker,1)
+          receiver='''        <receiver android:name=".CSNotificationReceiver" android:exported="false" />\n'''
+          if 'CSNotificationReceiver' not in s:
+              s=s.replace('    </application>',receiver+'    </application>')
+          p.write_text(s)
+          PY
 
       - name: Instalar conversor de ícones
         run: sudo apt-get update && sudo apt-get install -y librsvg2-bin
