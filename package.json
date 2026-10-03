@@ -1,7 +1,7 @@
 {
   "name":"cs-jardinagem-app",
   "private":true,
-  "version":"40.15.0",
+  "version":"40.16.0",
   "scripts":{
     "prepare:android":"node scripts/prepare-android.mjs",
     "android:add":"npx cap add android",
