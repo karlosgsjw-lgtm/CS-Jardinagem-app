@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003printnav';
+    const key='csj_cache_reset_20261003v4016';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -351,6 +351,20 @@ nav#mainNav .moreMenu{z-index:10000!important;overflow:visible!important}
 .receiptPreviewToolbar{display:flex;gap:8px;align-items:center;padding:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .receiptPreviewFrame{border:0;width:100%;flex:1;background:#fff}
 @media(max-width:700px){.receiptPreviewOverlay{padding:0}.receiptPreviewPanel{width:100%;height:100%;border-radius:0}.receiptPreviewToolbar{padding:8px}.receiptPreviewToolbar .btn{padding:9px 11px}}
+</style><style id="v40_16_fixes">
+.printOverlay{padding:calc(42px + env(safe-area-inset-top,0px)) 10px calc(12px + env(safe-area-inset-bottom,0px))!important}
+.printPanel{height:100%!important;max-height:none!important}
+.printToolbar{position:static!important;flex:0 0 auto!important}
+.printToolbarTitle{font-weight:900}
+.printBottomBar{display:flex!important;gap:10px!important;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;border-top:1px solid #dce5df!important;background:#fff!important;flex:0 0 auto!important}
+.printBottomBar .btn{flex:1!important;min-width:0!important}
+.printImageViewport{flex:1 1 auto!important;height:auto!important;min-height:0!important;overflow:hidden!important;touch-action:none!important;position:relative!important}
+.printImageViewport img{will-change:transform!important}
+.printZoomBar{flex:0 0 auto!important}
+.modalbox:has(.annualAllCalendar){padding-bottom:0!important;display:flex!important;flex-direction:column!important}
+.modalbox:has(.annualAllCalendar) .annualAllCalendar{flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;touch-action:pan-y!important}
+.modalbox:has(.annualAllCalendar) .modalCloseBar{flex:0 0 auto!important;position:sticky!important;bottom:0!important;margin-left:-10px!important;margin-right:-10px!important;padding:10px!important}
+@media(max-width:700px){.printOverlay{padding-top:42px!important}.printToolbar{padding:8px!important}.printZoomBar{padding:6px 0!important}.printBottomBar{padding:9px 8px calc(9px + env(safe-area-inset-bottom,0px))!important}}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
@@ -762,16 +776,11 @@ function showApp(){
   try{
     restored=!!($('content') && $('content').innerHTML.trim());
   }catch(e){}
-  if(restored){
-    try{
-      let saved=sessionStorage.getItem('csj_current_tab')||csCurrentTab||'inicio';
-      csCurrentTab=saved;
-      if(saved==='necessidades'){setTimeout(()=>tab('necessidades'),0);}
-    }catch(e){}
-    return;
-  }
-  let saved='inicio';try{saved=sessionStorage.getItem('csj_current_tab')||'inicio'}catch(e){}
-  csCurrentTab=saved;tab(saved);
+  // V40.16: abrir/reabrir o APK sempre na Agenda principal e limpar telas restauradas pelo WebView.
+  try{$('modal')?.classList.add('hidden');$('printOverlay')?.remove();$('receiptPreviewOverlay')?.remove();}catch(e){}
+  csCurrentTab='inicio';
+  try{sessionStorage.setItem('csj_current_tab','inicio')}catch(e){}
+  setTimeout(()=>tab('inicio'),0);
 }
 (function(){
  let syncBusy=false;
@@ -1707,7 +1716,7 @@ window.printAnnualComplete=function(year){
   const cv=document.createElement('canvas'),W=1800,H=1300,ctx=cv.getContext('2d');cv.width=W;cv.height=H;ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#166534';ctx.font='bold 40px Arial';ctx.fillText('Agenda anual completa — '+year,55,60);
   const names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   for(let m=0;m<12;m++){const x=35+(m%3)*590,y=95+Math.floor(m/3)*300;ctx.fillStyle='#172018';ctx.font='bold 24px Arial';ctx.fillText(names[m],x,y+25);ctx.strokeStyle='#dce5df';ctx.strokeRect(x,y,560,270);const first=new Date(year,m,1).getDay(),last=new Date(year,m+1,0).getDate();ctx.font='13px Arial';['D','S','T','Q','Q','S','S'].forEach((n,i)=>ctx.fillText(n,x+20+i*76,y+50));for(let d=1;d<=last;d++){const idx=first+d-1,col=idx%7,row=Math.floor(idx/7),px=x+20+col*76,py=y+78+row*32,ds=iso(new Date(year,m,d)),namesDay=[...new Set(byDate[ds]||[])];ctx.fillStyle=namesDay.length?'#166534':'#172018';ctx.font='bold 13px Arial';ctx.fillText(String(d),px,py);if(namesDay.length){ctx.font='10px Arial';ctx.fillText(namesDay.slice(0,2).join(', ').slice(0,14),px-2,py+13)}}}
-  const url=cv.toDataURL('image/png'),old=$('printOverlay');if(old)old.remove();const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay';ov.innerHTML='<div class="printPanel"><div class="printToolbar"><b>🖨️ Agenda anual completa</b><button type="button" class="btn" onclick="imprimirOrcamentoNativo()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div><img src="'+url+'" style="max-width:100%;height:auto;border-radius:12px"></div>';document.body.appendChild(ov);
+  const url=cv.toDataURL('image/png'),old=$('printOverlay');if(old)old.remove();const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay';ov.innerHTML='<div class="printPanel"><div class="printToolbar"><span class="printToolbarTitle">🖨️ Agenda anual completa</span></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual completa"></div><div class="printBottomBar"><button type="button" class="btn" onclick="csPrintAnnualNative()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div>';document.body.appendChild(ov);history.pushState({csPrintPreview:true},'',location.href);csInitPrintPanZoom();
 };
 function monthDateFor(year,month,day){let last=new Date(year,month+1,0).getDate();return new Date(year,month,Math.min(day,last))}
 window.openAnnual=async function(cid,year=new Date().getFullYear()){let c=clients.find(x=>x.id===cid),rows=annuals.filter(x=>x.cliente_id===cid&&Number(x.ano)===Number(year));let byMonth={};rows.forEach(x=>{let d=new Date(x.data_agendada+'T12:00:00');(byMonth[d.getMonth()]??=[]).push(d.getDate())});let months=[];for(let m=0;m<12;m++){let first=new Date(year,m,1),days=new Date(year,m+1,0).getDate(),start=first.getDay(),cells=[];for(let i=0;i<start;i++)cells.push('<span></span>');for(let d=1;d<=days;d++)cells.push(`<span class="${(byMonth[m]||[]).includes(d)?'markDate':''}">${d}</span>`);months.push(`<div class="annualMonth"><h4>${new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(first)}</h4><div class="miniCal"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>${cells.join('')}</div></div>`)}openModal(`<h2>🗓️ Agenda anual — ${esc(c.nome)}</h2><div class="grid2"><div><label>Ano</label><input id="ay" class="field" type="number" value="${year}"></div><div><label>Data inicial</label><input id="a0" class="field" type="date"></div></div><div class="panel"><label>Adicionar uma data específica</label><div class="row"><input id="adate" class="field" type="date" style="flex:1"><button class="btn" onclick="addAnnualDate(${cid})">＋ Adicionar</button></div><p class="muted small">Você pode adicionar quantas datas quiser, inclusive vários clientes no mesmo dia.</p></div><div class="panel"><label>Repetir mensalmente</label><div class="row"><input id="aday" class="field" type="number" min="1" max="31" placeholder="Dia do mês"><button class="btn alt" onclick="repeatAnnual(${cid})">🔁 Preencher 12 meses</button></div></div><div class="annualGrid">${months.join('')}</div><div class="panel"><h3>📌 Datas cadastradas</h3>${rows.sort((a,b)=>String(a.data_agendada).localeCompare(String(b.data_agendada))).map(x=>`<div class="row infoLine"><span>${new Date(x.data_agendada+'T12:00:00').toLocaleDateString('pt-BR')}</span><span class="actionGroup"><button type="button" class="btn danger iconAction deleteAction" aria-label="Excluir data" title="Excluir data" onclick="deleteAnnualDate(${x.id},${cid},${year})">🗑️</button></span></div>`).join('')||'<p class="muted">Nenhuma data cadastrada.</p>'}</div><div class="modalSaveBar annualPrintClose"><button class="btn" onclick="printAnnualImage(${cid},${year})">🖨️ Imprimir</button></div>`)};
@@ -1745,19 +1754,42 @@ window.printAnnualImage=async function(cid,year){
   const url=cv.toDataURL('image/png');
   const old=$('printOverlay');if(old)old.remove();
   const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay';
-  ov.innerHTML='<div class="printPanel"><div class="printToolbar"><b>🖨️ Agenda anual</b><div class="row" style="margin-left:auto"><button type="button" class="btn" onclick="csPrintAnnualNative()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual"></div></div>';
+  ov.innerHTML='<div class="printPanel"><div class="printToolbar"><span class="printToolbarTitle">🖨️ Agenda anual</span></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual"></div><div class="printBottomBar"><button type="button" class="btn" onclick="csPrintAnnualNative()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div>';
   document.body.appendChild(ov); history.pushState({csPrintPreview:true},'',location.href); csInitPrintPanZoom();
 };
 let csPrintZoomState={scale:1,x:0,y:0};
-function csApplyPrintZoom(){const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;im.style.transform='translate('+csPrintZoomState.x+'px,'+csPrintZoomState.y+'px) scale('+csPrintZoomState.scale+')';const z=$('printZoomLabel');if(z)z.textContent=Math.round(csPrintZoomState.scale*100)+'%'}
-function csPrintFit(){const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;const vw=vp.clientWidth,vh=vp.clientHeight,iw=1600,ih=1100;csPrintZoomState={scale:Math.min(vw/iw,vh/ih),x:Math.max(0,(vw-iw*Math.min(vw/iw,vh/ih))/2),y:Math.max(0,(vh-ih*Math.min(vw/iw,vh/ih))/2)};csApplyPrintZoom()}
-function csPrintZoom(delta){const vp=$('printImageViewport');if(!vp)return;const old=csPrintZoomState.scale,n=Math.max(.35,Math.min(4,old+delta)),cx=vp.clientWidth/2,cy=vp.clientHeight/2;csPrintZoomState.x=cx-(cx-csPrintZoomState.x)*(n/old);csPrintZoomState.y=cy-(cy-csPrintZoomState.y)*(n/old);csPrintZoomState.scale=n;csApplyPrintZoom()}
-function csInitPrintPanZoom(){
-  const vp=$('printImageViewport');if(!vp)return;setTimeout(csPrintFit,20);
-  let p1=null,p2=null,start=null,startDist=0,startScale=1;
-  vp.ontouchstart=e=>{if(e.touches.length===1){p1=e.touches[0];start={x:csPrintZoomState.x,y:csPrintZoomState.y,tx:p1.clientX,ty:p1.clientY}}else if(e.touches.length===2){start=null;p2=e.touches[1];p1=e.touches[0];startDist=Math.hypot(p2.clientX-p1.clientX,p2.clientY-p1.clientY);startScale=csPrintZoomState.scale}};
-  vp.ontouchmove=e=>{e.preventDefault();if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY),n=Math.max(.35,Math.min(4,startScale*d/startDist));csPrintZoomState.scale=n;csApplyPrintZoom()}else if(e.touches.length===1&&start&&csPrintZoomState.scale>0.8){const t=e.touches[0];csPrintZoomState.x=start.x+t.clientX-start.tx;csPrintZoomState.y=start.y+t.clientY-start.ty;csApplyPrintZoom()}};
+function csApplyPrintZoom(){
+  const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;
+  im.style.transform='translate3d('+csPrintZoomState.x+'px,'+csPrintZoomState.y+'px,0) scale('+csPrintZoomState.scale+')';
+  const z=$('printZoomLabel');if(z)z.textContent=Math.round(csPrintZoomState.scale*100)+'%';
 }
+function csPrintFit(){
+  const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;
+  const vw=vp.clientWidth,vh=vp.clientHeight,iw=1600,ih=1100,sc=Math.min(vw/iw,vh/ih);
+  csPrintZoomState={scale:sc,x:(vw-iw*sc)/2,y:(vh-ih*sc)/2};csApplyPrintZoom();
+}
+function csPrintZoom(delta){
+  const vp=$('printImageViewport');if(!vp)return;
+  const old=csPrintZoomState.scale,n=Math.max(.35,Math.min(4,old+delta)),cx=vp.clientWidth/2,cy=vp.clientHeight/2;
+  csPrintZoomState.x=cx-(cx-csPrintZoomState.x)*(n/old);csPrintZoomState.y=cy-(cy-csPrintZoomState.y)*(n/old);csPrintZoomState.scale=n;csApplyPrintZoom();
+}
+function csInitPrintPanZoom(){
+  const vp=$('printImageViewport');if(!vp)return;setTimeout(csPrintFit,30);
+  let mode='',startX=0,startY=0,startPX=0,startPY=0,startDist=0,startScale=1,startMidX=0,startMidY=0;
+  const dist=(a,b)=>Math.hypot(b.clientX-a.clientX,b.clientY-a.clientY),mid=(a,b)=>({x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2});
+  vp.ontouchstart=e=>{
+    if(e.touches.length===1){const p=e.touches[0];mode='pan';startX=p.clientX;startY=p.clientY;startPX=csPrintZoomState.x;startPY=csPrintZoomState.y}
+    else if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],m=mid(a,b);mode='pinch';startDist=dist(a,b)||1;startScale=csPrintZoomState.scale;startMidX=m.x;startMidY=m.y;startPX=csPrintZoomState.x;startPY=csPrintZoomState.y}
+  };
+  vp.ontouchmove=e=>{
+    if(!mode)return;e.preventDefault();
+    if(mode==='pan'&&e.touches.length===1){const p=e.touches[0];csPrintZoomState.x=startPX+p.clientX-startX;csPrintZoomState.y=startPY+p.clientY-startY;csApplyPrintZoom()}
+    else if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],m=mid(a,b),n=Math.max(.35,Math.min(4,startScale*dist(a,b)/startDist)),r=n/startScale;csPrintZoomState.scale=n;csPrintZoomState.x=m.x-(startMidX-startPX)*r;csPrintZoomState.y=m.y-(startMidY-startPY)*r;csApplyPrintZoom()}
+  };
+  vp.ontouchend=e=>{if(e.touches.length===0)mode='';else if(e.touches.length===1){const p=e.touches[0];mode='pan';startX=p.clientX;startY=p.clientY;startPX=csPrintZoomState.x;startPY=csPrintZoomState.y}};
+  vp.ontouchcancel=()=>{mode=''};
+}
+
 window.csPrintAnnualNative=function(){const img=$('printAnnualImg');if(!img)return;const html='<html><head><meta name="viewport" content="width=device-width"><style>body{margin:0;text-align:center}img{width:100%;height:auto}</style></head><body><img src="'+img.src+'"></body></html>';csNativePrint(html,'Agenda anual')};
 window.csNativePrint=function(html,title){
   try{if(window.AndroidPrint&&AndroidPrint.printHtml){AndroidPrint.printHtml(html,title||'CS Jardinagem');return true}}catch(e){console.warn(e)}
