@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4019';
+    const key='csj_cache_reset_20261003v4020';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
@@ -429,6 +429,64 @@ body:before{top:28px!important}
   bottom:0!important;
   z-index:20!important;
   margin-top:8px!important;
+}
+</style><style id="v40_19_definitive">
+/* V40.19 — Android status bar: one single reserved strip, no double padding. */
+html,body{margin:0!important;padding:0!important}
+#app{padding-top:24px!important;min-height:calc(100vh - 24px)!important}
+#app header{margin:0!important}
+@media(max-width:760px){
+  #app header{padding-top:14px!important}
+}
+#app .modal{top:24px!important;bottom:0!important;inset-inline:0!important;height:auto!important;padding:8px!important}
+#app .csConfirmOverlay,#app .loginAuxModal,#app .printOverlay{top:24px!important;height:auto!important}
+body:before{top:24px!important}
+
+/* Agenda anual completa — explicit vertical viewport; months scroll inside it. */
+.modalbox:has(.annualAllCalendar){
+  width:min(760px,100%)!important;
+  height:calc(100dvh - 40px)!important;
+  max-height:none!important;
+  padding:14px!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.modalbox:has(.annualAllCalendar) #modalBody{
+  min-height:0!important;
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+}
+.modalbox:has(.annualAllCalendar) #modalBody>.toolbar,
+.modalbox:has(.annualAllCalendar) #modalBody>p{
+  flex:0 0 auto!important;
+}
+.modalbox:has(.annualAllCalendar) .annualAllCalendar{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  flex:1 1 auto!important;
+  min-height:80px!important;
+  height:auto!important;
+  max-height:none!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-y!important;
+}
+.modalbox:has(.annualAllCalendar) .modalCloseBar{
+  flex:0 0 auto!important;
+  position:static!important;
+  margin:8px 0 0!important;
+  padding:10px 0 0!important;
+}
+@media(max-width:700px){
+  .modalbox:has(.annualAllCalendar){height:calc(100dvh - 40px)!important}
+  .modalbox:has(.annualAllCalendar) .annualAllCalendar{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
 }
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
