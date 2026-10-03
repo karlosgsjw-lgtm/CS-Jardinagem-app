@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover"><meta name="theme-color" content="#166534"><link rel="manifest" href="./manifest.webmanifest"><script>
 (function(){
   try{
-    const key='csj_cache_reset_20261003v4024';
+    const key='csj_cache_reset_20261003v4025';
     if(!localStorage.getItem(key) && 'serviceWorker' in navigator){
       localStorage.setItem(key,'1');
       navigator.serviceWorker.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).catch(()=>{}).then(()=>caches.keys()).then(ks=>Promise.all(ks.map(k=>caches.delete(k)))).catch(()=>{}).finally(()=>{
-        const u=new URL(location.href);u.searchParams.set('fresh','20260929');location.replace(u.href);
+        const u=new URL(location.href);u.searchParams.set('fresh','20261003-buttons');location.replace(u.href);
       });
     }
   }catch(e){}
@@ -523,6 +523,23 @@ body:before{top:0!important}
     padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px))!important;
   }
 }
+</style><style id="v40_21_button_visibility_fixes">
+/* V40.21 — botões de ação: texto sempre totalmente visível em telas pequenas
+   e barras inferiores respeitam a área de navegação do Android. */
+.btn{box-sizing:border-box!important;min-height:48px!important;line-height:1.2!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;vertical-align:middle!important;overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+.modalCloseBar{bottom:0!important;padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important;margin-bottom:0!important}
+.modalSaveBar{bottom:0!important;padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important;margin-bottom:0!important}
+.modalCloseBar .btn,.modalSaveBar .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important;overflow:visible!important}
+.annualOverviewClose{bottom:0!important;margin-bottom:0!important;padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
+.printBottomBar{padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
+.printBottomBar .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important}
+.orcPrintActions{padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
+.orcPrintActions .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important}
+.receiptPreviewToolbar{padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
+.receiptPreviewToolbar .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important}
+.orcFormActions{padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
+.orcFormActions .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important}
+@media(max-width:700px){.modalCloseBar .btn,.modalSaveBar .btn,.printBottomBar .btn,.orcPrintActions .btn,.receiptPreviewToolbar .btn,.orcFormActions .btn{min-height:48px!important;font-size:15px!important}}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
@@ -2529,6 +2546,6 @@ window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este r
 </script>
 </body></html>
 <script>
-if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261001-annualyear").catch(()=>{}));}
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261003-buttons").catch(()=>{}));}
 </script>
 <style>.eventClientLine{align-items:end}.eventToggleBox{min-width:90px}.eventAllDayBox{display:flex;align-items:end}.eventAllDayBox input{width:18px!important;height:18px!important;margin-left:8px}.eventInlineLabel{display:flex!important;align-items:center;gap:8px;white-space:nowrap}.eventInlineLabel input{width:18px!important;height:18px!important;margin:0}.checkLine input{width:18px!important;height:18px!important;margin:0}.eventForm{padding:10px 0}.eventColorPicker{position:relative}.eventColorBtn{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 12px;cursor:pointer;font-weight:700}.eventColorCircle,.eventColorChoice{display:inline-block;width:22px;height:22px;border-radius:50%;border:1px solid #aab8b0}.eventColors{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 8px 20px #0001}.eventColors.hidden{display:none}.eventColorChoice{cursor:pointer;padding:0}.agendaEventPill{font-size:10px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.eventDot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}.day.hasAgendaEvent{transition:background .2s}.eventDetail .eventColorCircle{flex:0 0 auto}</style>
