@@ -148,6 +148,8 @@ jobs:
 
                   webView.requestApplyInsets();
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidBiometric");
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidNotifications");
               }
 
               @Override
