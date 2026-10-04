@@ -2027,12 +2027,20 @@ window.addEventListener('popstate',function(){
 });
 
 function getFinanceRange(){
-  let p=window.financePeriod||{mode:'month',year:new Date().getFullYear(),month:new Date().getMonth(),part:1};
-  let y=Number(p.year)||new Date().getFullYear(),startMonth=0,endMonth=11;
+  const now=new Date();
+  const todayIso=iso(now);
+  let p=window.financePeriod||{mode:'month',year:now.getFullYear(),month:now.getMonth(),part:1};
+  let y=Number(p.year)||now.getFullYear(),startMonth=0,endMonth=11;
   if(p.mode==='month'){startMonth=Number(p.month)||0;endMonth=startMonth}
   else if(p.mode==='quarter'){let q=Math.max(1,Math.min(4,Number(p.part)||1));startMonth=(q-1)*3;endMonth=startMonth+2}
   else if(p.mode==='semester'){let h=Math.max(1,Math.min(2,Number(p.part)||1));startMonth=(h-1)*6;endMonth=startMonth+5}
-  return {start:new Date(y,startMonth,1,12),end:new Date(y,endMonth+1,0,12),year:y,startMonth,endMonth};
+  const start=new Date(y,startMonth,1,12);
+  const plannedEnd=new Date(y,endMonth+1,0,12);
+  // Financeiro considera somente serviços cuja data já chegou.
+  // Assim, agendas futuras nunca entram em faturamento, recebido,
+  // ajudantes, líquido ou qualquer período selecionado.
+  const end=plannedEnd>new Date(todayIso+'T12:00:00')?new Date(todayIso+'T12:00:00'):plannedEnd;
+  return {start,end,year:y,startMonth,endMonth,todayIso};
 }
 function financeRangeLabel(){
   let r=getFinanceRange(),p=window.financePeriod||{};
@@ -2044,7 +2052,7 @@ function financeRangeLabel(){
 function financePeriodOptions(){
   let p=window.financePeriod||{mode:'month',year:new Date().getFullYear(),month:new Date().getMonth(),part:1};
   let nowY=new Date().getFullYear(),years='';
-  for(let y=nowY-5;y<=nowY+5;y++)years+=`<option value="${y}" ${Number(p.year)===y?'selected':''}>${y}</option>`;
+  for(let y=nowY-5;y<=nowY;y++)years+=`<option value="${y}" ${Number(p.year)===y?'selected':''}>${y}</option>`;
   let parts=p.mode==='quarter'?'<option value="1">1º trimestre (jan–mar)</option><option value="2">2º trimestre (abr–jun)</option><option value="3">3º trimestre (jul–set)</option><option value="4">4º trimestre (out–dez)</option>':p.mode==='semester'?'<option value="1">1º semestre (jan–jun)</option><option value="2">2º semestre (jul–dez)</option>':'';
   let months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'].map((m,i)=>`<option value="${i}" ${Number(p.month)===i?'selected':''}>${m}</option>`).join('');
   return `<div class="financePeriodBox"><div class="financePeriodTitle">📅 Período dos dados</div><div class="financePeriodControls"><select aria-label="Tipo de período" onchange="changeFinancePeriod('mode',this.value)"><option value="month" ${p.mode==='month'?'selected':''}>Mês específico</option><option value="quarter" ${p.mode==='quarter'?'selected':''}>Trimestre</option><option value="semester" ${p.mode==='semester'?'selected':''}>Semestre</option><option value="year" ${p.mode==='year'?'selected':''}>Ano</option></select><select aria-label="Ano" onchange="changeFinancePeriod('year',this.value)"><option value="">Ano</option>${years}</select>${p.mode==='month'?`<select aria-label="Mês" onchange="changeFinancePeriod('month',this.value)">${months}</select>`:p.mode==='year'?'':`<select aria-label="Parte do período" onchange="changeFinancePeriod('part',this.value)">${parts}</select>`}</div><div class="financePeriodLabel">Exibindo: <b>${financeRangeLabel()}</b></div></div>`;
@@ -2062,7 +2070,8 @@ function financePage(){
   let sun=new Date(mon); sun.setDate(mon.getDate()+6);
   let w1=iso(mon), w2=iso(sun);
   let range=getFinanceRange(),startIso=iso(range.start),endIso=iso(range.end);
-  let arr=appts.filter(a=>String(a.data_atendimento||'')>=startIso&&String(a.data_atendimento||'')<=endIso);
+  // O período financeiro nunca inclui datas futuras.
+  let arr=range.start>range.end?[]:appts.filter(a=>String(a.data_atendimento||'')>=startIso&&String(a.data_atendimento||'')<=endIso);
   let earned=arr.reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
   let received=arr.filter(a=>a.pago).reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
   let help=arr.reduce((s,a)=>s+[1,2,3,4,5].reduce((z,i)=>z+Number(a['ajudante_'+i+'_valor']||0),0),0);
@@ -2465,20 +2474,45 @@ window.whatsappOrcamento=async function(id){
 function dashMonthKey(d){let x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`}
 function dashMonthLabel(k){let [y,m]=k.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'short'}).format(new Date(y,m-1,1)).replace('.','')}
 function dashboardFinanceiro(){
-  let now=new Date(), months=[];for(let i=5;i>=0;i--){let d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`)}
-  let rows=months.map(k=>({k,at:0,earned:0,received:0,helpers:0,clients:new Set()}));let map=Object.fromEntries(rows.map(x=>[x.k,x]));
-  appts.forEach(a=>{let k=dashMonthKey(a.data_atendimento);if(!map[k])return;let r=map[k],v=Number(a.valor_servico??a.valor??0);r.at++;r.earned+=v;if(a.pago)r.received+=v;if(a.cliente_id)r.clients.add(a.cliente_id);for(let i=1;i<=5;i++)r.helpers+=Number(a['ajudante_'+i+'_valor']||0)});
+  const now=new Date();
+  const todayIso=iso(now);
+  let months=[];
+  for(let i=5;i>=0;i--){
+    let d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  let rows=months.map(k=>({k,at:0,earned:0,received:0,helpers:0,clients:new Set()}));
+  let map=Object.fromEntries(rows.map(x=>[x.k,x]));
+  appts.forEach(a=>{
+    const ds=String(a.data_atendimento||'');
+    // Nunca contar serviços futuros.
+    if(!ds||ds>todayIso)return;
+    let k=dashMonthKey(ds);
+    if(!map[k])return;
+    let r=map[k],v=Number(a.valor_servico??a.valor??0);
+    r.at++;r.earned+=v;
+    if(a.pago)r.received+=v;
+    if(a.cliente_id)r.clients.add(a.cliente_id);
+    for(let i=1;i<=5;i++)r.helpers+=Number(a['ajudante_'+i+'_valor']||0);
+  });
   let current=rows[rows.length-1],previous=rows[rows.length-2]||{earned:0,received:0,at:0,helpers:0,clients:new Set()};
-  let activeClients=new Set(appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear()}).map(a=>a.cliente_id).filter(Boolean)).size;
-  let totalYear=appts.filter(a=>new Date(a.data_atendimento+'T12:00:00').getFullYear()===now.getFullYear()).reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
-  let pct=(a,b)=>b?((a-b)/b*100):null;let pFat=pct(current.earned,previous.earned),pAt=pct(current.at,previous.at);
+  let activeClients=new Set(appts.filter(a=>{
+    const ds=String(a.data_atendimento||'');
+    return ds>=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`&&ds<=todayIso;
+  }).map(a=>a.cliente_id).filter(Boolean)).size;
+  let totalYear=appts.filter(a=>{
+    const ds=String(a.data_atendimento||'');
+    return ds>=`${now.getFullYear()}-01-01`&&ds<=todayIso;
+  }).reduce((s,a)=>s+Number(a.valor_servico??a.valor??0),0);
+  let pct=(a,b)=>b?((a-b)/b*100):null;
+  let pFat=pct(current.earned,previous.earned),pAt=pct(current.at,previous.at);
   let max=Math.max(1,...rows.map(r=>r.earned));
   let maxAt=Math.max(1,...rows.map(r=>r.at));
   let bar=(r,key,maxv,cls='')=>`<div class="dashBarCol"><span class="dashBarValue">${key==='at'?r[key]:money(r[key])}</span><div class="dashBar ${cls}" style="height:${Math.max(2,(r[key]/maxv)*145)}px"></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`;
   $('dashArea').innerHTML=`<div class="dashCards"><div class="dashCard"><span class="dashIcon">💰</span><div class="small muted">Faturamento no mês</div><div class="big">${money(current.earned)}</div><div class="small">${pFat==null?'Sem comparação':(pFat>=0?'▲ ':'▼ ')+Math.abs(pFat).toFixed(1)+'% vs. mês anterior'}</div></div><div class="dashCard"><span class="dashIcon">✅</span><div class="small muted">Recebido</div><div class="big">${money(current.received)}</div><div class="small">Em aberto: ${money(Math.max(0,current.earned-current.received))}</div></div><div class="dashCard"><span class="dashIcon">👥</span><div class="small muted">Clientes atendidos</div><div class="big">${activeClients}</div><div class="small">${pAt==null?'Sem comparação':(pAt>=0?'▲ ':'▼ ')+Math.abs(pAt).toFixed(1)+'% atendimentos'}</div></div><div class="dashCard"><span class="dashIcon">📈</span><div class="small muted">Resultado após ajudantes</div><div class="big">${money(current.earned-current.helpers)}</div><div class="small">Ajudantes: ${money(current.helpers)}</div></div></div>
-  <div class="dashChart"><h3>💰 Faturamento — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'earned',max)).join('')}</div><div class="dashLegend"><span>🟢 <b>Faturamento</b></span><span>Total no ano: <b>${money(totalYear)}</b></span></div></div>
-  <div class="dashChart"><h3>👥 Atendimentos — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'at',maxAt,'altBar')).join('')}</div><div class="dashLegend"><span>🟡 <b>Quantidade de atendimentos</b></span><span>Este mês: <b>${current.at}</b></span></div></div>
-  <div class="dashChart"><h3>💵 Entrou x paguei aos ajudantes</h3><div class="dashBars">${rows.map(r=>{let m=Math.max(1,...rows.map(x=>Math.max(x.received,x.helpers)));let rh=Math.max(2,(r.received/m)*120),hh=Math.max(2,(r.helpers/m)*120);return `<div class="dashCompareGroup"><div class="dashCompareBars"><div class="dashCompareItem"><span class="dashCompareValue receivedValue">${money(r.received)}</span><div class="dashBar receivedBar" style="height:${rh}px"></div></div><div class="dashCompareItem"><span class="dashCompareValue helperValue">${money(r.helpers)}</span><div class="dashBar helperBar" style="height:${hh}px"></div></div></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`}).join(String())}</div><div class="dashLegend"><span>🟢 Recebido</span><span>🔴 Pago aos ajudantes</span></div></div>`;
+  <div class="dashChart"><h3>💰 Faturamento — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'earned',max)).join('')}</div><div class="dashLegend"><span>🟢 <b>Faturamento realizado</b></span><span>Total no ano: <b>${money(totalYear)}</b></span></div></div>
+  <div class="dashChart"><h3>👥 Atendimentos — últimos 6 meses</h3><div class="dashBars">${rows.map(r=>bar(r,'at',maxAt,'altBar')).join('')}</div><div class="dashLegend"><span>🟡 <b>Quantidade de atendimentos realizados</b></span><span>Este mês: <b>${current.at}</b></span></div></div>
+  <div class="dashChart"><h3>💵 Entrou x paguei aos ajudantes</h3><div class="dashBars">${rows.map(r=>{let m=Math.max(1,...rows.map(x=>Math.max(x.received,x.helpers)));let rh=Math.max(2,(r.received/m)*120),hh=Math.max(2,(r.helpers/m)*120);return `<div class="dashCompareGroup"><div class="dashCompareBars"><div class="dashCompareItem"><span class="dashCompareValue receivedValue">${money(r.received)}</span><div class="dashBar receivedBar" style="height:${rh}px"></div></div><div class="dashCompareItem"><span class="dashCompareValue helperValue">${money(r.helpers)}</span><div class="dashBar helperBar" style="height:${hh}px"></div></div></div><span class="dashBarLabel">${dashMonthLabel(r.k)}</span></div>`}).join('')}</div><div class="dashLegend"><span>🟢 Recebido</span><span>🔴 Pago aos ajudantes</span></div></div>`;
 }
 function financeDashboardSection(){return `<div class="panel"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">📊 Dashboard da empresa</h3><div class="muted small">Acompanhe o crescimento com os atendimentos e valores já registrados no app.</div></div><button class="btn alt" type="button" onclick="dashboardFinanceiro()">🔄 Atualizar gráficos</button></div><div id="dashArea" style="margin-top:12px"></div></div>`}
 function usersPage(){if(profile?.perfil!=='master')return tab('inicio');dbClient.from('profiles').select('id,nome,ativo,perfil').order('nome').then(r=>{$('content').innerHTML=`<div class="toolbar"><h2>👥 Usuários</h2></div><div class="panel"><table class="table"><tr><th>Nome</th><th>Perfil</th><th>Ativo</th></tr>${(r.data||[]).map(x=>`<tr><td>${esc(x.nome)}</td><td>${x.perfil==='master'?'👑 Master':'Usuário'}</td><td>${x.ativo?'Sim':'Não'}</td></tr>`).join('')}</table></div>`})}
