@@ -154,6 +154,12 @@ jobs:
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidBiometric");
                   webView.addJavascriptInterface(new PrintBridge(this), "AndroidNotifications");
+
+                  // Garantia nativa: captura qualquer clique no link do Site,
+                  // independentemente de como o HTML do menu for renderizado.
+                  webView.postDelayed(() -> webView.evaluateJavascript(
+                          "(function(){if(window.__csSiteVisitHook)return;window.__csSiteVisitHook=1;document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a'):null;if(a&&/karlosgsjw-lgtm.github.io\\/CS-Jardinagem-app\\/?$/.test(a.href||'')){try{window.AndroidNotifications.notifySiteVisit()}catch(x){}}},true);})();",
+                          null), 1200);
               }
 
               @Override
@@ -274,25 +280,31 @@ jobs:
                   @JavascriptInterface
                   public void notifySiteVisit() {
                       new Thread(() -> {
-                          HttpURLConnection c = null;
-                          try {
-                              URL u = new URL("https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push");
-                              c = (HttpURLConnection) u.openConnection();
-                              c.setRequestMethod("POST");
-                              c.setConnectTimeout(8000);
-                              c.setReadTimeout(8000);
-                              c.setDoOutput(true);
-                              c.setRequestProperty("apikey", "sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG");
-                              c.setRequestProperty("Content-Type", "application/json");
-                              String device = "Android";
-                              String json = "{\"type\":\"new_visit\",\"device\":\""+device+"\",\"path\":\"/CS-Jardinagem-app/site/\"}";
-                              try (OutputStream os = c.getOutputStream()) {
-                                  os.write(json.getBytes("UTF-8"));
+                          for (int attempt = 0; attempt < 3; attempt++) {
+                              HttpURLConnection c = null;
+                              try {
+                                  URL u = new URL("https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push");
+                                  c = (HttpURLConnection) u.openConnection();
+                                  c.setRequestMethod("POST");
+                                  c.setConnectTimeout(10000);
+                                  c.setReadTimeout(10000);
+                                  c.setDoOutput(true);
+                                  c.setRequestProperty("apikey", "sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG");
+                                  c.setRequestProperty("Content-Type", "application/json");
+                                  String json = "{\"type\":\"new_visit\",\"device\":\"Android\",\"path\":\"/CS-Jardinagem-app/site/\"}";
+                                  try (OutputStream os = c.getOutputStream()) {
+                                      os.write(json.getBytes("UTF-8"));
+                                      os.flush();
+                                  }
+                                  int code = c.getResponseCode();
+                                  android.util.Log.i("CSJ", "site visit push HTTP " + code);
+                                  if (code >= 200 && code < 300) break;
+                              } catch (Exception e) {
+                                  android.util.Log.e("CSJ", "site visit push failed", e);
+                              } finally {
+                                  if (c != null) c.disconnect();
                               }
-                              c.getResponseCode();
-                          } catch (Exception ignored) {
-                          } finally {
-                              if (c != null) c.disconnect();
+                              try { Thread.sleep(1000L * (attempt + 1)); } catch (InterruptedException ignored) {}
                           }
                       }).start();
                   }
