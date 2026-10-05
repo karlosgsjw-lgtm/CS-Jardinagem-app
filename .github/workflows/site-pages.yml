@@ -52,3 +52,4 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+# Cache/push deployment validation: keep Pages publishing changes under site/.
