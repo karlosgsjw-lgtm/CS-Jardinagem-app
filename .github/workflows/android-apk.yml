@@ -66,6 +66,9 @@ jobs:
           import android.webkit.JavascriptInterface;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.io.OutputStream;
 
           import com.getcapacitor.BridgeActivity;
 
@@ -268,6 +271,32 @@ jobs:
                   }
 
                   @JavascriptInterface
+                  public void notifySiteVisit() {
+                      new Thread(() -> {
+                          HttpURLConnection c = null;
+                          try {
+                              URL u = new URL("https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push");
+                              c = (HttpURLConnection) u.openConnection();
+                              c.setRequestMethod("POST");
+                              c.setConnectTimeout(8000);
+                              c.setReadTimeout(8000);
+                              c.setDoOutput(true);
+                              c.setRequestProperty("apikey", "sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG");
+                              c.setRequestProperty("Content-Type", "application/json");
+                              String device = "Android";
+                              String json = "{\"type\":\"new_visit\",\"device\":\""+device+"\",\"path\":\"/CS-Jardinagem-app/site/\"}";
+                              try (OutputStream os = c.getOutputStream()) {
+                                  os.write(json.getBytes("UTF-8"));
+                              }
+                              c.getResponseCode();
+                          } catch (Exception ignored) {
+                          } finally {
+                              if (c != null) c.disconnect();
+                          }
+                      }).start();
+                  }
+
+              @JavascriptInterface
                   public void printHtml(final String html, final String title) {
                       activity.runOnUiThread(() -> {
                           try {
@@ -391,6 +420,22 @@ jobs:
           perms='    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
           if 'android.permission.CAMERA' not in s:
               s=s.replace(marker,perms+marker,1)
+          p.write_text(s)
+          PY
+
+      - name: Garantir registro nativo da visita ao site
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/index.html')
+          s=p.read_text()
+          old='onclick="try{navigator.sendBeacon(\'https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push\',new Blob([JSON.stringify({type:\'new_visit\',device:/Android/i.test(navigator.userAgent)?\'Android\':/iPhone|iPad/i.test(navigator.userAgent)?\'iPhone/iPad\':\'Computador\',path:\'/CS-Jardinagem-app/site/\'})],{type:\'text/plain\'}))}catch(e){}"'
+          new='onclick="try{if(window.AndroidNotifications)AndroidNotifications.notifySiteVisit()}catch(e){}"'
+          if old in s:
+              s=s.replace(old,new)
+          else:
+              import re
+              s=re.sub(r'onclick="try\{navigator\.sendBeacon\([^"]*site-push[^"]*\)\}catch\(e\)\{\}"',new,s)
           p.write_text(s)
           PY
 
