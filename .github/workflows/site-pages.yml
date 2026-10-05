@@ -9,6 +9,7 @@ on:
       - 'logo_cs_jardinagem.jpg'
       - 'icon.svg'
       - 'manifest.webmanifest'
+      - '404.html'
       - '.github/workflows/site-pages.yml'
   workflow_dispatch:
 permissions:
@@ -34,6 +35,7 @@ jobs:
           cp -R site/. _site/
           # Publicar também a entrada da raiz do GitHub Pages para evitar 404 em links antigos.
           cp index.html _site/index.html
+          cp 404.html _site/404.html
           # Garantir que o painel administrativo seja publicado na raiz do Pages.
           cp site/admin.html _site/admin.html
           cp app/index.html _site/app/index.html
