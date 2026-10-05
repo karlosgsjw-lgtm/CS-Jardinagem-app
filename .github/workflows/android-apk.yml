@@ -9,6 +9,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -420,22 +421,6 @@ jobs:
           perms='    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
           if 'android.permission.CAMERA' not in s:
               s=s.replace(marker,perms+marker,1)
-          p.write_text(s)
-          PY
-
-      - name: Garantir registro nativo da visita ao site
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('app/index.html')
-          s=p.read_text()
-          old='onclick="try{navigator.sendBeacon(\'https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push\',new Blob([JSON.stringify({type:\'new_visit\',device:/Android/i.test(navigator.userAgent)?\'Android\':/iPhone|iPad/i.test(navigator.userAgent)?\'iPhone/iPad\':\'Computador\',path:\'/CS-Jardinagem-app/site/\'})],{type:\'text/plain\'}))}catch(e){}"'
-          new='onclick="try{if(window.AndroidNotifications)AndroidNotifications.notifySiteVisit()}catch(e){}"'
-          if old in s:
-              s=s.replace(old,new)
-          else:
-              import re
-              s=re.sub(r'onclick="try\{navigator\.sendBeacon\([^"]*site-push[^"]*\)\}catch\(e\)\{\}"',new,s)
           p.write_text(s)
           PY
 
