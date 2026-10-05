@@ -10,9 +10,8 @@ async function notifySitePush(type,data={}){try{
 }catch(e){console.warn('Push:',e)}}
 async function registerSiteVisit(){
   try{
-    const key='cs_site_visit_notified_v4';
+    const key='cs_site_visit_notified_v5';
     if(sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key,'1');
     const device=/Android/i.test(navigator.userAgent)?'Android':/iPhone|iPad/i.test(navigator.userAgent)?'iPhone/iPad':'Computador';
     let city='';
     try{
@@ -24,7 +23,8 @@ async function registerSiteVisit(){
       headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
       body:JSON.stringify({type:'new_visit',city,device,path:location.pathname})
     });
-    if(!r.ok) console.warn('Registro de visita falhou:',await r.text());
+    if(!r.ok){ console.warn('Registro de visita falhou:',await r.text()); return; }
+    sessionStorage.setItem(key,'1');
   }catch(e){console.warn('Registro de visita:',e)}
 }
 window.addEventListener('load',()=>setTimeout(registerSiteVisit,1200));
