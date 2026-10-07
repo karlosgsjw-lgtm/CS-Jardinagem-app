@@ -605,15 +605,87 @@ body:before{top:0!important}
   .agendaToolbar>.agendaAttendanceCompact b{font-size:13px!important;}
 }
 </style><style id="agenda-header-v2">
-.agendaToolbar{display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:nowrap!important;gap:5px!important;width:100%!important;box-sizing:border-box!important;overflow:hidden!important;margin:0 0 12px!important}
-.agendaToolbar .agendaMonthNav{flex:0 0 34px!important;width:34px!important;min-width:34px!important;height:34px!important;padding:0!important;border:0!important;border-radius:11px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;background:linear-gradient(145deg,#39d878,#087a3f)!important;color:#fff!important;box-shadow:0 4px 12px rgba(9,122,63,.28),inset 0 1px 1px rgba(255,255,255,.35)!important;font-size:27px!important;font-weight:900!important;line-height:1!important}
-.agendaToolbar .agendaMonthNav:active{transform:scale(.94)!important}
-.agendaToolbar .agendaMonthTitle{order:2!important;flex:1 1 auto!important;min-width:0!important;margin:0!important;font-size:20px!important;line-height:1!important;font-weight:900!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.agendaToolbar .agendaMonthNav:first-child{order:1!important}.agendaToolbar .agendaMonthNav:last-child{order:3!important}
-.agendaToolbar .agendaAnnualIcon{order:4!important;flex:0 0 34px!important;width:34px!important;min-width:34px!important;height:34px!important;margin:0!important;padding:0!important;border-radius:10px!important;font-size:17px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
-.agendaToolbar .agendaAttendanceCompact{order:5!important;flex:0 0 48px!important;width:48px!important;min-width:48px!important;height:34px!important;padding:0 5px!important;border-radius:10px!important;cursor:pointer!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
-@media(max-width:700px){.agendaToolbar{gap:3px!important}.agendaToolbar .agendaMonthNav{flex-basis:29px!important;width:29px!important;min-width:29px!important;height:29px!important;font-size:23px!important;border-radius:9px!important}.agendaToolbar .agendaMonthTitle{font-size:18px!important}.agendaToolbar .agendaAnnualIcon{flex-basis:29px!important;width:29px!important;min-width:29px!important;height:29px!important;font-size:15px!important;border-radius:8px!important}.agendaToolbar .agendaAttendanceCompact{flex-basis:42px!important;width:42px!important;min-width:42px!important;height:29px!important;border-radius:8px!important}.agendaToolbar .agendaAttendanceCompact .statIcon{font-size:14px!important}.agendaToolbar .agendaAttendanceCompact b{font-size:13px!important}}
-.attendanceListWrap{display:flex;flex-direction:column;gap:9px}.attendanceRow{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff;cursor:pointer}.attendanceRow:hover{background:#f4faf6;border-color:#b9d8c4}.attendanceDate{font-weight:900;color:var(--g);font-size:14px}.attendanceClient{font-weight:900;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.attendanceMeta{font-size:12px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.attendanceValue{font-weight:900;text-align:right;white-space:nowrap}.attendancePaid{font-size:11px;margin-top:3px;text-align:right}@media(max-width:560px){.attendanceRow{grid-template-columns:64px minmax(0,1fr) auto;gap:7px;padding:10px}.attendanceDate{font-size:12px}.attendanceClient{font-size:14px}.attendanceMeta{font-size:11px}.attendanceValue{font-size:13px}}
+/* Cabeçalho da Agenda: seta | calendário anual | mês central | atendimentos | seta */
+.agendaToolbar{
+  display:grid!important;
+  grid-template-columns:34px 34px minmax(0,1fr) 34px 34px!important;
+  align-items:center!important;
+  gap:5px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  margin:0 0 12px!important;
+  overflow:hidden!important;
+}
+.agendaToolbar .agendaMonthNav,
+.agendaToolbar .agendaAnnualIcon,
+.agendaToolbar .agendaAttendanceCompact{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:0!important;
+  border-radius:10px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.agendaToolbar .agendaMonthNav{
+  background:linear-gradient(145deg,#39d878,#087a3f)!important;
+  color:#fff!important;
+  border:0!important;
+  box-shadow:0 4px 12px rgba(9,122,63,.28),inset 0 1px 1px rgba(255,255,255,.35)!important;
+  font-size:22px!important;
+  font-weight:900!important;
+  line-height:1!important;
+}
+.agendaToolbar .agendaMonthNav:first-child{grid-column:1;grid-row:1}
+.agendaToolbar .agendaAnnualIcon{grid-column:2;grid-row:1;font-size:17px!important}
+.agendaToolbar .agendaMonthTitle{
+  grid-column:3;grid-row:1;
+  min-width:0!important;
+  width:100%!important;
+  margin:0!important;
+  text-align:center!important;
+  font-size:20px!important;
+  line-height:1!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.agendaToolbar .agendaAttendanceCompact{
+  grid-column:4;grid-row:1;
+  border:1px solid var(--line)!important;
+  background:#fff!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+.agendaToolbar .agendaAttendanceCompact .statIcon{font-size:15px!important;line-height:1}
+.agendaToolbar .agendaAttendanceCompact b{font-size:13px!important;line-height:1;font-weight:900}
+.agendaToolbar .agendaMonthNav:last-child{grid-column:5;grid-row:1}
+.agendaToolbar .agendaMonthNav:active,
+.agendaToolbar .agendaAnnualIcon:active,
+.agendaToolbar .agendaAttendanceCompact:active{transform:scale(.94)!important}
+@media(max-width:700px){
+  .agendaToolbar{
+    grid-template-columns:29px 29px minmax(0,1fr) 29px 29px!important;
+    gap:3px!important;
+  }
+  .agendaToolbar .agendaMonthNav,
+  .agendaToolbar .agendaAnnualIcon,
+  .agendaToolbar .agendaAttendanceCompact{
+    width:29px!important;
+    min-width:29px!important;
+    height:29px!important;
+    border-radius:8px!important;
+  }
+  .agendaToolbar .agendaMonthNav{font-size:20px!important}
+  .agendaToolbar .agendaAnnualIcon{font-size:15px!important}
+  .agendaToolbar .agendaMonthTitle{font-size:18px!important}
+  .agendaToolbar .agendaAttendanceCompact .statIcon{font-size:13px!important}
+  .agendaToolbar .agendaAttendanceCompact b{font-size:12px!important}
+}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
@@ -1806,7 +1878,7 @@ function agenda(){
   const sortByTime=(a,b)=>String(a.horario_inicio||'').localeCompare(String(b.horario_inicio||''))||String(a.horario_fim||'').localeCompare(String(b.horario_fim||''))||String(a.clientes?.nome||'').localeCompare(String(b.clientes?.nome||''));
   ma.sort(sortByTime);
   const monthLabel=new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric'}).format(month).replace(/^./,x=>x.toUpperCase()).replace(' de ',' ');
-  $('content').innerHTML=`<div class="toolbar agendaToolbar"><button class="btn agendaMonthNav" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><h2 class="agendaMonthTitle">${monthLabel}</h2><button class="btn agendaMonthNav" onclick="changeMonth(1)" aria-label="Próximo mês">›</button><button type="button" class="btn alt agendaAnnualIcon" onclick="openAnnualOverview()" aria-label="Visualizar agenda anual" title="Visualizar agenda anual">🗓️</button><button type="button" class="agendaAttendanceCompact" onclick="openAttendanceList()" aria-label="Ver atendimentos do mês" title="Ver atendimentos do mês"><span class="statIcon">📋</span><b>${attendanceCount}</b></button></div><div class="calendar">${days.map(d=>{let ds=iso(d),list=appts.filter(a=>a.data_atendimento===ds).sort(sortByTime),pl=plannedForDate(ds).filter(x=>!list.some(a=>a.cliente_id===x.cliente_id)),evs=events.filter(e=>e.data===ds),dayColor=evs[0]?.cor||'',dayStyle=dayColor?'background:'+dayColor+';':'';return `<div class="day ${d.getMonth()!==m?'other':''} ${ds===today?'today':''} ${evs.length?'hasAgendaEvent':''}" data-date="${ds}" style="${dayStyle}" onclick="dayDetails('${ds}')"><div class="dow">${names[d.getDay()]} <span id="wx-${ds}" class="weatherIcon"></span></div><div class="num">${d.getDate()}</div>${evs.map(e=>`<div class="appt agendaEventPill" title="${esc(e.descricao)}"><span class="eventDot" style="background:${esc(e.cor)}"></span>${esc(e.descricao)}${e.hora?' · '+esc(String(e.hora).slice(0,5)):''}</div>`).join('')}${list.map(a=>`<div class="appt apptClient apptClient-${dot(a.situacao)}" title="${esc(clientName(a))}">${esc(clientName(a))}${a.pago?' ✓':''}</div>`).join('')}${pl.map(x=>`<div class="appt apptClient apptClient-red apptAnnualClient" title="Agendamento da Agenda Anual">${esc(x.clientes?.nome||clients.find(c=>c.id===x.cliente_id)?.nome||'Cliente')}</div>`).join('')}${list.length+pl.length+evs.length?'':'<span class="muted small">Livre</span>'}</div>`}).join('')}</div>`;weather()
+  $('content').innerHTML=`<div class="toolbar agendaToolbar"><button class="btn agendaMonthNav" onclick="changeMonth(-1)" aria-label="Mês anterior">‹</button><button type="button" class="btn alt agendaAnnualIcon" onclick="openAnnualOverview()" aria-label="Visualizar agenda anual" title="Visualizar agenda anual">🗓️</button><h2 class="agendaMonthTitle">${monthLabel}</h2><button type="button" class="agendaAttendanceCompact" onclick="openAttendanceList()" aria-label="Ver atendimentos do mês" title="Ver atendimentos do mês"><span class="statIcon">📋</span><b>${attendanceCount}</b></button><button class="btn agendaMonthNav" onclick="changeMonth(1)" aria-label="Próximo mês">›</button></div><div class="calendar">${days.map(d=>{let ds=iso(d),list=appts.filter(a=>a.data_atendimento===ds).sort(sortByTime),pl=plannedForDate(ds).filter(x=>!list.some(a=>a.cliente_id===x.cliente_id)),evs=events.filter(e=>e.data===ds),dayColor=evs[0]?.cor||'',dayStyle=dayColor?'background:'+dayColor+';':'';return `<div class="day ${d.getMonth()!==m?'other':''} ${ds===today?'today':''} ${evs.length?'hasAgendaEvent':''}" data-date="${ds}" style="${dayStyle}" onclick="dayDetails('${ds}')"><div class="dow">${names[d.getDay()]} <span id="wx-${ds}" class="weatherIcon"></span></div><div class="num">${d.getDate()}</div>${evs.map(e=>`<div class="appt agendaEventPill" title="${esc(e.descricao)}"><span class="eventDot" style="background:${esc(e.cor)}"></span>${esc(e.descricao)}${e.hora?' · '+esc(String(e.hora).slice(0,5)):''}</div>`).join('')}${list.map(a=>`<div class="appt apptClient apptClient-${dot(a.situacao)}" title="${esc(clientName(a))}">${esc(clientName(a))}${a.pago?' ✓':''}</div>`).join('')}${pl.map(x=>`<div class="appt apptClient apptClient-red apptAnnualClient" title="Agendamento da Agenda Anual">${esc(x.clientes?.nome||clients.find(c=>c.id===x.cliente_id)?.nome||'Cliente')}</div>`).join('')}${list.length+pl.length+evs.length?'':'<span class="muted small">Livre</span>'}</div>`}).join('')}</div>`;weather()
 }
 window.changeMonth=n=>{month.setMonth(month.getMonth()+n);agenda()};
 let forecast={};async function weather(){forecast={};try{let r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.6677&longitude=-46.4614&daily=weather_code&timezone=America%2FSao_Paulo&forecast_days=16');let j=await r.json();j.daily.time.forEach((d,i)=>forecast[d]=weatherIcon(j.daily.weather_code[i]));document.querySelectorAll('[id^="wx-"]').forEach(e=>e.textContent=forecast[e.id.slice(3)]||'')}catch(e){}}
