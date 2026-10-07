@@ -1216,7 +1216,48 @@ window.login=async()=>{
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
   }
-};window.logout=async()=>{try{localStorage.removeItem('csj_offline_ready_v1');localStorage.removeItem('csj_profile_cache_v2_offline')}catch(e){};return dbClient.auth.signOut()};window.closeModal=()=>{const yr=annualCompleteReturnYear;annualCompleteReturnYear=null;$('modal').classList.add('hidden');if(yr){setTimeout(()=>openAnnualComplete(yr),0)}};function openModal(h){$('modalBody').innerHTML=h;const body=$('modalBody');let save=body.querySelector('.modalSaveBar');const footer=document.createElement('div');footer.className='modalCloseBar';if(save){const btn=save.querySelector('button');if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}save.remove()}const close=document.createElement('button');close.type='button';close.className='btn danger modalCloseButton';close.textContent='Fechar';close.onclick=closeModal;footer.appendChild(close);body.appendChild(footer);$('modal').classList.remove('hidden');bindMoneyInputs(body);applyMoneyVisibility()} window.openModal=openModal;
+};window.logout=async()=>{try{localStorage.removeItem('csj_offline_ready_v1');localStorage.removeItem('csj_profile_cache_v2_offline')}catch(e){};return dbClient.auth.signOut()};let csModalHistoryActive=false;
+window.closeModal=(opts={})=>{
+  const yr=annualCompleteReturnYear;
+  annualCompleteReturnYear=null;
+  $('modal').classList.add('hidden');
+  if(csModalHistoryActive&&!opts.skipHistory){
+    csModalHistoryActive=false;
+    try{history.back()}catch(e){}
+  }else if(opts.skipHistory){
+    csModalHistoryActive=false;
+  }
+  if(yr){setTimeout(()=>openAnnualComplete(yr),0)}
+};
+function openModal(h){
+  $('modalBody').innerHTML=h;
+  const body=$('modalBody');
+  let save=body.querySelector('.modalSaveBar');
+  const footer=document.createElement('div');
+  footer.className='modalCloseBar';
+  if(save){
+    const btn=save.querySelector('button');
+    if(btn){btn.classList.add('modalSaveButton');footer.appendChild(btn)}
+    save.remove()
+  }
+  const close=document.createElement('button');
+  close.type='button';
+  close.className='btn danger modalCloseButton';
+  close.textContent='Fechar';
+  close.onclick=closeModal;
+  footer.appendChild(close);
+  body.appendChild(footer);
+  $('modal').classList.remove('hidden');
+  bindMoneyInputs(body);
+  applyMoneyVisibility();
+  /* Mantém uma entrada no histórico enquanto uma janela estiver aberta.
+     Assim o gesto/botão Voltar fecha a janela, nunca o aplicativo. */
+  if(!csModalHistoryActive){
+    csModalHistoryActive=true;
+    try{history.pushState({csModal:true,tab:csCurrentTab||'inicio'},'',location.href)}catch(e){}
+  }
+}
+window.openModal=openModal;
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
 let moneyVisibilityHidden=false;
@@ -1670,11 +1711,11 @@ async function csNavigateBack(){
 }
 window.addEventListener('popstate',async function(e){
   if($('receiptPreviewOverlay')){const ov=$('receiptPreviewOverlay');ov.remove();return}
-  if($('printOverlay')){closePrintPreview(true);try{history.pushState({csTab:true,tab:csCurrentTab||'inicio'},'',location.href)}catch(err){};return}
+  if($('printOverlay')){closePrintPreview(true);return}
   if($('modal')&&!$('modal').classList.contains('hidden')){
-    closeModal();
-    try{history.pushState({csTab:true,tab:csCurrentTab||'inicio'},'',location.href)}catch(err){}
-    return
+    /* O gesto/botão Voltar chegou à entrada da janela: fecha só a janela. */
+    closeModal({skipHistory:true});
+    return;
   }
   const state=e.state||{};
   if(state.csTab){
