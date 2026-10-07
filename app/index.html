@@ -1626,7 +1626,9 @@ function csEnsureNavHistory(){
   csNavReady=true;
   try{
     history.replaceState({csRoot:true,tab:'inicio'},'',location.href);
-    history.pushState({csGuard:true,tab:'inicio'},'',location.href);
+    /* A tela inicial também ocupa uma entrada própria. Assim o botão/gesto
+       voltar retorna Clientes -> Agenda -> confirmação de saída. */
+    history.pushState({csTab:true,tab:'inicio'},'',location.href);
   }catch(e){}
 }
 window.tab=function(t,opts={}){
@@ -1652,10 +1654,8 @@ async function csNavigateBack(){
   }
   const i=CS_TAB_ORDER.indexOf(csCurrentTab||'inicio');
   if(i>0){
-    const previous=CS_TAB_ORDER[i-1];
-    try{history.pushState({csTab:true,tab:previous},'',location.href)}catch(e){}
-    csCurrentTab=previous;
-    window.csTabRender(previous);
+    /* Deixa o histórico voltar para a aba imediatamente anterior. */
+    try{history.back()}catch(e){}
     return true
   }
   const yes=await csConfirm('Tem certeza que deseja fechar o aplicativo?');
