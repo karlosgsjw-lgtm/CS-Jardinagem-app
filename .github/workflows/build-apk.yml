@@ -2,7 +2,8 @@ name: Gerar APK CS Jardinagem
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -30,11 +31,23 @@ jobs:
       - name: Instalar dependências
         run: npm install
 
-      - name: Criar plataforma Android
-        run: npm run android:add
+      - name: Preparar arquivos web
+        run: npm run prepare:android
 
-      - name: Preparar e gerar APK
-        run: npm run android:release
+      - name: Criar plataforma Android
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Gerar APK Release
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
