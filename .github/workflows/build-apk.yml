@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Configurar Java
         uses: actions/setup-java@v4
@@ -30,6 +29,9 @@ jobs:
 
       - name: Instalar dependências
         run: npm install
+
+      - name: Criar plataforma Android
+        run: npm run android:add
 
       - name: Preparar e gerar APK
         run: npm run android:release
