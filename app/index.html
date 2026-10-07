@@ -554,6 +554,56 @@ body:before{top:0!important}
 .orcFormActions{padding-bottom:max(12px,env(safe-area-inset-bottom,12px))!important}
 .orcFormActions .btn{min-height:48px!important;line-height:1.2!important;padding:11px 12px!important}
 @media(max-width:700px){.modalCloseBar .btn,.modalSaveBar .btn,.printBottomBar .btn,.orcPrintActions .btn,.receiptPreviewToolbar .btn,.orcFormActions .btn{min-height:48px!important;font-size:15px!important}}
+</style><style id="agenda-header-mobile-final">
+/* CORREÇÃO DEFINITIVA — cabeçalho da Agenda sempre em uma única linha */
+.agendaToolbar{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  width:100%!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  gap:4px!important;
+  overflow:hidden!important;
+  margin:0 0 12px!important;
+}
+.agendaToolbar>*{
+  position:static!important;
+  float:none!important;
+  flex:0 0 auto!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.agendaToolbar>h2.agendaMonthTitle{
+  order:3!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  width:auto!important;
+  font-size:20px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  margin:0!important;
+}
+.agendaToolbar>.agendaMonthNav:first-child{order:1!important;width:30px!important;min-width:30px!important;height:30px!important;padding:0!important;font-size:20px!important;}
+.agendaToolbar>.agendaAnnualIcon{order:2!important;width:30px!important;min-width:30px!important;height:30px!important;padding:0!important;font-size:16px!important;margin:0!important;}
+.agendaToolbar>.agendaAttendanceCompact{order:4!important;width:44px!important;min-width:44px!important;height:30px!important;padding:0 5px!important;gap:2px!important;flex:0 0 44px!important;}
+.agendaToolbar>.agendaAttendanceCompact .statIcon{font-size:15px!important;}
+.agendaToolbar>.agendaAttendanceCompact b{font-size:14px!important;}
+.agendaToolbar>.agendaMonthNav:last-child{order:5!important;width:30px!important;min-width:30px!important;height:30px!important;padding:0!important;font-size:20px!important;}
+@media(max-width:700px){
+  .agendaToolbar{gap:3px!important;}
+  .agendaToolbar>h2.agendaMonthTitle{font-size:18px!important;flex:1 1 0!important;}
+  .agendaToolbar>.agendaMonthNav:first-child,
+  .agendaToolbar>.agendaAnnualIcon,
+  .agendaToolbar>.agendaMonthNav:last-child{width:28px!important;min-width:28px!important;height:28px!important;font-size:18px!important;border-radius:8px!important;}
+  .agendaToolbar>.agendaAttendanceCompact{width:42px!important;min-width:42px!important;flex-basis:42px!important;height:28px!important;border-radius:8px!important;padding:0 4px!important;}
+  .agendaToolbar>.agendaAttendanceCompact .statIcon{font-size:14px!important;}
+  .agendaToolbar>.agendaAttendanceCompact b{font-size:13px!important;}
+}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
