@@ -2852,7 +2852,111 @@ window.nv2SaveMaintenance=async id=>{let cost=String($('nv2mCost')?.value||'0').
 window.nv2DeleteMaintenance=async(id,item)=>{if(!await csConfirm('Excluir este registro de manutenção?'))return;let r=await dbClient.from('ferramenta_manutencoes').delete().eq('id',id);if(r.error)return alert('Não foi possível excluir.\n\n'+r.error.message);await nv2Maintenance(item)}
 })();
 </script>
-</body></html>
+<style id="agenda-header-final-fix">
+/* FIX FINAL: cabeçalho da Agenda. Não usar flex/order aqui. */
+.agendaToolbar{
+ display:grid!important;
+ grid-template-columns:34px 34px minmax(0,1fr) 48px 34px!important;
+ grid-template-rows:34px!important;
+ align-items:center!important;
+ justify-items:stretch!important;
+ gap:5px!important;
+ width:100%!important;
+ height:34px!important;
+ min-height:34px!important;
+ margin:0 0 12px!important;
+ padding:0!important;
+ overflow:visible!important;
+ box-sizing:border-box!important;
+}
+.agendaToolbar > *{
+ position:static!important;
+ float:none!important;
+ order:initial!important;
+ flex:none!important;
+ grid-row:1!important;
+ min-width:0!important;
+ max-width:none!important;
+ margin:0!important;
+ box-sizing:border-box!important;
+}
+.agendaToolbar > .agendaMonthNav:nth-child(1){
+ grid-column:1!important;
+ width:34px!important;height:34px!important;
+}
+.agendaToolbar > .agendaAnnualIcon:nth-child(2){
+ grid-column:2!important;
+ width:34px!important;height:34px!important;
+}
+.agendaToolbar > .agendaMonthTitle:nth-child(3){
+ grid-column:3!important;
+ width:100%!important;height:34px!important;
+ display:flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ text-align:center!important;
+ font-size:20px!important;
+ line-height:1!important;
+ white-space:nowrap!important;
+ overflow:hidden!important;
+ text-overflow:ellipsis!important;
+ padding:0 2px!important;
+}
+.agendaToolbar > .agendaAttendanceCompact:nth-child(4){
+ grid-column:4!important;
+ width:48px!important;height:34px!important;
+}
+.agendaToolbar > .agendaMonthNav:nth-child(5){
+ grid-column:5!important;
+ width:34px!important;height:34px!important;
+}
+.agendaToolbar > .agendaMonthNav{
+ display:inline-flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ padding:0!important;
+ border:0!important;
+ border-radius:10px!important;
+ background:linear-gradient(145deg,#39d878,#087a3f)!important;
+ color:#fff!important;
+ box-shadow:0 3px 9px rgba(9,122,63,.25)!important;
+ font-size:22px!important;
+ font-weight:900!important;
+ line-height:1!important;
+}
+.agendaToolbar > .agendaAnnualIcon,
+.agendaToolbar > .agendaAttendanceCompact{
+ display:inline-flex!important;
+ align-items:center!important;
+ justify-content:center!important;
+ border-radius:10px!important;
+}
+.agendaToolbar > .agendaAnnualIcon{font-size:17px!important;padding:0!important}
+.agendaToolbar > .agendaAttendanceCompact{padding:0 5px!important}
+@media(max-width:700px){
+ .agendaToolbar{
+  grid-template-columns:29px 29px minmax(0,1fr) 42px 29px!important;
+  grid-template-rows:29px!important;
+  height:29px!important;
+  min-height:29px!important;
+  gap:3px!important;
+ }
+ .agendaToolbar > .agendaMonthNav:nth-child(1),
+ .agendaToolbar > .agendaAnnualIcon:nth-child(2),
+ .agendaToolbar > .agendaMonthNav:nth-child(5){
+  width:29px!important;height:29px!important;
+ }
+ .agendaToolbar > .agendaMonthTitle:nth-child(3){
+  width:100%!important;height:29px!important;font-size:18px!important;
+ }
+ .agendaToolbar > .agendaAttendanceCompact:nth-child(4){
+  width:42px!important;height:29px!important;
+ }
+ .agendaToolbar > .agendaAnnualIcon{font-size:15px!important}
+ .agendaToolbar > .agendaAttendanceCompact .statIcon{font-size:13px!important}
+ .agendaToolbar > .agendaAttendanceCompact b{font-size:12px!important}
+}
+</style></body></html>
 <script>
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261003-buttons").catch(()=>{}));}
 </script>
