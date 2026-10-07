@@ -1796,7 +1796,7 @@ window.openAttendanceList=()=>{
     '</div>';
   openModal(html);
 };
-window.openAttendanceAppointment=id=>{const a=appts.find(x=>String(x.id)===String(id));if(!a)return;closeModal();setTimeout(()=>openAppt(a.id),0);};
+window.openAttendanceAppointment=id=>{const a=appts.find(x=>String(x.id)===String(id));if(!a)return;openAppt(a.id);};
 function agenda(){
   let y=month.getFullYear(),m=month.getMonth(),first=new Date(y,m,1),start=new Date(y,m,1-first.getDay()),days=[];
   for(let i=0;i<42;i++)days.push(new Date(start.getFullYear(),start.getMonth(),start.getDate()+i));
