@@ -1246,10 +1246,10 @@ async function csSetupBiometricAfterLogin(){
   if(csNativeBioAvailable()){
     loginMsg('Confirme sua biometria para ativar o acesso rápido...');
     let ok=false;
-    window.csNativeBiometricSetupSuccess=()=>{ok=true;localStorage.setItem('csj_bio_enabled','1');loginMsg('Biometria ativada.');};
-    window.csNativeBiometricSetupError=msg=>{loginMsg('Biometria não ativada.');};
+    window.csNativeBiometricSuccess=()=>{ok=true;localStorage.setItem('csj_bio_enabled','1');loginMsg('Biometria ativada.');};
+    window.csNativeBiometricError=msg=>{loginMsg('Biometria não ativada.');};
     try{window.AndroidBiometric.authenticateBiometric()}catch(e){}
-    setTimeout(()=>{if(!ok)loginMsg('Biometria pronta para os próximos acessos.');},2500);
+    setTimeout(()=>{if(!ok)loginMsg('Biometria não ativada.');},2500);
     return;
   }
   const ok=await csEnableBiometric();
