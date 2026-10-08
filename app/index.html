@@ -799,16 +799,17 @@ async function boot(){
       return;
     }
 
-    // ONLINE: sempre consulta a sessão e atualiza os dados do Supabase.
+    // ONLINE: a sessão do Supabase pode continuar salva, mas NUNCA abre o app
+    // automaticamente. O acesso passa primeiro pela biometria (se cadastrada)
+    // ou pelo formulário de e-mail e senha.
     const r=await dbClient.auth.getSession();
-    if(r.error){loginMsg('ERRO 1 — getSession: '+r.error.message);return;}
-    if(r.data.session){
-      me=r.data.session.user;
-      loginMsg('Sessão encontrada. Abrindo aplicativo...');
-      await start();
-    }else{
-      loginMsg('Pronto. Faça o login.');
-      showLogin();
+    if(r.error){loginMsg('ERRO 1 — getSession: '+r.error.message);showLogin();return;}
+    if(r.data.session) me=r.data.session.user;
+    loginMsg('Pronto. Confirme sua identidade para entrar.');
+    showLogin();
+    csRenderBiometricButton();
+    if(csBioEnabled()){
+      setTimeout(()=>csLoginBiometric(true),450);
     }
   }catch(e){loginMsg('ERRO 1 — boot: '+(e?.message||String(e)));}
 }
@@ -1210,8 +1211,17 @@ dbClient.auth.onAuthStateChange((event,session)=>{
 
 function csBioSupported(){return !!(window.PublicKeyCredential&&navigator.credentials&&window.crypto?.getRandomValues)}
 function csBioCredId(){try{return localStorage.getItem('csj_bio_cred_id')||''}catch(e){return''}}
+function csBioEnabled(){
+  try{return localStorage.getItem('csj_bio_enabled')==='1'}catch(e){return false}
+}
+function csNativeBioAvailable(){
+  try{return !!(window.AndroidBiometric&&window.AndroidBiometric.isBiometricAvailable&&window.AndroidBiometric.isBiometricAvailable())}catch(e){return false}
+}
+function csBioAvailable(){
+  return csNativeBioAvailable() || (csBioSupported()&&!!csBioCredId());
+}
 async function csEnableBiometric(){
-  if(!csBioSupported())return alert('A biometria não está disponível neste aparelho/navegador.');
+  if(!csBioSupported())return false;
   try{
     const challenge=crypto.getRandomValues(new Uint8Array(32));
     const uid=crypto.getRandomValues(new Uint8Array(16));
@@ -1225,13 +1235,29 @@ async function csEnableBiometric(){
     if(!cred)return false;
     localStorage.setItem('csj_bio_cred_id',btoa(String.fromCharCode(...new Uint8Array(cred.rawId))));
     localStorage.setItem('csj_bio_user',me?.email||$('email')?.value||'');
-    alert('Biometria ativada. No próximo acesso, use sua impressão digital ou biometria do aparelho.');
-    csRenderBiometricButton();
+    localStorage.setItem('csj_bio_enabled','1');
     return true;
-  }catch(e){alert('Não foi possível ativar a biometria neste aparelho. '+(e?.message||''));return false}
+  }catch(e){console.warn('Biometria WebAuthn:',e);return false}
 }
-async function csLoginBiometric(){
-  if(window.AndroidBiometric && window.AndroidBiometric.isBiometricAvailable){
+async function csSetupBiometricAfterLogin(){
+  if(csBioEnabled()||!csBioAvailable())return;
+  const wants=confirm('Quer cadastrar a biometria para entrar mais rápido no CS Jardinagem?');
+  if(!wants)return;
+  if(csNativeBioAvailable()){
+    loginMsg('Confirme sua biometria para ativar o acesso rápido...');
+    let ok=false;
+    window.csNativeBiometricSetupSuccess=()=>{ok=true;localStorage.setItem('csj_bio_enabled','1');loginMsg('Biometria ativada.');};
+    window.csNativeBiometricSetupError=msg=>{loginMsg('Biometria não ativada.');};
+    try{window.AndroidBiometric.authenticateBiometric()}catch(e){}
+    setTimeout(()=>{if(!ok)loginMsg('Biometria pronta para os próximos acessos.');},2500);
+    return;
+  }
+  const ok=await csEnableBiometric();
+  if(ok){alert('Biometria cadastrada. No próximo acesso, ela será solicitada automaticamente.');csRenderBiometricButton()}
+}
+async function csLoginBiometric(auto=false){
+  if(!csBioEnabled()&&!auto)return;
+  if(window.AndroidBiometric&&window.AndroidBiometric.isBiometricAvailable){
     try{
       loginMsg('Confirme sua impressão digital no aparelho...');
       window.csNativeBiometricSuccess=async function(){
@@ -1246,33 +1272,31 @@ async function csLoginBiometric(){
           showApp();
         }catch(e){loginMsg('Erro ao abrir os dados: '+(e?.message||String(e)))}
       };
-      window.csNativeBiometricError=function(msg){loginMsg('Biometria: '+(msg||'não validada.'))};
+      window.csNativeBiometricError=function(msg){loginMsg(auto?'Biometria cancelada. Você pode entrar com e-mail e senha.':'Biometria: '+(msg||'não validada.'))};
       window.AndroidBiometric.authenticateBiometric();
       return;
-    }catch(e){loginMsg('Biometria não disponível: '+(e?.message||String(e)));return}
+    }catch(e){loginMsg('Biometria não disponível. Entre com e-mail e senha.');return}
   }
-  if(!csBioSupported()||!csBioCredId())return alert('Ative a biometria primeiro fazendo um login normal.');
+  if(!csBioSupported()||!csBioCredId()){loginMsg('Entre com e-mail e senha.');return}
   try{
     const raw=Uint8Array.from(atob(csBioCredId()),c=>c.charCodeAt(0));
     const challenge=crypto.getRandomValues(new Uint8Array(32));
     const cred=await navigator.credentials.get({publicKey:{challenge,rpId:location.hostname,allowCredentials:[{type:'public-key',id:raw}],userVerification:'required',timeout:60000}});
-    if(!cred)return;
+    if(!cred){loginMsg('Biometria cancelada. Você pode entrar com e-mail e senha.');return}
     const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
-    if(!snap?.me?.id){alert('Faça um login normal uma vez para preparar o acesso biométrico.');return}
+    if(!snap?.me?.id){loginMsg('Faça um login normal uma vez para preparar o acesso biométrico.');return}
     me={id:snap.me.id,email:snap.me.email||localStorage.getItem('csj_bio_user')||''};
     profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
     clients=snap.clients||[];appts=snap.appts||[];helperList=snap.helperList||[];helperPayments=snap.helperPayments||[];annuals=snap.annuals||[];events=snap.events||[];needs=snap.needs||[];
     showApp();
-  }catch(e){loginMsg('Biometria não validada: '+(e?.message||String(e)))}
+  }catch(e){loginMsg('Biometria cancelada. Você pode entrar com e-mail e senha.')}
 }
-
 function csRenderBiometricButton(){
   let card=document.querySelector('#loginScreen .card');if(!card)return;
   let old=$('bioLoginBtn');if(old)old.remove();
-  const nativeBio=!!(window.AndroidBiometric&&window.AndroidBiometric.isBiometricAvailable&&window.AndroidBiometric.isBiometricAvailable());
-  if(!nativeBio&&!csBioCredId())return;
-  let b=document.createElement('button');b.id='bioLoginBtn';b.type='button';b.className='btn alt';b.style.width='100%';b.style.marginTop='8px';b.textContent='🔐 Entrar com biometria';b.onclick=csLoginBiometric;
-  const forgot=$('forgotPasswordLink'); if(forgot)forgot.before(b); else card.appendChild(b);
+  if(!csBioEnabled()||!csBioAvailable())return;
+  let b=document.createElement('button');b.id='bioLoginBtn';b.type='button';b.className='btn alt';b.style.width='100%';b.style.marginTop='8px';b.textContent='🔐 Entrar com biometria';b.onclick=()=>csLoginBiometric(false);
+  const forgot=$('forgotPasswordLink');if(forgot)forgot.before(b);else card.appendChild(b);
 }
 setTimeout(csRenderBiometricButton,0);
 window.login=async()=>{
@@ -1293,7 +1317,7 @@ window.login=async()=>{
     requestNativeNotifications();
     scheduleAndroidNotifications();
     showApp();
-    if(csBioSupported()&&!csBioCredId()&&!window.AndroidBiometric){setTimeout(()=>csEnableBiometric(),500)}
+    setTimeout(()=>csSetupBiometricAfterLogin(),500);
   }catch(e){
     loginMsg('ERRO — após login: '+(e?.message||String(e)));
     console.error('CS LOGIN DIAGNOSTICO',e);
