@@ -191,7 +191,8 @@ jobs:
                           if (pdfShareOutput != null) { try { pdfShareOutput.close(); } catch (Exception ignored) {} }
                           File dir = new File(activity.getCacheDir(), "shared-pdfs");
                           if (!dir.exists() && !dir.mkdirs()) return false;
-                          pdfShareFile = new File(dir, "orcamento_" + System.currentTimeMillis() + ".pdf");
+                          String safeName = (fileName == null || fileName.trim().isEmpty()) ? "Orcamento.pdf" : fileName;
+                          pdfShareFile = new File(dir, System.currentTimeMillis() + "_" + safeName);
                           pdfShareOutput = new FileOutputStream(pdfShareFile, false);
                           pdfShareText = text == null ? "" : text;
                           return true;
@@ -235,7 +236,7 @@ jobs:
                                   activity.startActivity(chooser);
                               } catch (Exception e) {
                                   android.util.Log.e("CSJ", "finishPdfShare failed", e);
-                                  getBridge().getWebView().evaluateJavascript("window.csPdfShareNativeError(" + JSONObject.quote(e.getMessage() == null ? "Não foi possível compartilhar o PDF." : e.getMessage()) + ")", null);
+                                  getBridge().getWebView().evaluateJavascript("alert(" + JSONObject.quote("Não foi possível compartilhar o PDF: " + (e.getMessage() == null ? "erro desconhecido" : e.getMessage())) + ")", null);
                               }
                           });
                           return true;
