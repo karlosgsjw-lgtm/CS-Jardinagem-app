@@ -43,6 +43,474 @@ jobs:
       - name: Sincronizar Capacitor
         run: npx cap sync android
 
+      - name: Adicionar ponte nativa de impressão Android
+        run: |
+          mkdir -p android/app/src/main/java/com/csjardinagem/app
+          cat > android/app/src/main/java/com/csjardinagem/app/MainActivity.java <<'JAVA'
+          package com.csjardinagem.app;
+
+          import android.app.Activity;
+          import android.content.Context;
+          import android.graphics.Color;
+          import android.os.Build;
+          import android.view.View;
+          import android.view.ViewGroup;
+          import android.widget.FrameLayout;
+          import android.view.Window;
+          import android.view.WindowInsets;
+          import android.os.Bundle;
+          import android.app.AlarmManager;
+          import android.app.PendingIntent;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.content.Intent;
+          import android.content.ClipData;
+          import android.content.SharedPreferences;
+          import android.provider.Settings;
+          import android.net.Uri;
+          import android.util.Base64;
+          import android.Manifest;
+          import android.content.pm.PackageManager;
+          import android.hardware.biometrics.BiometricPrompt;
+          import android.os.CancellationSignal;
+          import java.util.concurrent.Executor;
+          import java.util.concurrent.Executors;
+          import org.json.JSONArray;
+          import org.json.JSONObject;
+          import android.print.PrintAttributes;
+          import android.print.PrintManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.io.OutputStream;
+          import java.io.File;
+          import java.io.FileOutputStream;
+          import java.io.IOException;
+          import androidx.core.content.FileProvider;
+
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              private WebView printWebView;
+
+              @Override
+              public void onStart() {
+                  super.onStart();
+
+                  // V40.21: hard native separation between Android system status bar
+                  // and the WebView. Do not rely on HTML/CSS safe-area padding.
+                  final WebView webView = getBridge().getWebView();
+
+                  try {
+                      Window window = getWindow();
+                      window.setStatusBarColor(Color.rgb(22, 101, 52));
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                          window.getDecorView().setSystemUiVisibility(0);
+                      }
+                  } catch (Exception ignored) {
+                  }
+
+                  webView.setPadding(0, 0, 0, 0);
+
+                  webView.setOnApplyWindowInsetsListener((v, insets) -> {
+                      int top = 0;
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                          top = insets.getInsets(WindowInsets.Type.statusBars()).top;
+                      } else {
+                          int id = getResources().getIdentifier("status_bar_height", "dimen", "android");
+                          if (id > 0) top = getResources().getDimensionPixelSize(id);
+                      }
+
+                      final int statusTop = Math.max(top, 24);
+                      v.post(() -> {
+                          try {
+                              ViewGroup parent = (ViewGroup) v.getParent();
+                              if (parent == null) return;
+
+                              parent.setBackgroundColor(Color.rgb(22, 101, 52));
+
+                              // Native spacer: the WebView can never draw in this area.
+                              View spacer = parent.findViewWithTag("CS_STATUS_SPACER");
+                              if (spacer == null) {
+                                  spacer = new View(MainActivity.this);
+                                  spacer.setTag("CS_STATUS_SPACER");
+                                  spacer.setBackgroundColor(Color.rgb(22, 101, 52));
+                                  parent.addView(spacer, 0);
+                              }
+
+                              ViewGroup.LayoutParams sp = spacer.getLayoutParams();
+                              if (sp instanceof FrameLayout.LayoutParams) {
+                                  FrameLayout.LayoutParams slp = (FrameLayout.LayoutParams) sp;
+                                  slp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                  slp.height = statusTop;
+                                  slp.leftMargin = 0;
+                                  slp.topMargin = 0;
+                                  slp.rightMargin = 0;
+                                  slp.bottomMargin = 0;
+                                  spacer.setLayoutParams(slp);
+                              }
+
+                              ViewGroup.LayoutParams raw = v.getLayoutParams();
+                              if (raw instanceof FrameLayout.LayoutParams) {
+                                  FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) raw;
+                                  lp.topMargin = statusTop;
+                                  lp.bottomMargin = 0;
+                                  v.setLayoutParams(lp);
+                              } else {
+                                  v.setTranslationY(statusTop);
+                              }
+                              v.setPadding(0, 0, 0, 0);
+                          } catch (Exception ignored) {
+                          }
+                      });
+
+                      return insets;
+                  });
+
+                  webView.requestApplyInsets();
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidPrint");
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidShare");
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidBiometric");
+                  webView.addJavascriptInterface(new PrintBridge(this), "AndroidNotifications");
+
+                  // Garantia nativa: captura qualquer clique no link do Site,
+                  // independentemente de como o HTML do menu for renderizado.
+                  webView.postDelayed(() -> webView.evaluateJavascript(
+                          "(function(){if(window.__csSiteVisitHook)return;window.__csSiteVisitHook=1;document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a'):null;if(a&&/karlosgsjw-lgtm.github.io\\/CS-Jardinagem-app\\/?$/.test(a.href||'')){try{window.AndroidNotifications.notifySiteVisit()}catch(x){}}},true);})();",
+                          null), 1200);
+              }
+
+              @Override
+              public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+                  super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+                  if (requestCode == 7101) {
+                      boolean ok = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                      getBridge().getWebView().evaluateJavascript(ok ? "window.csNativeNotificationsReady()" : "window.csNativeNotificationsError('Permissão de notificações não concedida. Ative-a nas configurações do Android.')", null);
+                  }
+              }
+
+              private class PrintBridge {
+                  private final Activity activity;
+                  private File pdfShareFile;
+                  private FileOutputStream pdfShareOutput;
+                  private String pdfShareText = "";
+                  PrintBridge(Activity activity) { this.activity = activity; }
+
+                  @JavascriptInterface
+                  public boolean startPdfShare(String fileName, String text) {
+                      try {
+                          if (pdfShareOutput != null) { try { pdfShareOutput.close(); } catch (Exception ignored) {} }
+                          File dir = new File(activity.getCacheDir(), "shared-pdfs");
+                          if (!dir.exists() && !dir.mkdirs()) return false;
+                          String safeName = (fileName == null || fileName.trim().isEmpty()) ? "Orcamento.pdf" : fileName;
+                          pdfShareFile = new File(dir, System.currentTimeMillis() + "_" + safeName);
+                          pdfShareOutput = new FileOutputStream(pdfShareFile, false);
+                          pdfShareText = text == null ? "" : text;
+                          return true;
+                      } catch (Exception e) {
+                          android.util.Log.e("CSJ", "startPdfShare failed", e);
+                          return false;
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public boolean appendPdfShareChunk(String base64) {
+                      try {
+                          if (pdfShareOutput == null || base64 == null) return false;
+                          byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+                          pdfShareOutput.write(bytes);
+                          return true;
+                      } catch (Exception e) {
+                          android.util.Log.e("CSJ", "appendPdfShareChunk failed", e);
+                          return false;
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public boolean finishPdfShare() {
+                      try {
+                          if (pdfShareOutput != null) { pdfShareOutput.flush(); pdfShareOutput.close(); pdfShareOutput = null; }
+                          if (pdfShareFile == null || !pdfShareFile.exists() || pdfShareFile.length() == 0) return false;
+                          final File file = pdfShareFile;
+                          final String message = pdfShareText;
+                          activity.runOnUiThread(() -> {
+                              try {
+                                  Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", file);
+                                  Intent send = new Intent(Intent.ACTION_SEND);
+                                  send.setType("application/pdf");
+                                  send.putExtra(Intent.EXTRA_STREAM, uri);
+                                  if (message != null && !message.isEmpty()) send.putExtra(Intent.EXTRA_TEXT, message);
+                                  send.setClipData(ClipData.newUri(activity.getContentResolver(), "Orçamento PDF", uri));
+                                  send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                  Intent chooser = Intent.createChooser(send, "Enviar orçamento em PDF");
+                                  chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                  activity.startActivity(chooser);
+                              } catch (Exception e) {
+                                  android.util.Log.e("CSJ", "finishPdfShare failed", e);
+                                  getBridge().getWebView().evaluateJavascript("alert(" + JSONObject.quote("Não foi possível compartilhar o PDF: " + (e.getMessage() == null ? "erro desconhecido" : e.getMessage())) + ")", null);
+                              }
+                          });
+                          return true;
+                      } catch (Exception e) {
+                          android.util.Log.e("CSJ", "finishPdfShare failed", e);
+                          return false;
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public boolean isBiometricAvailable() {
+                      if (Build.VERSION.SDK_INT < 28) return false;
+                      android.hardware.biometrics.BiometricManager bm = (android.hardware.biometrics.BiometricManager) activity.getSystemService(Context.BIOMETRIC_SERVICE);
+                      return bm != null && bm.canAuthenticate() == android.hardware.biometrics.BiometricManager.BIOMETRIC_SUCCESS;
+                  }
+
+                  @JavascriptInterface
+                  public void authenticateBiometric() {
+                      if (Build.VERSION.SDK_INT < 28) {
+                          activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError('Biometria não disponível neste Android')", null));
+                          return;
+                      }
+                      activity.runOnUiThread(() -> {
+                          try {
+                              Executor executor = Executors.newSingleThreadExecutor();
+                              BiometricPrompt prompt = new BiometricPrompt.Builder(activity)
+                                      .setTitle("CS Jardinagem")
+                                      .setSubtitle("Entrar com a biometria do aparelho")
+                                      .setDescription("Confirme sua impressão digital ou biometria para entrar.")
+                                      .setNegativeButton("Cancelar", executor, (d, w) -> {})
+                                      .build();
+                              prompt.authenticate(new CancellationSignal(), executor, new BiometricPrompt.AuthenticationCallback() {
+                                  @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricSuccess()", null));
+                                  }
+                                  @Override public void onAuthenticationError(int errorCode, CharSequence errString) {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError("+JSONObject.quote(String.valueOf(errString))+")", null));
+                                  }
+                                  @Override public void onAuthenticationFailed() {
+                                      activity.runOnUiThread(() -> getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError('Biometria não reconhecida. Tente novamente.')", null));
+                                  }
+                              });
+                          } catch (Exception e) {
+                              getBridge().getWebView().evaluateJavascript("window.csNativeBiometricError("+JSONObject.quote(e.getMessage()==null?"Não foi possível abrir a biometria.":e.getMessage())+")", null);
+                          }
+                      });
+                  }
+
+                  @JavascriptInterface
+                  public void requestNotificationPermission() {
+                      activity.runOnUiThread(() -> {
+                          try {
+                              if (Build.VERSION.SDK_INT >= 33 && activity.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                                  activity.requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7101);
+                              } else {
+                                  createNotificationChannel();
+                                  getBridge().getWebView().evaluateJavascript("window.csNativeNotificationsReady()", null);
+                              }
+                          } catch (Exception e) {
+                              getBridge().getWebView().evaluateJavascript("window.csNativeNotificationsError("+JSONObject.quote(e.getMessage()==null?"Não foi possível ativar as notificações.":e.getMessage())+")", null);
+                          }
+                      });
+                  }
+
+                  private void createNotificationChannel() {
+                      if (Build.VERSION.SDK_INT >= 26) {
+                          NotificationManager nm = (NotificationManager) activity.getSystemService(Context.NOTIFICATION_SERVICE);
+                          NotificationChannel ch = new NotificationChannel("cs_jardinagem_alertas", "CS Jardinagem", NotificationManager.IMPORTANCE_HIGH);
+                          ch.setDescription("Lembretes de serviços e cobranças");
+                          nm.createNotificationChannel(ch);
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void scheduleNotifications(String json) {
+                      try {
+                          JSONArray arr = new JSONArray(json);
+                          AlarmManager am = (AlarmManager) activity.getSystemService(Context.ALARM_SERVICE);
+                          createNotificationChannel();
+                          for (int i=0;i<arr.length();i++) {
+                              JSONObject x=arr.getJSONObject(i);
+                              String date=x.optString("date","");
+                              if(date.isEmpty()) continue;
+                              java.text.SimpleDateFormat sdf=new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US);
+                              sdf.setLenient(false);
+                              java.util.Date day=sdf.parse(date);
+                              java.util.Calendar cal=java.util.Calendar.getInstance();
+                              cal.setTime(day);
+                              boolean monthEnd="monthEnd".equals(x.optString("type",""));
+                              cal.set(java.util.Calendar.HOUR_OF_DAY, monthEnd?18:8);
+                              cal.set(java.util.Calendar.MINUTE,0);cal.set(java.util.Calendar.SECOND,0);cal.set(java.util.Calendar.MILLISECOND,0);
+                              if(cal.getTimeInMillis()<=System.currentTimeMillis()) continue;
+                              int id=Math.abs((x.optString("type","service")+"-"+x.optString("id","")).hashCode());
+                              Intent in=new Intent(activity, CSNotificationReceiver.class);
+                              String title=monthEnd?"💰 CS Jardinagem":"🌿 CS Jardinagem";
+                              String body;
+                              if(monthEnd){
+                                  JSONArray unpaid=x.optJSONArray("unpaid");
+                                  body="Há "+(unpaid==null?0:unpaid.length())+" atendimento(s) em aberto neste mês.";
+                              } else {
+                                  body="Hoje tem serviço: "+x.optString("client","")+(x.optDouble("value",0)>0?" · R$ "+String.format(java.util.Locale.US,"%.2f",x.optDouble("value",0)).replace('.',','):"");
+                              }
+                              in.putExtra("title",title); in.putExtra("body",body); in.putExtra("id",id);
+                              PendingIntent pi=PendingIntent.getBroadcast(activity,id,in,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+                              am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,cal.getTimeInMillis(),pi);
+                          }
+                      } catch(Exception e) {
+                          android.util.Log.e("CSJ", "scheduleNotifications", e);
+                      }
+                  }
+
+                  @JavascriptInterface
+                  public void notifySiteVisit() {
+                      new Thread(() -> {
+                          for (int attempt = 0; attempt < 3; attempt++) {
+                              HttpURLConnection c = null;
+                              try {
+                                  URL u = new URL("https://lttqucegcmzwfsnrtdyj.supabase.co/functions/v1/site-push");
+                                  c = (HttpURLConnection) u.openConnection();
+                                  c.setRequestMethod("POST");
+                                  c.setConnectTimeout(10000);
+                                  c.setReadTimeout(10000);
+                                  c.setDoOutput(true);
+                                  c.setRequestProperty("apikey", "sb_publishable_HQCcSkAZ1NcL4feTlkLBpw_PrirZRhG");
+                                  c.setRequestProperty("Content-Type", "application/json");
+                                  String json = "{\"type\":\"new_visit\",\"device\":\"Android\",\"path\":\"/CS-Jardinagem-app/site/\"}";
+                                  try (OutputStream os = c.getOutputStream()) {
+                                      os.write(json.getBytes("UTF-8"));
+                                      os.flush();
+                                  }
+                                  int code = c.getResponseCode();
+                                  android.util.Log.i("CSJ", "site visit push HTTP " + code);
+                                  if (code >= 200 && code < 300) break;
+                              } catch (Exception e) {
+                                  android.util.Log.e("CSJ", "site visit push failed", e);
+                              } finally {
+                                  if (c != null) c.disconnect();
+                              }
+                              try { Thread.sleep(1000L * (attempt + 1)); } catch (InterruptedException ignored) {}
+                          }
+                      }).start();
+                  }
+
+              @JavascriptInterface
+                  public void printHtml(final String html, final String title) {
+                      activity.runOnUiThread(() -> {
+                          try {
+                              if (printWebView != null) {
+                                  printWebView.stopLoading();
+                                  printWebView.destroy();
+                              }
+                              printWebView = new WebView(activity);
+                              printWebView.getSettings().setJavaScriptEnabled(false);
+                              printWebView.setWebViewClient(new WebViewClient() {
+                                  @Override
+                                  public void onPageFinished(WebView view, String url) {
+                                      try {
+                                          PrintManager pm = (PrintManager) activity.getSystemService(Context.PRINT_SERVICE);
+                                          String jobName = (title == null || title.trim().isEmpty()) ? "CS Jardinagem" : title;
+                                          PrintAttributes attrs = new PrintAttributes.Builder()
+                                                  .setMediaSize(PrintAttributes.MediaSize.ISO_A4)
+                                                  .setMinMargins(PrintAttributes.Margins.NO_MARGINS)
+                                                  .build();
+                                          pm.print(jobName, view.createPrintDocumentAdapter(jobName), attrs);
+                                      } catch (Exception ignored) {
+                                      }
+                                  }
+                              });
+                              printWebView.loadDataWithBaseURL("https://csjardinagem.local/", html, "text/html", "UTF-8", null);
+                          } catch (Exception ignored) {
+                          }
+                      });
+                  }
+              }
+          }
+          JAVA
+
+      - name: Configurar compartilhamento de PDF
+        run: |
+          mkdir -p android/app/src/main/res/xml
+          cat > android/app/src/main/res/xml/file_paths.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+              <cache-path name="shared_pdfs" path="shared-pdfs/" />
+          </paths>
+          XML
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          provider='''        <provider
+                      android:name="androidx.core.content.FileProvider"
+                      android:authorities="${applicationId}.fileprovider"
+                      android:exported="false"
+                      android:grantUriPermissions="true">
+                      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+                  </provider>
+          '''
+          if 'androidx.core.content.FileProvider' not in s:
+              s=s.replace('    </application>',provider+'    </application>')
+          p.write_text(s)
+          PY
+
+      - name: Adicionar biometria e notificações nativas
+        run: |
+          cat > android/app/src/main/java/com/csjardinagem/app/CSNotificationReceiver.java <<'JAVA'
+          package com.csjardinagem.app;
+
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.os.Build;
+          import androidx.core.app.NotificationCompat;
+
+          public class CSNotificationReceiver extends BroadcastReceiver {
+              public static final String CHANNEL_ID = "cs_jardinagem_alertas";
+
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                      NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "CS Jardinagem", NotificationManager.IMPORTANCE_HIGH);
+                      ch.setDescription("Lembretes de serviços e cobranças");
+                      nm.createNotificationChannel(ch);
+                  }
+                  Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+                  PendingIntent pi = PendingIntent.getActivity(context, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                  String title = intent.getStringExtra("title");
+                  String body = intent.getStringExtra("body");
+                  int id = intent.getIntExtra("id", (int)(System.currentTimeMillis() & 0x7fffffff));
+                  NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
+                          .setSmallIcon(context.getApplicationInfo().icon)
+                          .setContentTitle(title == null ? "CS Jardinagem" : title)
+                          .setContentText(body == null ? "" : body)
+                          .setStyle(new NotificationCompat.BigTextStyle().bigText(body == null ? "" : body))
+                          .setAutoCancel(true)
+                          .setContentIntent(pi)
+                          .setPriority(NotificationCompat.PRIORITY_HIGH);
+                  nm.notify(id, b.build());
+              }
+          }
+          JAVA
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/main/AndroidManifest.xml')
+          s=p.read_text()
+          perms='    <uses-permission android:name="android.permission.USE_BIOMETRIC" />\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n'
+          marker='<application'
+          if 'android.permission.USE_BIOMETRIC' not in s:
+              s=s.replace(marker,perms+marker,1)
+          receiver='''        <receiver android:name=".CSNotificationReceiver" android:exported="false" />\n'''
+          if 'CSNotificationReceiver' not in s:
+              s=s.replace('    </application>',receiver+'    </application>')
+          p.write_text(s)
+          PY
+
+
       - name: Gerar APK Release
         run: |
           cd android
