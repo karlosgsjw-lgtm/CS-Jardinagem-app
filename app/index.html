@@ -2218,10 +2218,10 @@ window.openAnnualComplete=function(year=new Date().getFullYear(),restoreScroll=f
     months.push('<div class="annualAllMonth"><h3>'+new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(first)+'</h3><div class="annualAllWeek">'+['D','S','T','Q','Q','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="annualAllGrid">'+cells.join('')+'</div></div>');
   }
   openModal('<div class="toolbar" style="margin:0 0 5px"><h2 style="margin:0">🗓️ Agenda anual completa</h2><label style="margin:0">Ano <select class="field" style="width:auto;min-width:95px;padding:8px 10px" onchange="openAnnualComplete(this.value)">'+annualYearOptions(year)+'</select></label></div><p class="muted">Toque em qualquer dia para ver e editar somente os serviços daquele ano.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
-  if(restoreScroll)requestAnimationFrame(()=>{const box=document.querySelector('#modal .modalbox');if(box)box.scrollTop=annualCompleteScrollTop});
+  if(restoreScroll)requestAnimationFrame(()=>{const calendar=document.querySelector('#modal .annualAllCalendar');if(calendar)calendar.scrollTop=annualCompleteScrollTop});
 };
 
-window.openAnnualCompleteDay=function(ds,year){const box=document.querySelector('#modal .modalbox');annualCompleteScrollTop=box?box.scrollTop:0;annualCompleteReturnYear=year;dayDetails(ds)};
+window.openAnnualCompleteDay=function(ds,year){const calendar=document.querySelector('#modal .annualAllCalendar');annualCompleteScrollTop=calendar?calendar.scrollTop:0;annualCompleteReturnYear=year;dayDetails(ds)};
 
 window.printAnnualComplete=function(year){
   const byDate={};annuals.filter(x=>Number(x.ano)===Number(year)).forEach(x=>{const c=clients.find(c=>c.id===x.cliente_id);if(c)(byDate[x.data_agendada]??=[]).push(c.nome)});
