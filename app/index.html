@@ -1082,7 +1082,7 @@ function scheduleAndroidNotifications(){
  try{
   if(window.AndroidNotifications){
    let now=new Date(),limit=new Date(now);limit.setDate(limit.getDate()+60);
-   let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
+   let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({type:'service',id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
    let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);
    let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
    if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid});
@@ -1094,14 +1094,18 @@ function scheduleAndroidNotifications(){
 function appCheckNotifications(){
  try{
   if(!('Notification' in window)||Notification.permission!=='granted')return;
-  const now=new Date(),today=iso(now);
-  (appts||[]).filter(a=>a.data_atendimento===today).forEach(a=>{
-   const key='service-'+a.id+'-'+today;
-   if(csLocalNotified[key])return;
-   csLocalNotified[key]=true;
-   localStorage.setItem('csj_local_notified',JSON.stringify(csLocalNotified));
-   appNotify('🌿 CS Jardinagem','Hoje tem serviço: '+(clientName(a))+(a.valor_servico||a.valor?' · R$ '+Number(a.valor_servico??a.valor).toFixed(2).replace('.',','):''),'service-'+a.id);
-  });
+  const now=new Date(),today=iso(now),minutes=now.getHours()*60+now.getMinutes();
+  const tomorrowDate=new Date(now);tomorrowDate.setDate(now.getDate()+1);const tomorrow=iso(tomorrowDate);
+  // Fallback web: aviso do serviço de amanhã por volta das 18h45; nunca avisa serviços de hoje.
+  if(!window.AndroidNotifications&&minutes>=18*60+45&&minutes<19*60+15){
+   (appts||[]).filter(a=>a.data_atendimento===tomorrow).forEach(a=>{
+    const key='service-nextday-'+a.id+'-'+tomorrow;
+    if(csLocalNotified[key])return;
+    csLocalNotified[key]=true;
+    localStorage.setItem('csj_local_notified',JSON.stringify(csLocalNotified));
+    appNotify('🌿 CS Jardinagem','Amanhã tem serviço: '+clientName(a)+(a.valor_servico||a.valor?' · R$ '+Number(a.valor_servico??a.valor).toFixed(2).replace('.',','):''),'service-nextday-'+a.id);
+   });
+  }
   const monthKey='unpaid-'+now.getFullYear()+'-'+now.getMonth();
   const unpaid=(appts||[]).filter(a=>{const d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).length;
   if(now.getDate()>=25&&unpaid&&!csLocalNotified[monthKey]){
@@ -1333,7 +1337,7 @@ window.closeModal=(opts={})=>{
   }else if(opts.skipHistory){
     csModalHistoryActive=false;
   }
-  if(yr){setTimeout(()=>openAnnualComplete(yr),0)}
+  if(yr){setTimeout(()=>openAnnualComplete(yr,true),0)}
 };
 function openModal(h){
   $('modalBody').innerHTML=h;
@@ -1366,10 +1370,11 @@ function openModal(h){
 window.openModal=openModal;
 document.addEventListener('click',e=>{if(e.target&&e.target.id==='modal')closeModal()});
 
-let moneyVisibilityHidden=false;
+let moneyVisibilityHidden=(()=>{try{return localStorage.getItem('csj_money_visibility_hidden')==='1'}catch(e){return false}})();
 function applyMoneyVisibility(){
   const root=$('content'); if(!root)return;
   const inFinance=!!root.querySelector('.financeToolbar');
+  if(inFinance)document.querySelectorAll('.privacyToggle').forEach(b=>{b.textContent=moneyVisibilityHidden?'👁️':'🙈';b.setAttribute('aria-label',moneyVisibilityHidden?'Mostrar valores':'Ocultar valores');b.title=moneyVisibilityHidden?'Mostrar valores':'Ocultar valores'});
   root.querySelectorAll('.moneyValueHidden').forEach(el=>{const t=document.createTextNode(el.dataset.original||el.textContent||'');el.replaceWith(t)});
   if(!inFinance || !moneyVisibilityHidden)return;
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(node){
@@ -1379,7 +1384,7 @@ function applyMoneyVisibility(){
   const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
   nodes.forEach(node=>{const text=node.nodeValue||'';const parts=text.split(/(R\$\s*[0-9][0-9.,]*)/g);const frag=document.createDocumentFragment();parts.forEach((part,i)=>{if(/^R\$\s*[0-9]/.test(part)){const span=document.createElement('span');span.className='moneyValueHidden';span.dataset.original=part;span.textContent='R$ ••••';frag.appendChild(span)}else if(part)frag.appendChild(document.createTextNode(part))});node.parentNode?.replaceChild(frag,node)});
 }
-window.toggleMoneyVisibility=function(){moneyVisibilityHidden=!moneyVisibilityHidden;applyMoneyVisibility();document.querySelectorAll('.privacyToggle').forEach(b=>{b.textContent=moneyVisibilityHidden?'👁️':'🙈';b.setAttribute('aria-label',moneyVisibilityHidden?'Mostrar valores':'Ocultar valores');b.title=moneyVisibilityHidden?'Mostrar valores':'Ocultar valores'});};
+window.toggleMoneyVisibility=function(){moneyVisibilityHidden=!moneyVisibilityHidden;try{localStorage.setItem('csj_money_visibility_hidden',moneyVisibilityHidden?'1':'0')}catch(e){}applyMoneyVisibility();document.querySelectorAll('.privacyToggle').forEach(b=>{b.textContent=moneyVisibilityHidden?'👁️':'🙈';b.setAttribute('aria-label',moneyVisibilityHidden?'Mostrar valores':'Ocultar valores');b.title=moneyVisibilityHidden?'Mostrar valores':'Ocultar valores'});};
 function addTabSearch(tabName){
   const content=$('content'); if(!content)return;
   const old=content.querySelector('.tabSearch'); if(old)old.remove();
@@ -1907,7 +1912,7 @@ function agenda(){
 window.changeMonth=n=>{month.setMonth(month.getMonth()+n);agenda()};
 let forecast={};async function weather(){forecast={};try{let r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.6677&longitude=-46.4614&daily=weather_code&timezone=America%2FSao_Paulo&forecast_days=16');let j=await r.json();j.daily.time.forEach((d,i)=>forecast[d]=weatherIcon(j.daily.weather_code[i]));document.querySelectorAll('[id^="wx-"]').forEach(e=>e.textContent=forecast[e.id.slice(3)]||'')}catch(e){}}
 function weatherIcon(c){if(c===0)return'☀️';if(c<=3)return'🌤️';if(c<=48)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';return'⛈️'}
-let annualCompleteReturnYear=null;
+let annualCompleteReturnYear=null,annualCompleteScrollTop=0;
 window.dayDetails=ds=>{
  const sortByTime=(a,b)=>String(a.horario_inicio||'').localeCompare(String(b.horario_inicio||''))||String(a.horario_fim||'').localeCompare(String(b.horario_fim||''))||String(a.clientes?.nome||'').localeCompare(String(b.clientes?.nome||''));
  let list=appts.filter(a=>a.data_atendimento===ds).sort(sortByTime),pl=plannedForDate(ds).filter(x=>!list.some(a=>a.cliente_id===x.cliente_id)),evs=events.filter(e=>e.data===ds);
@@ -2202,7 +2207,7 @@ function annualPage(year=new Date().getFullYear()){
   $('content').innerHTML='<div class="toolbar"><h2>🗓️ Agenda Anual</h2><div class="row"><label style="margin:0">Ano <select class="field" style="width:auto;min-width:105px;padding:9px 12px" onchange="annualPage(this.value)">'+annualYearOptions(year)+'</select></label><button type="button" class="btn" onclick="openAnnualComplete('+year+')">🗓️ Calendário completo</button></div></div><div class="panel"><p class="muted">Escolha o ano acima para consultar datas passadas ou futuras. As datas criadas ou alteradas na Agenda principal também aparecem automaticamente aqui e na agenda anual de cada cliente.</p>'+clients.map(c=>'<div class="row infoLine annualClientRow"><b>'+esc(c.nome)+'</b><span class="actionGroup"><button type="button" class="btn alt annualClientIcon" aria-label="Visualizar calendário anual" title="Visualizar calendário anual" onclick="openAnnual('+c.id+','+year+')">🗓️</button></span></div>').join('')||'<p class="muted">Cadastre clientes primeiro.</p>'+'</div>';
 }
 
-window.openAnnualComplete=function(year=new Date().getFullYear()){annualCompleteReturnYear=null;
+window.openAnnualComplete=function(year=new Date().getFullYear(),restoreScroll=false){annualCompleteReturnYear=null;
   const byDate={};
   annuals.filter(x=>Number(x.ano)===Number(year)).forEach(x=>{const c=clients.find(c=>c.id===x.cliente_id);if(c)(byDate[x.data_agendada]??=[]).push(c.nome)});
   let months=[];
@@ -2213,9 +2218,10 @@ window.openAnnualComplete=function(year=new Date().getFullYear()){annualComplete
     months.push('<div class="annualAllMonth"><h3>'+new Intl.DateTimeFormat('pt-BR',{month:'long'}).format(first)+'</h3><div class="annualAllWeek">'+['D','S','T','Q','Q','S','S'].map(x=>'<span>'+x+'</span>').join('')+'</div><div class="annualAllGrid">'+cells.join('')+'</div></div>');
   }
   openModal('<div class="toolbar" style="margin:0 0 5px"><h2 style="margin:0">🗓️ Agenda anual completa</h2><label style="margin:0">Ano <select class="field" style="width:auto;min-width:95px;padding:8px 10px" onchange="openAnnualComplete(this.value)">'+annualYearOptions(year)+'</select></label></div><p class="muted">Toque em qualquer dia para ver e editar somente os serviços daquele ano.</p><div class="annualAllCalendar">'+months.join('')+'</div><div class="modalSaveBar"><button class="btn" type="button" onclick="printAnnualComplete('+year+')">🖨️ Imprimir</button></div>');
+  if(restoreScroll)requestAnimationFrame(()=>{const box=document.querySelector('#modal .modalbox');if(box)box.scrollTop=annualCompleteScrollTop});
 };
 
-window.openAnnualCompleteDay=function(ds,year){annualCompleteReturnYear=year;dayDetails(ds)};
+window.openAnnualCompleteDay=function(ds,year){const box=document.querySelector('#modal .modalbox');annualCompleteScrollTop=box?box.scrollTop:0;annualCompleteReturnYear=year;dayDetails(ds)};
 
 window.printAnnualComplete=function(year){
   const byDate={};annuals.filter(x=>Number(x.ano)===Number(year)).forEach(x=>{const c=clients.find(c=>c.id===x.cliente_id);if(c)(byDate[x.data_agendada]??=[]).push(c.nome)});
@@ -2500,6 +2506,13 @@ const ORC_DRAFT_KEY='csj_orcamento_draft';
 // limpa esses dados quando o usuário realmente encerra o aplicativo.
 function getOrcDraft(){try{let x=localStorage.getItem(ORC_DRAFT_KEY);return x?JSON.parse(x):null}catch(e){return null}}
 function clearOrcDraft(){try{localStorage.removeItem(ORC_DRAFT_KEY)}catch(e){}}
+window.sairEditorOrcamento=function(){
+  clearTimeout(orcDraftTimer);
+  clearOrcDraft();
+  try{localStorage.removeItem(formStateKey('orcamentos'))}catch(e){}
+  window._orcDraftMode=null;window._orcDraftId=null;
+  orcamentosPage(false);
+};
 function collectOrcDraft(){let items=[...document.querySelectorAll('#orcServicesList .orcServiceData')].map(function(x){try{return JSON.parse(x.textContent||'{}')}catch(e){return {}}});let images=items.reduce(function(a,x){return a.concat(x.imagens||[])},[]);return {version:2,mode:window._orcDraftMode||'new',id:window._orcDraftId||'',cliente_id:Number($('orcClienteSelect')?.value||0)||null,nome:$('orcNome')?.value||'',telefone:$('orcTelefone')?.value||'',endereco:$('orcEndereco')?.value||'',data:$('orcData')?.value||'',validade:$('orcValidade')?.value||'',status:$('orcStatus')?.value||'Em aberto',forma:$('orcForma')?.value||'',obs:$('orcObs')?.value||'',itens:items,imagens:images,savedAt:new Date().toISOString()}}
 let orcDraftTimer=0;
 function saveOrcDraftNow(){
@@ -2531,11 +2544,11 @@ function restoreOrcDraftIfAny(){
   try{novoOrcamento(d.mode==='edit'&&d.id?orcData(d.id):null,d);return true}catch(e){console.warn('Não foi possível restaurar o rascunho.',e);return false}
 }
 
-function orcamentosPage(){
+function orcamentosPage(restoreDraft=true){
   let arr=getOrcamentos().sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em)));
   $('content').innerHTML=`<div class="toolbar"><h2>🧾 Orçamentos</h2><button class="btn" type="button" data-orc-action="new">➕ Novo orçamento</button></div>
   <div class="panel"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>Seus orçamentos</b><div class="muted small">Crie, edite, imprima ou compartilhe pelo WhatsApp.</div></div><div class="small muted">${arr.length} salvo(s) neste aparelho</div></div></div>
-  <div id="orcList">${arr.length?arr.map(orcCard).join(''):'<div class="panel dashEmpty">📄 Nenhum orçamento ainda.<br><button class="btn" style="margin-top:10px" data-orc-action="new">Criar o primeiro orçamento</button></div>'}</div>`;  let draft=getOrcDraft(); if(draft){setTimeout(()=>restoreOrcDraftIfAny(),0)}
+  <div id="orcList">${arr.length?arr.map(orcCard).join(''):'<div class="panel dashEmpty">📄 Nenhum orçamento ainda.<br><button class="btn" style="margin-top:10px" data-orc-action="new">Criar o primeiro orçamento</button></div>'}</div>`;  let draft=getOrcDraft(); if(restoreDraft&&draft){setTimeout(()=>restoreOrcDraftIfAny(),0)}
 }
 
 function orcCard(o){let total=Number(o.total||0);let status=o.status||'Em aberto';return `<div class="orcCard"><div class="orcCardHead"><div><div style="font-size:17px;font-weight:900">${esc(o.nome||'Cliente')}</div><div class="small muted">${esc(o.numero||'')} · ${o.data?new Date(o.data+'T12:00:00').toLocaleDateString('pt-BR'):''}</div><div style="margin-top:7px"><span class="orcStatus ${status==='Aprovado'?'aprovado':status==='Recusado'?'recusado':''}">${status==='Aprovado'?'✅':status==='Recusado'?'❌':'🕐'} ${esc(status)}</span></div></div><div style="text-align:right"><div class="small muted">Total</div><b style="font-size:18px">${money(total)}</b></div></div><div class="small muted" style="margin-top:9px">${esc(o.resumo||'Sem descrição')}</div><div class="orcActions" style="margin-top:11px"><button class="btn alt iconAction" title="Editar" aria-label="Editar" data-orc-action="edit" data-orc-id="${o.id}">✏️</button><button class="btn alt iconAction" title="Imprimir" aria-label="Imprimir" data-orc-action="print" data-orc-id="${o.id}">🖨️</button><button class="btn alt iconAction" title="Compartilhar orçamento pelo WhatsApp" aria-label="Compartilhar orçamento pelo WhatsApp" data-orc-action="whatsapp" data-orc-id="${o.id}"><span class="waShareIcon"><img src="${WHATS_ICON}" alt="WhatsApp"><span class="waArrow">➤</span></span></button><button class="btn danger iconAction" title="Excluir" aria-label="Excluir" data-orc-action="delete" data-orc-id="${o.id}">🗑️</button></div></div>`}
@@ -2548,10 +2561,10 @@ function novoOrcamento(o=null,draft=null){
   let edit=!!(o||draft?.mode==='edit');
   let csel=clients.find(c=>Number(c.id)===Number(src?.cliente_id));
   let orcItemsSrc=(src?.itens||[]).map(function(x,i){let val=Number.isFinite(Number(x.valor))?Number(x.valor):parseMoney(x.valor||0);let nested=Array.isArray(x.itens)?x.itens:(val>0?[{item:'Valor do serviço',valor:val}]:[]);let pics=Array.isArray(x.imagens)?x.imagens:((i===0&&src?.imagens?.length)?src.imagens:[]);return {...x,itens:nested,imagens:pics,valor:val}});
-  $('content').innerHTML=`<div class="toolbar"><h2>${edit?'✏️ Editar orçamento':'🧾 Novo orçamento'}</h2><button class="btn alt" onclick="orcamentosPage()">← Voltar</button></div>
+  $('content').innerHTML=`<div class="toolbar"><h2>${edit?'✏️ Editar orçamento':'🧾 Novo orçamento'}</h2><button class="btn alt" type="button" onclick="sairEditorOrcamento()">← Voltar</button></div>
   <div class="panel"><h3>1. Cliente</h3><div class="orcGrid"><div><label>Selecionar cliente cadastrado</label><select id="orcClienteSelect" class="field" onchange="orcSelecionarCliente()"><option value="">— Não selecionar —</option>${clients.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(src?.cliente_id)?'selected':''}>${esc(c.nome)}</option>`).join('')}</select><div class="muted small" style="margin-top:4px">Você também pode digitar um nome que não esteja cadastrado.</div></div><div><label>Nome do cliente</label><input id="orcNome" class="field" value="${esc(src?.nome||csel?.nome||'')}" placeholder="Nome do cliente"></div><div><label>Telefone / WhatsApp</label><input id="orcTelefone" class="field" value="${esc(src?.telefone||csel?.telefone||'')}" placeholder="(00) 00000-0000"></div><div><label>Endereço</label><input id="orcEndereco" class="field" value="${esc(src?.endereco||csel?.endereco||'')}" placeholder="Endereço do serviço"></div></div></div>
   <div class="panel"><h3>2. Serviço e valores</h3><div id="orcServicesList" class="orcServicesList">${orcItemsSrc.map((x,i)=>orcServiceRow(x,i)).join('')}</div><button class="btn alt" type="button" onclick="orcOpenServiceEditor()">➕ Serviço +</button><div class="row" style="justify-content:flex-end;margin-top:12px"><b>Total: <span id="orcTotal">${money(Number(src?.total||0))}</span></b></div></div><div class="panel"><h3>3. Detalhes</h3><div class="orcGrid"><div><label>Data</label><input id="orcData" class="field" type="date" value="${esc(src?.data||iso(new Date()))}"></div><div><label>Validade</label><input id="orcValidade" class="field" type="date" value="${esc(src?.validade||'')}"></div><div><label>Status</label><select id="orcStatus" class="field"><option ${src?.status==='Em aberto'||!src?'selected':''}>Em aberto</option><option ${src?.status==='Aprovado'?'selected':''}>Aprovado</option><option ${src?.status==='Recusado'?'selected':''}>Recusado</option></select></div><div><label>Condições de pagamento</label><input id="orcForma" class="field" value="${esc(src?.forma||'PIX')}" placeholder="PIX, cartão, etc."></div></div><label>Observações</label><textarea id="orcObs" class="field" rows="4" placeholder="Prazo, materiais, condições, observações..."></textarea></div>
-  <div class="orcFormActions"><button class="btn danger" type="button" onclick="clearOrcDraft();try{localStorage.removeItem(formStateKey('orcamentos'))}catch(e){};orcamentosPage()">Fechar</button><button class="btn" type="button" onclick="salvarOrcamento('${src?.id||''}')">💾 Salvar orçamento</button></div>`;
+  <div class="orcFormActions"><button class="btn danger" type="button" onclick="sairEditorOrcamento()">Fechar</button><button class="btn" type="button" onclick="salvarOrcamento('${src?.id||''}')">💾 Salvar orçamento</button></div>`;
   if($('orcObs'))$('orcObs').value=src?.obs||'';
   window._orcEditingImages=[...(src?.imagens||[])]; window._orcNewImages=[]; window._orcDraftMode=edit?'edit':'new'; window._orcDraftId=src?.id||''; orcRecalc(); bindOrcDraftAutosave();
 }
