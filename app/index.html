@@ -896,45 +896,37 @@ async function boot(){
     // OFFLINE: nunca tenta autenticar nem consultar a rede.
     if(!navigator.onLine){
       if(csLoadOfflineSnapshot()){
-        if(csHasRecentActivity()){
-          loginMsg('Modo offline. Mantendo sua sessão ativa.');
-          showApp();csMarkActivity();return;
-        }
         if(csBioCredId()){
           loginMsg('Modo offline. Use sua biometria para entrar.');
-          showLogin();csRenderBiometricButton();return;
+          showLogin();
+          csRenderBiometricButton();
+          return;
         }
-        loginMsg('Modo offline. A sessão expirou; faça login para continuar.');
-        showLogin();return;
+        loginMsg('Modo offline. Abrindo dados salvos...');
+        await loadData(true);
+        scheduleAndroidNotifications();
+        showApp();
+        return;
       }
       loginMsg('Sem internet. Faça o primeiro login com internet neste aparelho.');
       showLogin();
       return;
     }
 
-    // Mantém a sessão ao atualizar a página; exige autenticação após 30 minutos sem atividade.
+    // ONLINE: a sessão do Supabase pode continuar salva, mas NUNCA abre o app
+    // automaticamente. O acesso passa primeiro pela biometria (se cadastrada)
+    // ou pelo formulário de e-mail e senha.
     const r=await dbClient.auth.getSession();
     if(r.error){loginMsg('ERRO 1 — getSession: '+r.error.message);showLogin();return;}
     if(r.data.session) me=r.data.session.user;
-    if(r.data.session && csHasRecentActivity()){
-      loginMsg('Sessão ativa. Atualizando seus dados...');
-      await start();
-      csMarkActivity();
-      return;
-    }
-    loginMsg('Sessão pausada. Confirme sua identidade para continuar.');
+    loginMsg('Pronto. Confirme sua identidade para entrar.');
     showLogin();
     csRenderBiometricButton();
-    if(csBioEnabled())setTimeout(()=>csLoginBiometric(true),450);
+    if(csBioEnabled()){
+      setTimeout(()=>csLoginBiometric(true),450);
+    }
   }catch(e){loginMsg('ERRO 1 — boot: '+(e?.message||String(e)));}
 }
-const CS_SESSION_IDLE_MS=30*60*1000;
-function csHasRecentActivity(){try{const t=Number(localStorage.getItem('csj_last_activity_v1')||0);return !!t&&Date.now()-t<CS_SESSION_IDLE_MS}catch(e){return false}}
-function csMarkActivity(){try{if(me&&!$('app')?.classList.contains('hidden'))localStorage.setItem('csj_last_activity_v1',String(Date.now()))}catch(e){}}
-function csCheckIdleSession(){try{if(!me||$('app')?.classList.contains('hidden'))return;const t=Number(localStorage.getItem('csj_last_activity_v1')||0);if(t&&Date.now()-t>=CS_SESSION_IDLE_MS){localStorage.removeItem('csj_last_activity_v1');showLogin();loginMsg('Você ficou mais de 30 minutos sem atividade. Entre novamente com senha ou biometria.');csRenderBiometricButton();if(csBioEnabled())setTimeout(()=>csLoginBiometric(true),450)}}catch(e){}}
-['pointerdown','keydown','touchstart','click','scroll'].forEach(ev=>document.addEventListener(ev,csMarkActivity,{passive:true}));
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')csCheckIdleSession()});
-setInterval(csCheckIdleSession,60000);
 async function start(){await loadProfile();await loadData();requestNativeNotifications();scheduleAndroidNotifications();showApp();if(navigator.onLine&&window.csSyncNow)setTimeout(()=>window.csSyncNow(),350)}
 async function loadProfile(){
  const key='csj_profile_cache_v2_'+me.id;
@@ -1242,7 +1234,6 @@ setInterval(appCheckNotifications,60000);
 function showLogin(){$('loginScreen').classList.remove('hidden');$('app').classList.add('hidden')}
 let csCurrentTab='inicio';
 function showApp(){
-  try{if(me)localStorage.setItem('csj_last_activity_v1',String(Date.now()))}catch(e){}
   try{csEnsureNavHistory()}catch(e){}
   $('loginScreen').classList.add('hidden');$('app').classList.remove('hidden');
   // V40.12.50: quando o Android restaurar o WebView, o HTML já contém
