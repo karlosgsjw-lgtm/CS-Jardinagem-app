@@ -2345,27 +2345,42 @@ window.closePrintPreview=function(fromPop){
 };
 
 window.printAnnualImage=async function(cid,year){
-  const c=clients.find(x=>x.id===cid);
-  const dates=annuals.filter(x=>x.cliente_id===cid&&Number(x.ano)===Number(year)).map(x=>x.data_agendada);
-  const cv=document.createElement('canvas'),W=1600,H=1100; const ctx=cv.getContext('2d'); cv.width=W;cv.height=H;
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#166534';ctx.font='bold 38px Arial';
-  ctx.fillText('Agenda anual — '+(c?.nome||''),55,58);ctx.fillStyle='#555';ctx.font='20px Arial';ctx.fillText(String(year),55,92);
-  const gx=35,gy=125,cw=380,ch=300,gap=15,names=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  for(let m=0;m<12;m++){
-    const x=gx+(m%4)*(cw+gap),y=gy+Math.floor(m/4)*(ch+gap);ctx.strokeStyle='#dce5df';ctx.strokeRect(x,y,cw,ch);
-    ctx.fillStyle='#172018';ctx.font='bold 21px Arial';ctx.fillText(names[m],x+15,y+30);ctx.font='14px Arial';
-    ['D','S','T','Q','Q','S','S'].forEach((n,i)=>ctx.fillText(n,x+20+i*50,y+55));
-    const first=new Date(year,m,1).getDay(),last=new Date(year,m+1,0).getDate();
-    for(let d=1;d<=last;d++){const idx=first+d-1,col=idx%7,row=Math.floor(idx/7),px=x+20+col*50,py=y+83+row*31,ds=iso(new Date(year,m,d));
-      if(dates.includes(ds)){ctx.fillStyle='#ef4444';ctx.beginPath();ctx.arc(px,py-5,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff'}else ctx.fillStyle='#172018';
-      ctx.font='14px Arial';ctx.fillText(String(d),px-4,py);
-    }
+ const client=clients.find(x=>String(x.id)===String(cid));
+ const dates=annuals.filter(x=>String(x.cliente_id)===String(cid)&&Number(x.ano)===Number(year)).map(x=>x.data_agendada);
+ const cv=document.createElement('canvas'),W=2480,H=3508;cv.width=W;cv.height=H;
+ const ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+ const leaf=(x,y,s,r,a)=>{ctx.save();ctx.translate(x,y);ctx.rotate(r);ctx.scale(s,s);ctx.globalAlpha=a;ctx.fillStyle='#4d9a62';ctx.beginPath();ctx.moveTo(0,0);ctx.bezierCurveTo(-95,-65,-100,-150,-10,-175);ctx.bezierCurveTo(42,-120,48,-52,0,0);ctx.fill();ctx.strokeStyle='#2f7547';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(-8,-80,-10,-164);ctx.stroke();ctx.restore();ctx.globalAlpha=1};
+ leaf(100,H-160,2,-.25,.06);leaf(W-90,240,1.7,2.7,.06);leaf(W-140,H-220,1.45,2.2,.05);
+ const logoSvg="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23f7faf8'/%3E%3Ccircle cx='256' cy='256' r='224' fill='%23166534'/%3E%3Ccircle cx='256' cy='256' r='197' fill='%23f9fbfa'/%3E%3Cpath d='M207 372C174 330 164 279 180 226C197 170 245 125 321 105C300 154 289 202 300 246C309 284 294 329 263 365C244 386 222 392 207 372Z' fill='%2316853b'/%3E%3Cpath d='M207 371C154 345 116 296 121 246C127 184 173 136 241 110C225 161 227 207 245 244C261 277 252 326 224 361C219 367 213 370 207 371Z' fill='%238be51a'/%3E%3Cpath d='M230 385C241 330 270 291 321 261C370 232 418 230 443 239C408 281 374 315 329 339C290 359 256 373 230 385Z' fill='%236ee51b'/%3E%3C/svg%3E";
+ const logo=new Image();logo.src=logoSvg;try{await logo.decode()}catch(e){}
+ if(logo.naturalWidth)ctx.drawImage(logo,W-330,45,205,205);
+ ctx.fillStyle='#166534';ctx.font='bold 66px Arial';ctx.fillText('CS Jardinagem',125,115);
+ ctx.fillStyle='#3d694b';ctx.font='bold 38px Arial';ctx.fillText('AGENDA ANUAL',125,175);
+ ctx.fillStyle='#172018';ctx.font='bold 34px Arial';ctx.fillText(String(year),125,225);
+ ctx.fillStyle='#68736b';ctx.font='28px Arial';ctx.fillText('Cliente: '+(client?.nome||'Cliente'),125,275);
+ ctx.strokeStyle='#166534';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(120,315);ctx.lineTo(W-120,315);ctx.stroke();
+ if(logo.naturalWidth){ctx.save();ctx.globalAlpha=.045;ctx.drawImage(logo,(W-900)/2,(H-900)/2,900,900);ctx.restore()}
+ const mx=120,top=350,gx=28,gy=28,cw=(W-mx*2-gx*2)/3,ch=(H-top-120-gy*3)/4;
+ const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],dows=['D','S','T','Q','Q','S','S'];
+ for(let m=0;m<12;m++){
+  const x=mx+(m%3)*(cw+gx),y=top+Math.floor(m/3)*(ch+gy);
+  ctx.fillStyle='rgba(255,255,255,.93)';ctx.fillRect(x,y,cw,ch);ctx.strokeStyle='#c9dfce';ctx.lineWidth=3;ctx.strokeRect(x,y,cw,ch);
+  ctx.fillStyle='#eaf5ec';ctx.fillRect(x+2,y+2,cw-4,70);ctx.fillStyle='#166534';ctx.font='bold 34px Arial';ctx.fillText(months[m],x+22,y+47);
+  const colW=(cw-40)/7,gridY=y+120,rowH=72;ctx.font='bold 22px Arial';ctx.fillStyle='#68736b';
+  dows.forEach((d,i)=>ctx.fillText(d,x+20+i*colW+colW/2-7,gridY-15));
+  ctx.strokeStyle='#e4ece6';ctx.lineWidth=1.5;for(let row=0;row<6;row++){ctx.beginPath();ctx.moveTo(x+18,gridY+row*rowH+17);ctx.lineTo(x+cw-18,gridY+row*rowH+17);ctx.stroke()}
+  const first=new Date(year,m,1).getDay(),last=new Date(year,m+1,0).getDate();
+  for(let d=1;d<=last;d++){const idx=first+d-1,col=idx%7,row=Math.floor(idx/7),px=x+20+col*colW+colW/2,py=gridY+row*rowH+40,ds=iso(new Date(year,m,d)),scheduled=dates.includes(ds);
+   if(scheduled){ctx.fillStyle='#166534';ctx.beginPath();ctx.arc(px,py-7,24,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff'}else ctx.fillStyle='#172018';
+   ctx.font=scheduled?'bold 25px Arial':'25px Arial';ctx.textAlign='center';ctx.fillText(String(d),px,py+1);ctx.textAlign='left';
+   if(scheduled){ctx.fillStyle='#80bd8b';ctx.beginPath();ctx.arc(px,py+18,3.5,0,Math.PI*2);ctx.fill()}
   }
-  const url=cv.toDataURL('image/png');
-  const old=$('printOverlay');if(old)old.remove();
-  const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay';
-  ov.innerHTML='<div class="printPanel"><div class="printToolbar"><span class="printToolbarTitle">🖨️ Agenda anual</span></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual"></div><div class="printBottomBar"><button type="button" class="btn" onclick="csPrintAnnualNative()">🖨️ Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div>';
-  document.body.appendChild(ov); history.pushState({csPrintPreview:true},'',location.href); csInitPrintPanZoom();
+ }
+ ctx.fillStyle='#68736b';ctx.font='22px Arial';ctx.textAlign='center';ctx.fillText('CS Jardinagem · Seu jardim em boas mãos',W/2,H-55);ctx.textAlign='left';
+ const url=cv.toDataURL('image/png'),old=$('printOverlay');if(old)old.remove();
+ const ov=document.createElement('div');ov.id='printOverlay';ov.className='printOverlay annualPrintLayout';
+ ov.innerHTML='<div class="printPanel"><div class="printToolbar"><span class="printToolbarTitle">Agenda anual — '+esc(client?.nome||'Cliente')+'</span></div><div class="printZoomBar"><button type="button" class="btn alt" onclick="csPrintZoom(-.15)">−</button><button type="button" class="btn alt" onclick="csPrintFit()">Ajustar</button><button type="button" class="btn alt" onclick="csPrintZoom(.15)">+</button><span id="printZoomLabel" class="muted small">100%</span></div><div id="printImageViewport" class="printImageViewport"><img id="printAnnualImg" src="'+url+'" alt="Agenda anual CS Jardinagem"></div><div class="printBottomBar"><button type="button" class="btn" onclick="csPrintAnnualNative()">Imprimir</button><button type="button" class="btn danger" onclick="closePrintPreview()">Fechar</button></div></div>';
+ document.body.appendChild(ov);history.pushState({csPrintPreview:true},'',location.href);csInitPrintPanZoom();
 };
 let csPrintZoomState={scale:1,x:0,y:0};
 function csApplyPrintZoom(){
@@ -2375,7 +2390,7 @@ function csApplyPrintZoom(){
 }
 function csPrintFit(){
   const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;
-  const vw=vp.clientWidth,vh=vp.clientHeight,iw=1600,ih=1100,sc=Math.min(vw/iw,vh/ih);
+  const vw=vp.clientWidth,vh=vp.clientHeight,iw=im.naturalWidth||2480,ih=im.naturalHeight||3508,sc=Math.min(vw/iw,vh/ih);
   csPrintZoomState={scale:sc,x:(vw-iw*sc)/2,y:(vh-ih*sc)/2};csApplyPrintZoom();
 }
 function csPrintZoom(delta){
