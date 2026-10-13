@@ -197,6 +197,28 @@ html,body{overscroll-behavior-y:none}
 .agendaAttendanceCompact{height:40px;min-width:52px;display:inline-flex;align-items:center;justify-content:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:0 9px;box-sizing:border-box}
 .agendaAttendanceCompact .statIcon{font-size:18px;line-height:1}.agendaAttendanceCompact b{font-size:17px;line-height:1;font-weight:900}
 @media(max-width:700px){.agendaToolbar{gap:5px!important}.agendaMonthTitle{font-size:21px!important}.agendaMonthNav,.agendaAnnualIcon{width:36px!important;height:36px!important;min-width:36px!important;border-radius:10px!important;font-size:21px!important}.agendaAttendanceCompact{height:36px;min-width:46px;padding:0 7px;border-radius:10px}.agendaAttendanceCompact .statIcon{font-size:16px}.agendaAttendanceCompact b{font-size:15px}}
+
+/* V40.12.54 — acabamento botânico suave para diálogos e janelas */
+.modal{background:rgba(10,32,18,.58);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.modalbox,.loginAuxBox{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;background:linear-gradient(145deg,#fff 0%,#fbfdfb 62%,#f0f8f1 100%);border:1px solid #dceadf;box-shadow:0 18px 55px rgba(15,55,28,.22)}
+.csConfirmOverlay{background:rgba(8,30,17,.60);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.csConfirmBox{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;border:1px solid #d8eadb;border-radius:24px;padding:25px 24px 22px;background:radial-gradient(ellipse at 0% 0%,rgba(204,239,207,.68),transparent 44%),linear-gradient(145deg,#fff 0%,#fbfdfb 68%,#eff8f0 100%);box-shadow:0 22px 65px rgba(0,0,0,.30)}
+.csConfirmBox:before{background:url("logo_cs_jardinagem.jpg") center/190px auto no-repeat;opacity:.055}
+.csConfirmHeader{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 12px}
+.csConfirmIcon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-size:29px;background:linear-gradient(145deg,#e2f4e5,#f6fbf6);border:1px solid #cce4d0;box-shadow:inset 0 0 0 5px rgba(255,255,255,.62)}
+.csConfirmIcon.isDestructive{background:linear-gradient(145deg,#fff0f0,#ffe0e0);border-color:#fecaca}
+.csConfirmBrand{font-size:13px;letter-spacing:.25px;font-weight:800;color:#267044}
+.csConfirmQuestion{font-size:21px;line-height:1.4;font-weight:800;color:#153b25;margin:8px 0 24px}
+.csConfirmActions{gap:10px}
+.csConfirmActions button{min-height:48px;border-radius:14px;transition:transform .12s ease,box-shadow .12s ease}
+.csConfirmActions button:active{transform:scale(.98)}
+.csConfirmNo{background:#edf5ef;color:#285d3a;border:1px solid #d4e6d8}
+.csConfirmYes{background:linear-gradient(135deg,#187342,#166534);color:#fff;box-shadow:0 5px 14px rgba(22,101,52,.18)}
+.csConfirmYes.csConfirmDestructive{background:linear-gradient(135deg,#e54848,#b91c1c);box-shadow:0 5px 14px rgba(185,28,28,.18)}
+.panel{box-shadow:0 4px 16px rgba(20,60,32,.035)}
+.btn{transition:transform .12s ease,box-shadow .12s ease}
+.btn:active{transform:translateY(1px)}
+@media(max-width:700px){.csConfirmBox{border-radius:22px;padding:22px 17px 18px}.csConfirmIcon{width:52px;height:52px;font-size:25px}.csConfirmQuestion{font-size:19px;margin-bottom:20px}.csConfirmActions button{min-width:0;padding:12px 10px}}
 </style>
 
 <style>
@@ -739,8 +761,10 @@ function moneyInputValue(v){return parseMoney(v).toFixed(2).replace('.',',')}
 window.csConfirm=function(question){return new Promise(resolve=>{
   const old=document.getElementById('csConfirmOverlay');
   if(old)old.remove();
+  const q=String(question||'Tem certeza que deseja confirmar?');
+  const destructive=/remover|excluir|deletar|apagar/i.test(q);
   const overlay=document.createElement('div');overlay.id='csConfirmOverlay';overlay.className='csConfirmOverlay';
-  overlay.innerHTML=`<div class="csConfirmBox" role="dialog" aria-modal="true"><div class="csConfirmQuestion">${esc(question||'Tem certeza que deseja confirmar?')}</div><div class="csConfirmActions"><button type="button" class="csConfirmNo">NÃO</button><button type="button" class="csConfirmYes">SIM</button></div></div>`;
+  overlay.innerHTML=`<div class="csConfirmBox" role="dialog" aria-modal="true" aria-labelledby="csConfirmQuestion"><div class="csConfirmHeader"><div class="csConfirmIcon ${destructive?'isDestructive':''}">${destructive?'🗑️':'🌿'}</div><div class="csConfirmBrand">CS Jardinagem</div></div><div id="csConfirmQuestion" class="csConfirmQuestion">${esc(q)}</div><div class="csConfirmActions"><button type="button" class="csConfirmNo">Cancelar</button><button type="button" class="csConfirmYes ${destructive?'csConfirmDestructive':''}">${destructive?'Remover':'Confirmar'}</button></div></div>`;
   document.body.appendChild(overlay);
   const finish=v=>{overlay.remove();resolve(v)};
   overlay.querySelector('.csConfirmNo').onclick=()=>finish(false);
@@ -2094,7 +2118,7 @@ window.addApptPhoto=async()=>{let cid=Number($('ac').value),f=$('apptPhotoInput'
 window.refreshApptPhotos=async()=>{let cid=Number($('ac').value),p=await getPhotos(cid);if($('apptPhotos'))$('apptPhotos').innerHTML=p.map(x=>photoCard(x,'appt')).join('')||'<span class="muted">Nenhuma foto cadastrada.</span>'};
 window.addHelperRow=()=>{let box=$('helperFields'),n=box.querySelectorAll('.helperItem').length+1;if(n>5)return alert('Máximo de 5 ajudantes por atendimento.');box.insertAdjacentHTML('beforeend',`<div class="helperRow helperItem"><div><label>Ajudante</label><select id="hid${n}" class="field"><option value="">Nenhum</option>${helperList.map(h=>`<option value="${h.id}">${esc(h.nome)}</option>`).join('')}</select></div><div><label>Valor do dia</label><input id="hval${n}" class="field moneyInput" type="text" value="0,00"></div><button type="button" class="btn danger remove" aria-label="Remover ajudante" title="Remover ajudante" onclick="removeHelperRow(this)">−</button></div>`);bindMoneyInputs($('helperFields'))};
 async function refreshApptClient(){let c=clients.find(x=>x.id==$('ac').value);if(!c)return;window.currentApptClientId=c.id;let p=await getPhotos(c.id);$('clientPreview').innerHTML=`<div class="panel"><div class="infoLine"><b>Endereço:</b> ${esc(c.endereco||'Não cadastrado')}</div><div class="infoLine"><b>Serviço:</b> ${esc(c.servico_principal||'')}</div><div class="infoLine"><b>Observações:</b> ${esc(c.observacoes||'')}</div></div>`;$('apptPhotos').innerHTML=p.map(x=>photoCard(x,'appt')).join('')||'<span class="muted">Nenhuma foto cadastrada.</span>';let av=$('av');if(av&&!av.dataset.userChanged){av.value=moneyInputValue(c.valor_servico||0);bindMoneyInputs(av.parentElement)} }
-window.removeHelperRow=el=>{const row=el.closest('.helperItem');if(!row)return;if(!window.confirm('Você quer remover mesmo esse ajudante?'))return;row.remove();document.querySelectorAll('#helperFields .helperItem').forEach((r,idx)=>{let i=idx+1,sel=r.querySelector('select'),inp=r.querySelector('input');if(sel)sel.id='hid'+i;if(inp)inp.id='hval'+i})};
+window.removeHelperRow=async el=>{const row=el.closest('.helperItem');if(!row)return;if(!await csConfirm('Você quer remover mesmo esse ajudante?'))return;row.remove();document.querySelectorAll('#helperFields .helperItem').forEach((r,idx)=>{let i=idx+1,sel=r.querySelector('select'),inp=r.querySelector('input');if(sel)sel.id='hid'+i;if(inp)inp.id='hval'+i})};
 window.toggleEventForm=function(){
  const on=$('isEvent')?.checked,normal=$('apptNormalFields'),preview=$('clientPreview');
  if(normal)normal.style.display=on?'none':'';
