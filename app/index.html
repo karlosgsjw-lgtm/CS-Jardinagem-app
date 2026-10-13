@@ -708,6 +708,44 @@ body:before{top:0!important}
   .agendaToolbar .agendaAttendanceCompact .statIcon{font-size:13px!important}
   .agendaToolbar .agendaAttendanceCompact b{font-size:12px!important}
 }
+</style><style id="cs-global-botanical-dialogs">
+#csInfoOverlay,#csPromptOverlay{position:fixed;inset:0;z-index:10020;display:grid;place-items:center;padding:18px;background:rgba(8,30,17,.60);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);box-sizing:border-box}
+.csInfoBox,.csPromptBox{position:relative;isolation:isolate;overflow:hidden;width:min(440px,94vw);max-height:calc(100dvh - 36px);overflow-y:auto;border:1px solid #d7e8da;border-radius:24px;padding:24px 22px 20px;background:radial-gradient(ellipse at 0% 0%,rgba(204,239,207,.72),transparent 44%),linear-gradient(145deg,#fff 0%,#fbfdfb 68%,#eff8f0 100%);box-shadow:0 22px 65px rgba(0,0,0,.30);font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;color:#153b25}
+.csInfoBox:before,.csPromptBox:before{content:"";position:absolute;inset:0;z-index:-1;background:url("logo_cs_jardinagem.jpg") center 58%/190px auto no-repeat;opacity:.055;pointer-events:none}
+.csDialogHeading{display:flex;align-items:center;justify-content:center;gap:11px;margin:0 0 14px;color:#267044;font-weight:800;font-size:14px;letter-spacing:.25px}
+.csDialogIcon{width:58px;height:58px;display:grid;place-items:center;flex:0 0 58px;border-radius:50%;background:linear-gradient(145deg,#e2f4e5,#f6fbf6);border:1px solid #cce4d0;box-shadow:inset 0 0 0 5px rgba(255,255,255,.62);font-size:27px}
+.csDialogIcon svg{width:34px;height:34px;display:block;fill:none;stroke:#17683b;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.csInfoMessage,.csPromptMessage{position:relative;font-size:20px;line-height:1.45;font-weight:700;color:#183b27;margin:8px 0 22px;white-space:pre-line;overflow-wrap:anywhere}
+.csDialogActions{position:relative;display:flex;gap:10px;justify-content:center}
+.csDialogActions button{flex:1;min-width:0;min-height:48px;border:0;border-radius:14px;padding:12px 14px;font:800 15px "Trebuchet MS","Segoe UI",Arial,sans-serif;cursor:pointer}
+.csDialogCancel{background:#edf5ef;color:#285d3a;border:1px solid #d4e6d8!important}
+.csDialogOkay{background:linear-gradient(135deg,#187342,#166534);color:#fff;box-shadow:0 5px 14px rgba(22,101,52,.18)}
+.csDialogInput{position:relative;width:100%;min-height:48px;border:1px solid #cddfd1;border-radius:13px;padding:12px;background:#fff;color:#172018;font:16px "Trebuchet MS","Segoe UI",Arial,sans-serif;outline-color:#d5a13a;margin:0 0 18px}
+#csConfirmOverlay{backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.csConfirmBox{border:1px solid #d7e8da!important;border-radius:24px!important;background:radial-gradient(ellipse at 0% 0%,rgba(204,239,207,.72),transparent 44%),linear-gradient(145deg,#fff 0%,#fbfdfb 68%,#eff8f0 100%)!important;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif!important}
+.csConfirmBox:before{background:url("logo_cs_jardinagem.jpg") center 58%/190px auto no-repeat!important;opacity:.055!important}
+.csConfirmIcon{width:58px!important;height:58px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:linear-gradient(145deg,#e2f4e5,#f6fbf6)!important;border:1px solid #cce4d0!important;box-shadow:inset 0 0 0 5px rgba(255,255,255,.62)!important}
+.csConfirmIcon.isDestructive{background:linear-gradient(145deg,#fff0f0,#ffe0e0)!important;border-color:#fecaca!important}
+.csConfirmIcon svg{width:34px;height:34px;fill:none;stroke:#17683b;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.csConfirmQuestion{font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif!important;font-size:20px!important;line-height:1.45!important;color:#183b27!important}
+.csConfirmActions button{min-height:48px!important;border-radius:14px!important;font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif!important}
+.csConfirmNo{background:#edf5ef!important;color:#285d3a!important;border:1px solid #d4e6d8!important}
+.csConfirmYes{background:linear-gradient(135deg,#187342,#166534)!important}
+.csConfirmYes.csConfirmDestructive{background:linear-gradient(135deg,#e54848,#b91c1c)!important}
+#modal{overscroll-behavior:contain}
+#modal .modalbox{max-height:calc(100dvh - 20px)!important;min-height:0!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))!important}
+#modal .modalCloseBar{position:sticky!important;bottom:calc(-16px - env(safe-area-inset-bottom,0px))!important;margin-bottom:calc(-16px - env(safe-area-inset-bottom,0px))!important;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))!important;background:linear-gradient(180deg,rgba(255,255,255,.94),#fff 25%)!important}
+.orcServiceEditor h3:first-of-type{position:sticky!important;top:-2px!important;z-index:8!important;background:linear-gradient(180deg,#fff 0%,#fff 88%,rgba(255,255,255,.94) 100%)!important;padding:8px 0!important;margin-top:8px!important;box-shadow:0 5px 10px rgba(15,55,28,.045)}
+.orcServiceEditor h3:first-of-type .btn{flex:0 0 auto!important;white-space:nowrap!important}
+.orcSumToggle{display:inline-flex!important;align-items:center!important;gap:8px!important;margin:0!important;padding:9px 12px!important;border:1px solid #cfe4d3!important;border-radius:12px!important;background:#edf7ef!important;color:#1d663b!important;font-size:15px!important;font-weight:800!important;cursor:pointer}
+.orcSumToggle input{width:20px!important;height:20px!important;accent-color:#166534!important;margin:0!important}
+.orcTotalBar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important}
+.orcTotalBar>b{margin-left:auto!important;white-space:nowrap!important}
+#printOverlay{padding:8px 8px 28px!important;overflow:hidden!important;overscroll-behavior:contain!important}
+#printOverlay .orcPrintPanel{height:calc(100dvh - 52px)!important;max-height:calc(100dvh - 52px)!important;min-height:0!important;overflow:hidden!important}
+#printOverlay .orcPreviewScroll{min-height:0!important;overscroll-behavior-y:contain!important}
+#printOverlay .orcPrintActions{position:sticky!important;bottom:0!important;z-index:10!important;flex:0 0 auto!important;background:#fff!important;padding:10px 12px max(12px,env(safe-area-inset-bottom,12px))!important;box-shadow:0 -5px 16px rgba(15,55,28,.07)!important}
+@media(max-width:600px){.csInfoBox,.csPromptBox{border-radius:22px;padding:21px 17px 17px}.csDialogIcon{width:52px;height:52px;flex-basis:52px}.csInfoMessage,.csPromptMessage{font-size:18px;margin-bottom:19px}.csDialogActions button{font-size:14px;padding:12px 8px}.orcTotalBar{align-items:flex-start!important}.orcTotalBar>b{width:100%;text-align:right}.orcServiceEditor h3:first-of-type{top:-4px!important}#printOverlay .orcPrintPanel{height:calc(100dvh - 52px)!important;max-height:calc(100dvh - 52px)!important}}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
@@ -759,17 +797,28 @@ function moneyInputValue(v){return parseMoney(v).toFixed(2).replace('.',',')}
 // V40.12.50 — confirmação visual própria do CS Jardinagem.
 // Substitui as caixas confirm() padrão do navegador, sem mostrar a URL/site.
 window.csConfirm=function(question){return new Promise(resolve=>{
-  const old=document.getElementById('csConfirmOverlay');
-  if(old)old.remove();
-  const q=String(question||'Tem certeza que deseja confirmar?');
-  const destructive=/remover|excluir|deletar|apagar/i.test(q);
+  const old=document.getElementById('csConfirmOverlay');if(old)old.remove();
+  const q=String(question||'Tem certeza que deseja confirmar?'),destructive=/remover|excluir|deletar|apagar/i.test(q),bio=/biometr|impressão digital|impressao digital/i.test(q);
+  const icon=bio?'<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 19c0-8 5-13 12-13s12 5 12 13"/><path d="M12 19c0-5 3-9 8-9s8 4 8 9"/><path d="M16 19c0-3 1-5 4-5s4 2 4 5c0 7-1 12-4 16"/><path d="M8 24c1 5 3 9 6 12"/><path d="M32 24c-.5 3-1 5-2 7"/><path d="M20 20c0 6-.5 10-2 14"/></svg><span style="position:absolute;font-size:15px;right:-2px;bottom:-1px">🌿</span>':(destructive?'🗑️':'🌿');
   const overlay=document.createElement('div');overlay.id='csConfirmOverlay';overlay.className='csConfirmOverlay';
-  overlay.innerHTML=`<div class="csConfirmBox" role="dialog" aria-modal="true" aria-labelledby="csConfirmQuestion"><div class="csConfirmHeader"><div class="csConfirmIcon ${destructive?'isDestructive':''}">${destructive?'🗑️':'🌿'}</div><div class="csConfirmBrand">CS Jardinagem</div></div><div id="csConfirmQuestion" class="csConfirmQuestion">${esc(q)}</div><div class="csConfirmActions"><button type="button" class="csConfirmNo">Cancelar</button><button type="button" class="csConfirmYes ${destructive?'csConfirmDestructive':''}">${destructive?'Remover':'Confirmar'}</button></div></div>`;
-  document.body.appendChild(overlay);
-  const finish=v=>{overlay.remove();resolve(v)};
-  overlay.querySelector('.csConfirmNo').onclick=()=>finish(false);
-  overlay.querySelector('.csConfirmYes').onclick=()=>finish(true);
-  overlay.onclick=e=>{if(e.target===overlay)finish(false)};
+  overlay.innerHTML=`<div class="csConfirmBox" role="dialog" aria-modal="true" aria-labelledby="csConfirmQuestion"><div class="csConfirmHeader"><div class="csConfirmIcon ${destructive?'isDestructive':''}" style="position:relative">${icon}</div><div class="csConfirmBrand">CS Jardinagem</div></div><div id="csConfirmQuestion" class="csConfirmQuestion">${esc(q)}</div><div class="csConfirmActions"><button type="button" class="csConfirmNo">Cancelar</button><button type="button" class="csConfirmYes ${destructive?'csConfirmDestructive':''}">${destructive?'Remover':(bio?'Ativar biometria':'Confirmar')}</button></div></div>`;
+  document.body.appendChild(overlay);const finish=v=>{overlay.remove();resolve(v)};
+  overlay.querySelector('.csConfirmNo').onclick=()=>finish(false);overlay.querySelector('.csConfirmYes').onclick=()=>finish(true);overlay.onclick=e=>{if(e.target===overlay)finish(false)};
+});};
+window.csAlert=function(message){
+  const old=document.getElementById('csInfoOverlay');if(old)old.remove();const q=String(message??'');
+  const error=/não foi possível|erro|falha|inválid|não pôde|não pode/i.test(q),success=/sucesso|cadastrada|concluíd|salvo|salva|atualizad/i.test(q),icon=error?'⚠️':(success?'✓':'🌿');
+  const overlay=document.createElement('div');overlay.id='csInfoOverlay';
+  overlay.innerHTML=`<div class="csInfoBox" role="alertdialog" aria-modal="true"><div class="csDialogHeading"><div class="csDialogIcon">${icon}</div><span>CS Jardinagem</span></div><div class="csInfoMessage">${esc(q)}</div><div class="csDialogActions"><button type="button" class="csDialogOkay">Entendi</button></div></div>`;
+  document.body.appendChild(overlay);const close=()=>overlay.remove();overlay.querySelector('button').onclick=close;overlay.onclick=e=>{if(e.target===overlay)close()};overlay.querySelector('button').focus({preventScroll:true});
+};
+window.alert=function(message){window.csAlert(message)};
+window.csPrompt=function(message,defaultValue=''){return new Promise(resolve=>{
+  const old=document.getElementById('csPromptOverlay');if(old)old.remove();const overlay=document.createElement('div');overlay.id='csPromptOverlay';
+  overlay.innerHTML=`<div class="csPromptBox" role="dialog" aria-modal="true"><div class="csDialogHeading"><div class="csDialogIcon">🌿</div><span>CS Jardinagem</span></div><div class="csPromptMessage">${esc(message||'Digite um valor')}</div><input class="csDialogInput" type="text" value="${esc(defaultValue)}"><div class="csDialogActions"><button type="button" class="csDialogCancel">Cancelar</button><button type="button" class="csDialogOkay">Continuar</button></div></div>`;
+  document.body.appendChild(overlay);const input=overlay.querySelector('input'),finish=v=>{overlay.remove();resolve(v)};
+  overlay.querySelector('.csDialogCancel').onclick=()=>finish(null);overlay.querySelector('.csDialogOkay').onclick=()=>finish(input.value);overlay.onclick=e=>{if(e.target===overlay)finish(null)};
+  input.focus({preventScroll:true});input.select();input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();finish(input.value)}if(e.key==='Escape')finish(null)});
 });};
 function bindMoneyInputs(root=document){root.querySelectorAll('.moneyInput').forEach(el=>{el.setAttribute('inputmode','numeric');el.setAttribute('autocomplete','off');if(!el.dataset.moneyBound){el.dataset.moneyBound='1';el.addEventListener('focus',()=>{setTimeout(()=>el.select(),0)});el.addEventListener('input',()=>formatMoneyInput(el));el.addEventListener('blur',()=>{if(!el.value.trim())el.value='0,00';else formatMoneyInput(el)});el.addEventListener('keydown',e=>{if(['e','E','+','-'].includes(e.key))e.preventDefault()})}})}
 
@@ -1269,7 +1318,7 @@ async function csEnableBiometric(){
 }
 async function csSetupBiometricAfterLogin(){
   if(csBioEnabled()||!csBioAvailable())return;
-  const wants=confirm('Quer cadastrar a biometria para entrar mais rápido no CS Jardinagem?');
+  const wants=await csConfirm('Quer cadastrar a biometria para entrar mais rápido no CS Jardinagem?');
   if(!wants)return;
   if(csNativeBioAvailable()){
     loginMsg('Confirme sua biometria para ativar o acesso rápido...');
@@ -2942,8 +2991,8 @@ async function uploadPhoto(id,file){let safe=(file.name||'foto').replace(/[^a-zA
 window.nv2UploadPhotos=async(id,input)=>{let fs=[...(input.files||[])];input.value='';try{for(const f of fs)if(f.type.startsWith('image/'))await uploadPhoto(id,f);await renderPhotos(id)}catch(e){alert('Não foi possível salvar a foto.\n\n'+E(e.message||e))}}
 window.nv2SaveItem=async id=>{let t=$('nv2Title')?.value.trim(),d=$('nv2Desc')?.value||'';if(!t)return alert('Informe o nome do item.');let r=await dbClient.from('necessidade_itens').insert({categoria_id:id,titulo:t,descricao:d,concluida:false,criado_por:me.id}).select('id').single();if(r.error)return alert('Não foi possível salvar o item.\n\n'+r.error.message);try{for(const f of pending)await uploadPhoto(r.data.id,f)}catch(e){alert('Item salvo, mas uma foto falhou.\n\n'+E(e.message||e))}pending=[];closeModal();await load();selected=id;await render()}
 window.nv2SaveEdit=async id=>{let t=$('nv2Title')?.value.trim(),d=$('nv2Desc')?.value||'';if(!t)return alert('Informe o nome do item.');let r=await dbClient.from('necessidade_itens').update({titulo:t,descricao:d}).eq('id',id);if(r.error)return alert('Não foi possível salvar.\n\n'+r.error.message);try{for(const f of pending)await uploadPhoto(id,f)}catch(e){alert('Alterações salvas, mas uma foto falhou.\n\n'+E(e.message||e))}pending=[];closeModal();await load();await render()}
-window.nv2DeletePhoto=async(id,path,item)=>{if(!window.confirm('Excluir esta foto?'))return;let card=document.querySelector('.needsV2PhotoBox[data-photo-id="'+id+'"]');try{let q=await dbClient.from('necessidade_fotos').select('id,caminho').eq('id',id).maybeSingle();if(q.error)throw q.error;let actualPath=q.data?.caminho||path||null;let r=await dbClient.from('necessidade_fotos').delete().eq('id',id);if(r.error)throw r.error;if(card)card.remove();if(actualPath){let sr=await dbClient.storage.from('site-galeria').remove([actualPath]);if(sr.error)console.warn('Storage delete:',sr.error.message)}if(!document.querySelector('#nv2photos_'+item+' .needsV2PhotoBox')){let b=$('nv2photos_'+item);if(b)b.innerHTML='<span class="needsV2Muted">Nenhuma foto adicionada.</span>'}}catch(e){if(card&&!document.body.contains(card))await renderPhotos(item);alert('Não foi possível excluir a foto.\\n\\n'+(e.message||e))}}
-window.nv2MoveItem=async id=>{let i=items.find(x=>x.id==id);if(!i)return;let opts=cats.filter(x=>x.id!=i.categoria_id).map(x=>x.id+' — '+x.nome).join('\n');if(!opts)return alert('Não há outra categoria disponível.');let v=prompt('Digite o número da categoria para mover este item:\n\n'+opts);if(v===null)return;let target=cats.find(x=>String(x.id)===String(v.trim().split(' ')[0]));if(!target)return alert('Categoria inválida.');let r=await dbClient.from('necessidade_itens').update({categoria_id:target.id}).eq('id',id);if(r.error)return alert('Não foi possível alterar a categoria.\n\n'+r.error.message);await load();selected=target.id;await render()};
+window.nv2DeletePhoto=async(id,path,item)=>{if(!await csConfirm('Excluir esta foto?'))return;let card=document.querySelector('.needsV2PhotoBox[data-photo-id="'+id+'"]');try{let q=await dbClient.from('necessidade_fotos').select('id,caminho').eq('id',id).maybeSingle();if(q.error)throw q.error;let actualPath=q.data?.caminho||path||null;let r=await dbClient.from('necessidade_fotos').delete().eq('id',id);if(r.error)throw r.error;if(card)card.remove();if(actualPath){let sr=await dbClient.storage.from('site-galeria').remove([actualPath]);if(sr.error)console.warn('Storage delete:',sr.error.message)}if(!document.querySelector('#nv2photos_'+item+' .needsV2PhotoBox')){let b=$('nv2photos_'+item);if(b)b.innerHTML='<span class="needsV2Muted">Nenhuma foto adicionada.</span>'}}catch(e){if(card&&!document.body.contains(card))await renderPhotos(item);alert('Não foi possível excluir a foto.\\n\\n'+(e.message||e))}}
+window.nv2MoveItem=async id=>{let i=items.find(x=>x.id==id);if(!i)return;let opts=cats.filter(x=>x.id!=i.categoria_id).map(x=>x.id+' — '+x.nome).join('\n');if(!opts)return alert('Não há outra categoria disponível.');let v=await csPrompt('Digite o número da categoria para mover este item:\n\n'+opts);if(v===null)return;let target=cats.find(x=>String(x.id)===String(v.trim().split(' ')[0]));if(!target)return alert('Categoria inválida.');let r=await dbClient.from('necessidade_itens').update({categoria_id:target.id}).eq('id',id);if(r.error)return alert('Não foi possível alterar a categoria.\n\n'+r.error.message);await load();selected=target.id;await render()};
 window.nv2DeleteItem=async id=>{if(!items.some(x=>x.id==id)||!await csConfirm('Excluir este item? As fotos e manutenções também serão excluídas.'))return;await deleteItemData(id);await load();await render()}
 window.nv2ToggleDone=async(id,v)=>{let r=await dbClient.from('necessidade_itens').update({concluida:v}).eq('id',id);if(r.error)alert('Não foi possível atualizar.\n\n'+r.error.message);else{await load();await render()}}
 window.nv2Maintenance=async id=>{let i=items.find(x=>x.id==id);if(!i)return;let r=await dbClient.from('ferramenta_manutencoes').select('*').eq('ferramenta_id',id).order('data_manutencao',{ascending:false}).order('criado_em',{ascending:false}),h=r.data||[];let hist=h.length?h.map(x=>'<div class="needsV2HistoryRow"><b>'+date2(x.data_manutencao)+'</b> · '+E(x.tipo||'Manutenção')+(x.custo!=null?' · '+money2(x.custo):'')+(x.descricao?'<div>'+E(x.descricao)+'</div>':'')+(x.observacoes?'<div class="needsV2Muted">'+E(x.observacoes)+'</div>':'')+'<button class="btn danger" style="margin-top:6px" onclick="nv2DeleteMaintenance('+x.id+','+id+')">🗑️ Excluir</button></div>').join(''):'<div class="needsV2Muted">Nenhum registro de manutenção.</div>';openModal('<h2>🔧 Manutenções — '+E(i.titulo)+'</h2><label>Data</label><input id="nv2mDate" class="field" type="date" value="'+new Date().toISOString().slice(0,10)+'"><label>Tipo</label><input id="nv2mType" class="field" placeholder="Ex.: Afiação, troca de peça, revisão"><label>O que foi feito</label><textarea id="nv2mDesc" class="field" rows="3"></textarea><label>Custo</label><input id="nv2mCost" class="field" inputmode="decimal" placeholder="0,00"><label>Observações</label><textarea id="nv2mObs" class="field" rows="3"></textarea><div class="modalSaveBar"><button class="btn" onclick="nv2SaveMaintenance('+id+')">＋ Registrar manutenção</button></div><div class="needsV2History"><h3>Histórico</h3>'+hist+'</div>')}
