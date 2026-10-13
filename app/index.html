@@ -2413,7 +2413,7 @@ window.printAnnualImage=async function(cid,year){
  ctx.fillStyle='#166534';ctx.font='bold 66px Arial';ctx.fillText('CS Jardinagem',125,115);
  ctx.fillStyle='#3d694b';ctx.font='bold 38px Arial';ctx.fillText('AGENDA ANUAL',125,175);
  ctx.fillStyle='#172018';ctx.font='bold 34px Arial';ctx.fillText(String(year),125,225);
- ctx.fillStyle='#68736b';ctx.font='28px Arial';ctx.fillText('Cliente: '+(client?.nome||'Cliente'),125,275);
+ ctx.fillStyle='#245c39';ctx.font='bold 40px Arial';ctx.fillText('Cliente: '+(client?.nome||'Cliente'),125,278);
  ctx.strokeStyle='#166534';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(120,315);ctx.lineTo(W-120,315);ctx.stroke();
  if(logo.naturalWidth){ctx.save();ctx.globalAlpha=.045;ctx.drawImage(logo,(W-900)/2,(H-900)/2,900,900);ctx.restore()}
  const mx=120,top=350,gx=28,gy=28,cw=(W-mx*2-gx*2)/3,ch=(H-top-120-gy*3)/4;
@@ -2444,6 +2444,10 @@ function csApplyPrintZoom(){
   im.style.transform='translate3d('+csPrintZoomState.x+'px,'+csPrintZoomState.y+'px,0) scale('+csPrintZoomState.scale+')';
   const z=$('printZoomLabel');if(z)z.textContent=Math.round(csPrintZoomState.scale*100)+'%';
 }
+function csPrintFitScale(){
+  const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return .1;
+  return Math.min(vp.clientWidth/(im.naturalWidth||2480),vp.clientHeight/(im.naturalHeight||3508));
+}
 function csPrintFit(){
   const im=$('printAnnualImg'),vp=$('printImageViewport');if(!im||!vp)return;
   const vw=vp.clientWidth,vh=vp.clientHeight,iw=im.naturalWidth||2480,ih=im.naturalHeight||3508,sc=Math.min(vw/iw,vh/ih);
@@ -2451,7 +2455,8 @@ function csPrintFit(){
 }
 function csPrintZoom(delta){
   const vp=$('printImageViewport');if(!vp)return;
-  const old=csPrintZoomState.scale,n=Math.max(.35,Math.min(4,old+delta)),cx=vp.clientWidth/2,cy=vp.clientHeight/2;
+  const old=csPrintZoomState.scale,fit=csPrintFitScale(),n=Math.max(fit,Math.min(4,old+delta)),cx=vp.clientWidth/2,cy=vp.clientHeight/2;
+  if(n<=fit+0.0001){csPrintFit();return}
   csPrintZoomState.x=cx-(cx-csPrintZoomState.x)*(n/old);csPrintZoomState.y=cy-(cy-csPrintZoomState.y)*(n/old);csPrintZoomState.scale=n;csApplyPrintZoom();
 }
 function csInitPrintPanZoom(){
@@ -2465,7 +2470,7 @@ function csInitPrintPanZoom(){
   vp.ontouchmove=e=>{
     if(!mode)return;e.preventDefault();
     if(mode==='pan'&&e.touches.length===1){const p=e.touches[0];csPrintZoomState.x=startPX+p.clientX-startX;csPrintZoomState.y=startPY+p.clientY-startY;csApplyPrintZoom()}
-    else if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],m=mid(a,b),n=Math.max(.35,Math.min(4,startScale*dist(a,b)/startDist)),r=n/startScale;csPrintZoomState.scale=n;csPrintZoomState.x=m.x-(startMidX-startPX)*r;csPrintZoomState.y=m.y-(startMidY-startPY)*r;csApplyPrintZoom()}
+    else if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],m=mid(a,b),fit=csPrintFitScale(),n=Math.max(fit,Math.min(4,startScale*dist(a,b)/startDist)),r=n/startScale;csPrintZoomState.scale=n;if(n<=fit+0.0001){csPrintFit();return}csPrintZoomState.x=m.x-(startMidX-startPX)*r;csPrintZoomState.y=m.y-(startMidY-startPY)*r;csApplyPrintZoom()}
   };
   vp.ontouchend=e=>{if(e.touches.length===0)mode='';else if(e.touches.length===1){const p=e.touches[0];mode='pan';startX=p.clientX;startY=p.clientY;startPX=csPrintZoomState.x;startPY=csPrintZoomState.y}};
   vp.ontouchcancel=()=>{mode=''};
