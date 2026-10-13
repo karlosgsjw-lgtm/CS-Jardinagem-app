@@ -769,6 +769,22 @@ body:before{top:0!important}
 .a4Photos{grid-template-columns:1fr!important;gap:12px!important}
 .a4Photos img{width:100%!important;max-height:78mm!important;object-fit:contain!important;background:#f5f8f5!important;padding:4px!important}
 @media(max-width:700px){.csInfoBox,.csPromptBox,.csConfirmBox{max-height:calc(var(--cs-visible-height,100dvh) - 16px)!important}.a4Document{padding:9mm 7mm 8mm!important}.a4Head img{width:65px!important;height:65px!important}.a4Brand{font-size:22px!important}.a4Photos img{max-height:72mm!important}#printOverlay .orcPrintPanel{height:calc(var(--cs-visible-height,100dvh) - 20px)!important;max-height:calc(var(--cs-visible-height,100dvh) - 20px)!important}}
+</style><style id="cs-print-session-polish">
+.a4Document:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:.055;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='%234d9a62'%3E%3Cpath d='M25 85C20 40 58 15 88 18C87 53 60 82 25 85Z'/%3E%3Cpath d='M36 92C70 50 98 43 120 48C102 81 72 98 36 92Z'/%3E%3Cpath d='M220 225C180 200 178 163 195 139C225 159 238 193 220 225Z'/%3E%3Cpath d='M217 224C230 181 252 164 270 165C267 197 246 219 217 224Z'/%3E%3C/g%3E%3C/svg%3E");background-repeat:repeat;background-size:220px 220px}
+@media(max-width:700px){.orcGrid #orcStatus{grid-column:1/-1!important;display:block!important;width:100%!important;min-width:0!important;max-width:100%!important}.orcGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.orcGrid>*{min-width:0!important}.privacyToggle{width:42px!important;min-width:42px!important;padding:0!important;font-size:19px!important}}
+@media print{
+ .a4Document:after{position:absolute!important;display:block!important}
+ #printOverlay .printImageViewport{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+ #printOverlay .printImageViewport img{position:static!important;display:block!important;transform:none!important;width:100%!important;height:auto!important;max-width:100%!important;max-height:none!important}
+ #printOverlay .printZoomBar{display:none!important}
+ #printOverlay .printPanel{width:100%!important;max-width:none!important;box-shadow:none!important;border-radius:0!important}
+ #printOverlay.annualPrintLayout{padding:0!important;background:#fff!important;overflow:visible!important}
+ #printOverlay.annualPrintLayout .printToolbar,#printOverlay.annualPrintLayout .printBottomBar{display:none!important}
+ #printOverlay.annualPrintLayout .printImageViewport{width:100%!important;overflow:visible!important;border-radius:0!important}
+ #printOverlay.annualPrintLayout .printImageViewport img{width:100%!important;height:auto!important;object-fit:contain!important}
+ #printOverlay.annualPrintLayout .printPanel{display:block!important}
+ @page{size:A4 portrait;margin:10mm}
+}
 </style></head><body><div id="csPullRefresh" aria-hidden="true"><span>0%</span></div>
 <script>
 (function(){
