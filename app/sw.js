@@ -1,4 +1,4 @@
-const CACHE='cs-jardinagem-app-v29-safe-rollback';
+const CACHE='cs-jardinagem-app-v30-login-syntax-fix';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon.svg','./site-icon.svg','../logo_cs_jardinagem.jpg'];
 const EXTERNAL=['https://esm.sh/@supabase/supabase-js@2'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(async c=>{await c.addAll(CORE);for(const u of EXTERNAL){try{const r=await fetch(u,{cache:'no-store'});if(r.ok)await c.put(u,r);}catch(_){}}}).catch(()=>{}));});
