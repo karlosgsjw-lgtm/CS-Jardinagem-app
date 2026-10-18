@@ -482,7 +482,11 @@ jobs:
                   String body = intent.getStringExtra("body");
                   int id = intent.getIntExtra("id", (int)(System.currentTimeMillis() & 0x7fffffff));
                   NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
-                          .setSmallIcon(context.getApplicationInfo().icon)
+                          .setSmallIcon(R.drawable.ic_stat_cs)
+                          .setColor(android.graphics.Color.rgb(22, 101, 52))
+                          .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                          .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                          .setDefaults(NotificationCompat.DEFAULT_ALL)
                           .setContentTitle(title == null ? "CS Jardinagem" : title)
                           .setContentText(body == null ? "" : body)
                           .setStyle(new NotificationCompat.BigTextStyle().bigText(body == null ? "" : body))
@@ -530,6 +534,15 @@ jobs:
           cp android/app/src/main/res/mipmap-xhdpi/ic_launcher.png android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
           cp android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
           cp android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+
+      - name: Criar ícone monocromático para notificações
+        run: |
+          mkdir -p android/app/src/main/res/drawable
+          cat > android/app/src/main/res/drawable/ic_stat_cs.xml <<'XML'
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+              <path android:fillColor="#FFFFFFFF" android:pathData="M12,2.2C9.5,5.1 7.1,7.5 7.1,11.1c0,1.6 0.7,3 1.8,4.1C4.8,14.8 2.7,11.8 3,8.2c-2.2,3.2 -2.1,7.2 0.1,10.1C5,20.8 8.1,22 12,22c4.8,0 8.5,-3.5 8.5,-8.1 0,-3.1 -1.7,-5.6 -4.1,-7.8 0.1,2.5 -0.7,4.2 -2.3,5.4 0.3,-3.5 -0.3,-6.2 -2.1,-9.3z" />
+          </vector>
+          XML
 
       - name: Adicionar permissões Android de câmera e notificações
         run: |
