@@ -83,6 +83,16 @@ jobs:
               private WebView printWebView;
 
               @Override
+              public void onBackPressed() {
+                  WebView webView = getBridge().getWebView();
+                  if (webView != null) {
+                      webView.evaluateJavascript("window.csHandleNativeBack && window.csHandleNativeBack()", null);
+                      return;
+                  }
+                  super.onBackPressed();
+              }
+
+              @Override
               public void onStart() {
                   super.onStart();
 
@@ -357,6 +367,11 @@ jobs:
                       } catch(Exception e) {
                           android.util.Log.e("CSJ", "scheduleNotifications", e);
                       }
+                  }
+
+                  @JavascriptInterface
+                  public void exitApp() {
+                      activity.runOnUiThread(() -> activity.finish());
                   }
 
                   @JavascriptInterface
