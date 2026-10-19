@@ -3417,9 +3417,21 @@ async function loadCloud(){
  }catch(e){console.warn('Rascunhos: sincronização pendente',e)}finally{refreshing=false}
 }
 function removePending(id){try{let p=JSON.parse(localStorage.getItem(PENDING)||'[]');p=p.filter(x=>x.id!==id);localStorage.setItem(PENDING,JSON.stringify(p))}catch(e){}}
+function confirmDraftDelete(d){
+ return new Promise(resolve=>{
+  const old=document.getElementById('csjConfirmOverlay');if(old)old.remove();
+  const overlay=document.createElement('div');overlay.id='csjConfirmOverlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:100000;background:rgba(9,28,17,.58);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:22px;box-sizing:border-box';
+  overlay.innerHTML='<section role="dialog" aria-modal="true" aria-labelledby="csjConfirmTitle" style="width:min(100%,390px);background:#fff;border:1px solid #dce8df;border-radius:22px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.25);font-family:inherit"><div style="height:7px;background:linear-gradient(90deg,#166534,#4d9a62)"></div><div style="padding:23px 22px 18px"><div style="width:54px;height:54px;border-radius:17px;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:27px;margin-bottom:15px">🗑️</div><div id="csjConfirmTitle" style="font-size:21px;font-weight:850;color:#173d27;line-height:1.25">Excluir rascunho?</div><p style="font-size:14px;line-height:1.55;color:#66736a;margin:10px 0 0">Você está prestes a excluir <b>'+escD(d.titulo||'este rascunho')+'</b>. Essa ação não pode ser desfeita.</p><div style="display:flex;gap:10px;margin-top:23px"><button type="button" data-csj-confirm-cancel style="flex:1;border:1px solid #d8e3db;border-radius:12px;padding:12px 10px;background:#f4f7f5;color:#31513b;font-size:14px;font-weight:700">Cancelar</button><button type="button" data-csj-confirm-ok style="flex:1;border:0;border-radius:12px;padding:12px 10px;background:#b4232f;color:#fff;font-size:14px;font-weight:800">Excluir rascunho</button></div></div></section>';
+  let finished=false;const finish=value=>{if(finished)return;finished=true;document.removeEventListener('keydown',onKey);overlay.remove();resolve(value)};
+  const onKey=e=>{if(e.key==='Escape')finish(false)};
+  overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-csj-confirm-cancel]'))finish(false);else if(e.target.closest('[data-csj-confirm-ok]'))finish(true)});
+  document.addEventListener('keydown',onKey);document.body.appendChild(overlay);
+ });
+}
 async function deleteDraft(id){
  const d=drafts.find(x=>x.id===id);if(!d)return;
- if(!confirm('Excluir este rascunho?'))return;
+ if(!await confirmDraftDelete(d))return;
  try{
   if(navigator.onLine&&window.dbClient){const {error}=await window.dbClient.from(TABLE).delete().eq('id',id);if(error)throw error}
   else{let p=[];try{p=JSON.parse(localStorage.getItem(PENDING)||'[]')}catch(e){}p.push({id,_delete:true,owner_id:window.me?.id});localStorage.setItem(PENDING,JSON.stringify(p))}
@@ -3492,6 +3504,13 @@ async function continueDraft(id){
     fields.forEach(f=>{const map={orcClienteSelect:'cliente_id',orcNome:'nome',orcTelefone:'telefone',orcEndereco:'endereco',orcData:'data',orcValidade:'validade',orcStatus:'status',orcForma:'forma',orcObs:'obs',orcSomarValores:'somarValores'};if(map[f.id])q2[map[f.id]]=f.id==='orcSomarValores'?!!f.value:f.value});q2.itens=d.payload?.items||[];localStorage.setItem('csj_orcamento_draft',JSON.stringify(q2));
    }
    if(window.tab)window.tab('orcamentos');else if(window.csTabRender)window.csTabRender('orcamentos');
+   // A navegação retorna à lista; a edição só abre quando o usuário pede para continuar.
+   await new Promise(r=>setTimeout(r,180));
+   let opened=false;
+   if(typeof restoreOrcDraftIfAny==='function')opened=restoreOrcDraftIfAny();
+   else if(typeof novoOrcamento==='function'){novoOrcamento(null,q);opened=true}
+   if(!opened)throw new Error('O rascunho foi encontrado, mas não foi possível abrir o editor de orçamento.');
+   await new Promise(r=>setTimeout(r,100));
   }else if(d.tipo==='recibos'){
    if(window.tab)window.tab('emissao');else if(window.csTabRender)window.csTabRender('emissao');
    await new Promise(r=>setTimeout(r,450));
