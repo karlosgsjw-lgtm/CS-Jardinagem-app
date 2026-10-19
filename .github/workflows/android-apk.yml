@@ -114,10 +114,6 @@ jobs:
                           OnBackInvokedDispatcher.PRIORITY_DEFAULT, csBackInvokedCallback);
                   }
 
-              @Override
-              public void onStart() {
-                  super.onStart();
-
                   // V40.21: hard native separation between Android system status bar
                   // and the WebView. Do not rely on HTML/CSS safe-area padding.
                   final WebView webView = getBridge().getWebView();
