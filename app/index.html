@@ -3526,6 +3526,39 @@ document.addEventListener('change',e=>{if(e.target.closest('#content')||e.target
 const observer=new MutationObserver(records=>{const relevant=records.some(r=>[...r.addedNodes,...r.removedNodes].some(n=>!(n.nodeType===1&&n.id==='csjDraftSection')));if(relevant){scheduleRender();if(window.me)loadCloud()}});
 function init(){
  readCache();
+ // Remove o rascunho somente depois de confirmar que o fluxo oficial foi concluído.
+ if(typeof window.salvarOrcamento==='function'&&!window.salvarOrcamento.__csjDraftWrapped){
+  const originalSaveQuote=window.salvarOrcamento;
+  const wrappedSaveQuote=async function(...args){
+   const draftId=activeIds.orcamentos;
+   const result=await originalSaveQuote.apply(this,args);
+   if(!localStorage.getItem('csj_orcamento_draft')&&draftId)await deleteDraftQuiet(draftId);
+   return result;
+  };
+  wrappedSaveQuote.__csjDraftWrapped=true;window.salvarOrcamento=wrappedSaveQuote;
+ }
+ if(typeof window.saveClient==='function'&&!window.saveClient.__csjDraftWrapped){
+  const originalSaveClient=window.saveClient;
+  const wrappedSaveClient=async function(...args){
+   const draftId=activeIds.clientes;
+   const result=await originalSaveClient.apply(this,args);
+   if($d('modal')?.classList.contains('hidden')&&draftId)await deleteDraftQuiet(draftId);
+   return result;
+  };
+  wrappedSaveClient.__csjDraftWrapped=true;window.saveClient=wrappedSaveClient;
+ }
+ if(typeof window.emissaoPrint==='function'&&!window.emissaoPrint.__csjDraftWrapped){
+  const originalPrintReceipt=window.emissaoPrint;
+  const wrappedPrintReceipt=function(...args){
+   const draftId=activeIds.recibos;
+   let before=0;try{before=JSON.parse(localStorage.getItem('csj_emissoes')||'[]').length}catch(e){}
+   const result=originalPrintReceipt.apply(this,args);
+   let after=0;try{after=JSON.parse(localStorage.getItem('csj_emissoes')||'[]').length}catch(e){}
+   if(draftId&&after>before)deleteDraftQuiet(draftId);
+   return result;
+  };
+  wrappedPrintReceipt.__csjDraftWrapped=true;window.emissaoPrint=wrappedPrintReceipt;
+ }
  if(typeof window.closeModal==='function'&&!window.closeModal.__csjDraftWrapped){
   const originalClose=window.closeModal;
   const wrappedClose=function(opts){const ctx=currentKind();if(ctx&&ctx.kind==='clientes')persistContext(ctx);return originalClose(opts)};
