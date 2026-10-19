@@ -3481,10 +3481,11 @@ document.addEventListener('click',e=>{
   if(oc.includes('salvarOrcamento('))kind='orcamentos';
   else if(oc.includes('saveClient('))kind='clientes';
   else if(oc.includes('emissaoPrint('))kind='recibos';
-  if(kind){setTimeout(()=>{
+  if(kind){const draftIdAtClick=activeIds[kind];const receiptCountAtClick=(()=>{try{return JSON.parse(localStorage.getItem('csj_emissoes')||'[]').length}catch(e){return 0}})();setTimeout(()=>{
    const stillOpen=kind==='clientes'?!!($d('modal')&&!$d('modal').classList.contains('hidden')):kind==='orcamentos'?!!$d('orcNome'):!!$d('emNome');
-   const officiallySaved=kind==='orcamentos'?!localStorage.getItem('csj_orcamento_draft'):kind==='clientes'?!stillOpen:!!document.querySelector('#receiptPreviewOverlay, #printOverlay')||!$d('emNome');
-   if(officiallySaved){const id=activeIds[kind];if(id)deleteDraftQuiet(id);delete activeIds[kind];}
+   const receiptCountNow=(()=>{try{return JSON.parse(localStorage.getItem('csj_emissoes')||'[]').length}catch(e){return 0}})();
+   const officiallySaved=kind==='orcamentos'?!localStorage.getItem('csj_orcamento_draft'):kind==='clientes'?!stillOpen:receiptCountNow>receiptCountAtClick;
+   if(officiallySaved){if(draftIdAtClick)deleteDraftQuiet(draftIdAtClick);if(activeIds[kind]===draftIdAtClick)delete activeIds[kind];}
   },1800)}
  }
 },true);
@@ -3495,11 +3496,11 @@ async function deleteDraftQuiet(id){
 }
 document.addEventListener('input',e=>{if(e.target.closest('#content')||e.target.closest('#modalBody'))scheduleSave()});
 document.addEventListener('change',e=>{if(e.target.closest('#content')||e.target.closest('#modalBody'))scheduleSave()});
-const observer=new MutationObserver(()=>{scheduleRender();if(window.me)loadCloud()});
+const observer=new MutationObserver(records=>{const relevant=records.some(r=>[...r.addedNodes,...r.removedNodes].some(n=>!(n.nodeType===1&&n.id==='csjDraftSection')));if(relevant){scheduleRender();if(window.me)loadCloud()}});
 function init(){
  readCache();
- const c=$d('content');if(c)observer.observe(c,{childList:true,subtree:true});
- const m=$d('modal');if(m)new MutationObserver(()=>{if(m.classList.contains('hidden')){scheduleRender();if(currentKind())scheduleSave()}else scheduleSave()}).observe(m,{attributes:true,attributeFilter:['class']});
+ const c=$d('content');if(c)observer.observe(c,{childList:true});
+ const m=$d('modal');if(m)new MutationObserver(()=>{if(m.classList.contains('hidden')){delete activeIds.clientes;scheduleRender()}else scheduleSave()}).observe(m,{attributes:true,attributeFilter:['class']});
  scheduleRender();loadCloud();
 }
 window.addEventListener('online',loadCloud);
