@@ -2799,7 +2799,7 @@ window.orcServiceCommit=function(index){
   scheduleOrcDraftSave();
   const saved=[...list.querySelectorAll('.orcServiceData')].some(function(el){try{const x=JSON.parse(el.textContent||'{}');return x.descricao===service.descricao&&JSON.stringify(x.itens||[])===JSON.stringify(service.itens)}catch(e){return false}});
   if(!saved){alert('O serviço não foi confirmado na lista. A janela continuará aberta para você tentar novamente.');return false}
-  window.closeModal();
+  window.closeModal({skipHistory:true});
   setTimeout(function(){try{saveOrcDraftNow();scheduleOrcDraftSave()}catch(e){}if(typeof window.csjPersistDraftForTab==='function')window.csjPersistDraftForTab('orcamentos')},100);
   return true;
  }catch(e){console.error('Falha ao salvar serviço no orçamento',e);alert('Não foi possível adicionar este serviço ao orçamento. A janela continuará aberta.');return false}
