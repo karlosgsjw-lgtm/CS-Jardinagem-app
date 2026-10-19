@@ -3512,6 +3512,11 @@ document.addEventListener('change',e=>{if(e.target.closest('#content')||e.target
 const observer=new MutationObserver(records=>{const relevant=records.some(r=>[...r.addedNodes,...r.removedNodes].some(n=>!(n.nodeType===1&&n.id==='csjDraftSection')));if(relevant){scheduleRender();if(window.me)loadCloud()}});
 function init(){
  readCache();
+ if(typeof window.closeModal==='function'&&!window.closeModal.__csjDraftWrapped){
+  const originalClose=window.closeModal;
+  const wrappedClose=function(opts){const ctx=currentKind();if(ctx&&ctx.kind==='clientes')persistContext(ctx);return originalClose(opts)};
+  wrappedClose.__csjDraftWrapped=true;window.closeModal=wrappedClose;
+ }
  const c=$d('content');if(c)observer.observe(c,{childList:true});
  const m=$d('modal');if(m)new MutationObserver(()=>{if(m.classList.contains('hidden')){delete activeIds.clientes;scheduleRender()}else scheduleSave()}).observe(m,{attributes:true,attributeFilter:['class']});
  scheduleRender();loadCloud();
