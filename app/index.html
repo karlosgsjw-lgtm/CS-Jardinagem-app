@@ -3325,6 +3325,13 @@ window.csSetLanguage=setLanguage;if(document.readyState==='loading')document.add
 (function(){
 'use strict';
 const TABLE='csj_rascunhos',CACHE='csj_rascunhos_cache_v2',PENDING='csj_rascunhos_pending_v2';
+function canonicalDraftId(value){
+ const id=String(value||'');
+ const re=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ if(re.test(id))return id;
+ const legacy=id.startsWith('dr_')?id.slice(3):id;
+ return re.test(legacy)?legacy:id;
+}
 let drafts=[],timers={},activeIds={},renderTimer=0,refreshing=false,restoring=false;
 const $d=id=>document.getElementById(id);
 const escD=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -3432,11 +3439,17 @@ function confirmDraftDelete(d){
 async function deleteDraft(id){
  const d=drafts.find(x=>x.id===id);if(!d)return;
  if(!await confirmDraftDelete(d))return;
+ const dbId=canonicalDraftId(id);
  try{
-  if(navigator.onLine&&window.dbClient){const {error}=await window.dbClient.from(TABLE).delete().eq('id',id);if(error)throw error}
-  else{let p=[];try{p=JSON.parse(localStorage.getItem(PENDING)||'[]')}catch(e){}p.push({id,_delete:true,owner_id:window.me?.id});localStorage.setItem(PENDING,JSON.stringify(p))}
-  drafts=drafts.filter(x=>x.id!==id);writeCache();removePending(id);
-  Object.keys(activeIds).forEach(k=>{if(activeIds[k]===id)delete activeIds[k]});
+  if(navigator.onLine&&window.dbClient){
+   const re=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+   if(re.test(dbId)){const {error}=await window.dbClient.from(TABLE).delete().eq('id',dbId);if(error)throw error}
+  }else{
+   let p=[];try{p=JSON.parse(localStorage.getItem(PENDING)||'[]')}catch(e){}
+   p=p.filter(x=>x.id!==id&&x.id!==dbId);p.push({id:dbId,_delete:true,owner_id:window.me?.id});localStorage.setItem(PENDING,JSON.stringify(p));
+  }
+  drafts=drafts.filter(x=>x.id!==id&&x.id!==dbId);writeCache();removePending(id);removePending(dbId);
+  Object.keys(activeIds).forEach(k=>{if(activeIds[k]===id||activeIds[k]===dbId)delete activeIds[k]});
   scheduleRender();
  }catch(e){alert('Não foi possível excluir o rascunho: '+(e.message||'erro'))}
 }
@@ -3444,7 +3457,15 @@ async function persistContext(ctx){
  if(restoring||!ctx||!window.me||!window.dbClient)return;
  const {fields,payload}=makePayload(ctx);
  if(!meaningful(fields,ctx.kind,payload))return;
- const id=activeIds[ctx.kind]||(activeIds[ctx.kind]='dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2)));
+ let id=activeIds[ctx.kind];
+ if(!id)id=crypto.randomUUID?crypto.randomUUID():('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}));
+ const canonical=canonicalDraftId(id);
+ if(canonical!==id){
+  const legacy=drafts.find(x=>x.id===id);
+  if(legacy){drafts=drafts.filter(x=>x.id!==id);drafts.unshift({...legacy,id:canonical});writeCache();}
+  removePending(id);id=canonical;
+ }
+ activeIds[ctx.kind]=id;
  const previous=drafts.find(x=>x.id===id);
  const d={id,owner_id:previous?.owner_id||window.me.id,titulo:titleFor(ctx.kind,payload,fields),tipo:ctx.kind,aba:ctx.tab,payload,criado_em:previous?.criado_em||new Date().toISOString(),atualizado_em:new Date().toISOString()};
  try{await cloudSave(d)}catch(e){console.warn('Não foi possível sincronizar o rascunho agora',e)}
@@ -3496,20 +3517,20 @@ async function continueDraft(id){
    if(typeof window.openClient!=='function')throw new Error('Formulário de clientes indisponível');
    await window.openClient(null);await new Promise(r=>setTimeout(r,300));setFields(d.payload?.fields,$d('modalBody')||document);
   }else if(d.tipo==='orcamentos'){
-   const q=d.payload?.quote;
-   if(q)localStorage.setItem('csj_orcamento_draft',JSON.stringify(q));
-   else{
+   let q=d.payload?.quote;
+   if(!q){
     const fields=d.payload?.fields||[];
-    const q2={version:2,mode:'new',id:'',cliente_id:null,nome:'',telefone:'',endereco:'',data:'',validade:'',status:'Em aberto',forma:'',obs:'',somarValores:false,itens:d.payload?.items||[],savedAt:d.atualizado_em};
-    fields.forEach(f=>{const map={orcClienteSelect:'cliente_id',orcNome:'nome',orcTelefone:'telefone',orcEndereco:'endereco',orcData:'data',orcValidade:'validade',orcStatus:'status',orcForma:'forma',orcObs:'obs',orcSomarValores:'somarValores'};if(map[f.id])q2[map[f.id]]=f.id==='orcSomarValores'?!!f.value:f.value});q2.itens=d.payload?.items||[];localStorage.setItem('csj_orcamento_draft',JSON.stringify(q2));
+    q={version:2,mode:'new',id:'',cliente_id:null,nome:'',telefone:'',endereco:'',data:'',validade:'',status:'Em aberto',forma:'',obs:'',somarValores:false,itens:d.payload?.items||[],savedAt:d.atualizado_em};
+    fields.forEach(f=>{const map={orcClienteSelect:'cliente_id',orcNome:'nome',orcTelefone:'telefone',orcEndereco:'endereco',orcData:'data',orcValidade:'validade',orcStatus:'status',orcForma:'forma',orcObs:'obs',orcSomarValores:'somarValores'};if(map[f.id])q[map[f.id]]=f.id==='orcSomarValores'?!!f.value:f.value});
+    q.itens=d.payload?.items||[];
    }
+   q.itens=Array.isArray(q.itens)?q.itens:(d.payload?.items||[]);
+   localStorage.setItem('csj_orcamento_draft',JSON.stringify(q));
    if(window.tab)window.tab('orcamentos');else if(window.csTabRender)window.csTabRender('orcamentos');
-   // A navegação retorna à lista; a edição só abre quando o usuário pede para continuar.
-   await new Promise(r=>setTimeout(r,180));
-   let opened=false;
-   if(typeof restoreOrcDraftIfAny==='function')opened=restoreOrcDraftIfAny();
-   else if(typeof novoOrcamento==='function'){novoOrcamento(null,q);opened=true}
-   if(!opened)throw new Error('O rascunho foi encontrado, mas não foi possível abrir o editor de orçamento.');
+   await new Promise(r=>setTimeout(r,220));
+   if(typeof novoOrcamento!=='function')throw new Error('Editor de orçamento indisponível.');
+   novoOrcamento(q.mode==='edit'&&q.id?orcData(q.id):null,q);
+   activeIds.orcamentos=canonicalDraftId(d.id);
    await new Promise(r=>setTimeout(r,100));
   }else if(d.tipo==='recibos'){
    if(window.tab)window.tab('emissao');else if(window.csTabRender)window.csTabRender('emissao');
