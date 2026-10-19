@@ -3339,7 +3339,7 @@ function currentKind(){
 function readCache(){try{drafts=JSON.parse(localStorage.getItem(CACHE)||'[]')}catch(e){drafts=[]}}
 function writeCache(){try{localStorage.setItem(CACHE,JSON.stringify(drafts))}catch(e){}}
 function meaningful(fields,kind,payload){
- if(kind==='orcamentos')return !!(String(payload.quote?.nome||'').trim()||fields.some(x=>String(x.value||'').trim()&&x.id!=='orcData'&&x.id!=='orcValidade'));
+ if(kind==='orcamentos')return !!(String(payload.quote?.nome||'').trim()||(payload.items||[]).length||fields.some(x=>String(x.value||'').trim()&&x.id!=='orcData'&&x.id!=='orcValidade'));
  if(kind==='recibos')return !!(String($d('emNome')?.value||'').trim()||String($d('emEnd')?.value||'').trim()||payload.items.length);
  if(kind==='clientes')return !!fields.some(x=>String(x.value||'').trim()&&x.id!=='cv'&&x.id!=='photoDesc');
  return false;
@@ -3381,15 +3381,20 @@ async function cloudSave(d){
  const db=window.dbClient,user=window.me;
  if(!db||!user)throw new Error('Sessão não pronta');
  d.owner_id=d.owner_id||user.id;d.atualizado_em=new Date().toISOString();
- const row={id:d.id,owner_id:d.owner_id,titulo:d.titulo,tipo:d.tipo,aba:d.aba,payload:d.payload,atualizado_em:d.atualizado_em};
+ const row={id:d.id,owner_id:d.owner_id,titulo:d.titulo,tipo:d.tipo,aba:d.aba,payload:d.payload,criado_em:d.criado_em||d.atualizado_em,atualizado_em:d.atualizado_em};
+ // Grava no cache local imediatamente: trocar de aba não pode vencer a sincronização remota.
+ const idx=drafts.findIndex(x=>x.id===d.id);if(idx>=0)drafts[idx]={...drafts[idx],...row};else drafts.unshift({...row});
+ writeCache();scheduleRender();
  if(!navigator.onLine){
   let p=[];try{p=JSON.parse(localStorage.getItem(PENDING)||'[]')}catch(e){}
-  p=p.filter(x=>x.id!==d.id);p.push(row);localStorage.setItem(PENDING,JSON.stringify(p));
- }else{
-  const {error}=await db.from(TABLE).upsert(row,{onConflict:'id'});if(error)throw error;
+  p=p.filter(x=>x.id!==d.id);p.push(row);localStorage.setItem(PENDING,JSON.stringify(p));return;
  }
- const idx=drafts.findIndex(x=>x.id===d.id);if(idx>=0)drafts[idx]={...drafts[idx],...row};else drafts.unshift({...row,criado_em:d.criado_em||d.atualizado_em});
- writeCache();scheduleRender();
+ const {error}=await db.from(TABLE).upsert(row,{onConflict:'id'});
+ if(error){
+  let p=[];try{p=JSON.parse(localStorage.getItem(PENDING)||'[]')}catch(e){}
+  p=p.filter(x=>x.id!==d.id);p.push(row);try{localStorage.setItem(PENDING,JSON.stringify(p))}catch(e){}
+  throw error;
+ }
 }
 async function flushPending(){
  const db=window.dbClient,user=window.me;if(!db||!user||!navigator.onLine)return;
@@ -3585,7 +3590,7 @@ function init(){
  }
  if(typeof window.csTabRender==='function'&&!window.csTabRender.__csjDraftWrapped){
   const originalTab=window.csTabRender;
-  const wrappedTab=function(nextTab){const ctx=currentKind();if(ctx)persistContext(ctx);return originalTab(nextTab)};
+  const wrappedTab=function(nextTab){const ctx=currentKind();if(ctx){if(ctx.kind==='orcamentos'&&typeof window.saveOrcDraftNow==='function')try{window.saveOrcDraftNow()}catch(e){}persistContext(ctx)}return originalTab(nextTab)};
   wrappedTab.__csjDraftWrapped=true;window.csTabRender=wrappedTab;
  }
  const c=$d('content');if(c)observer.observe(c,{childList:true});
