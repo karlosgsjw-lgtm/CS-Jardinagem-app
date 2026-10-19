@@ -3067,6 +3067,14 @@ function dashboardFinanceiro(){
 }
 function financeDashboardSection(){return `<div class="panel"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">📊 Dashboard da empresa</h3><div class="muted small">Acompanhe o crescimento com os atendimentos e valores já registrados no app.</div></div><button class="btn alt" type="button" onclick="dashboardFinanceiro()">🔄 Atualizar gráficos</button></div><div id="dashArea" style="margin-top:12px"></div></div>`}
 function usersPage(){if(profile?.perfil!=='master')return tab('inicio');dbClient.from('profiles').select('id,nome,ativo,perfil').order('nome').then(r=>{$('content').innerHTML=`<div class="toolbar"><h2>👥 Usuários</h2></div><div class="panel"><table class="table"><tr><th>Nome</th><th>Perfil</th><th>Ativo</th></tr>${(r.data||[]).map(x=>`<tr><td>${esc(x.nome)}</td><td>${x.perfil==='master'?'👑 Master':'Usuário'}</td><td>${x.ativo?'Sim':'Não'}</td></tr>`).join('')}</table></div>`})}
+// Bridge explícita para o módulo principal: o gerenciador de rascunhos fica fora deste módulo.
+window.csjOpenQuoteDraft=function(q){
+ const existing=q&&q.mode==='edit'&&q.id?orcData(q.id):null;
+ novoOrcamento(existing,q||null);
+ return true;
+};
+window.csjGetQuoteData=function(id){return orcData(id)||null;};
+
 boot();
 </script><div id="v40_9_complete" aria-hidden="true"></div><style id="needs-v2-style">
 .needsV2CatWrap{display:inline-flex;align-items:center;gap:5px;position:relative;flex:0 0 auto;white-space:nowrap}.needsV2Cat{position:relative;display:inline-flex;align-items:center;white-space:nowrap}.needsV2Hamb{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:16px;line-height:1;cursor:pointer;flex:0 0 auto}.nv2CatMenuPopup{background:#fff;border:1px solid #d7e3dc;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:6px;min-width:150px}.nv2CatMenuPopup button{display:block;width:100%;border:0;background:transparent;text-align:left;padding:10px;border-radius:7px;cursor:pointer}.nv2CatMenuPopup .dangerText{color:#b42318}
@@ -3528,8 +3536,8 @@ async function continueDraft(id){
    localStorage.setItem('csj_orcamento_draft',JSON.stringify(q));
    if(window.tab)window.tab('orcamentos');else if(window.csTabRender)window.csTabRender('orcamentos');
    await new Promise(r=>setTimeout(r,220));
-   if(typeof novoOrcamento!=='function')throw new Error('Editor de orçamento indisponível.');
-   novoOrcamento(q.mode==='edit'&&q.id?orcData(q.id):null,q);
+   if(typeof window.csjOpenQuoteDraft!=='function')throw new Error('O editor de orçamento ainda não está disponível. Reabra a aba e tente novamente.');
+   window.csjOpenQuoteDraft(q);
    activeIds.orcamentos=canonicalDraftId(d.id);
    await new Promise(r=>setTimeout(r,100));
   }else if(d.tipo==='recibos'){
