@@ -1974,14 +1974,15 @@ async function csNavigateBack(){
   const yes=await csConfirm('Tem certeza que deseja fechar o aplicativo?');
   if(yes){
     csAllowExit=true;
-    try{history.go(-1)}catch(e){}
+    if(window.AndroidNotifications&&typeof window.AndroidNotifications.exitApp==='function'){window.AndroidNotifications.exitApp();}
+    else{try{history.go(-1)}catch(e){}}
   }else{
     try{history.pushState({csGuard:true,tab:'inicio'},'',location.href)}catch(e){}
     window.csTabRender('inicio');
   }
   return true
 }
-window.addEventListener('popstate',async function(e){
+window.csHandleNativeBack=function(){csNavigateBack();}; window.addEventListener('popstate',async function(e){
   if($('receiptPreviewOverlay')){const ov=$('receiptPreviewOverlay');ov.remove();return}
   if($('printOverlay')){closePrintPreview(true);return}
   if($('modal')&&!$('modal').classList.contains('hidden')){
@@ -1999,7 +2000,8 @@ window.addEventListener('popstate',async function(e){
     const yes=await csConfirm('Tem certeza que deseja fechar o aplicativo?');
     if(yes){
       csAllowExit=true;
-      try{history.go(-1)}catch(err){}
+      if(window.AndroidNotifications&&typeof window.AndroidNotifications.exitApp==='function'){window.AndroidNotifications.exitApp();}
+      else{try{history.go(-1)}catch(err){}}
     }else{
       try{history.pushState({csGuard:true,tab:'inicio'},'',location.href)}catch(err){}
       window.csTabRender('inicio');
