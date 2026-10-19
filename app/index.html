@@ -2735,7 +2735,7 @@ function orcamentosPage(restoreDraft=true){
   let arr=getOrcamentos().sort((a,b)=>String(b.criado_em).localeCompare(String(a.criado_em)));
   $('content').innerHTML=`<div class="toolbar"><h2>🧾 Orçamentos</h2><button class="btn" type="button" data-orc-action="new">➕ Novo orçamento</button></div>
   <div class="panel"><div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>Seus orçamentos</b><div class="muted small">Crie, edite, imprima ou compartilhe pelo WhatsApp.</div></div><div class="small muted">${arr.length} salvo(s) neste aparelho</div></div></div>
-  <div id="orcList">${arr.length?arr.map(orcCard).join(''):'<div class="panel dashEmpty">📄 Nenhum orçamento ainda.<br><button class="btn" style="margin-top:10px" data-orc-action="new">Criar o primeiro orçamento</button></div>'}</div>`;  let draft=getOrcDraft(); if(restoreDraft&&draft){setTimeout(()=>restoreOrcDraftIfAny(),0)}
+  <div id="orcList">${arr.length?arr.map(orcCard).join(''):'<div class="panel dashEmpty">📄 Nenhum orçamento ainda.<br><button class="btn" style="margin-top:10px" data-orc-action="new">Criar o primeiro orçamento</button></div>'}</div>`;  // Rascunhos ficam listados na aba; nunca abrir automaticamente ao entrar.
 }
 
 function orcCard(o){let total=Number(o.total||0);let status=o.status||'Em aberto';return `<div class="orcCard"><div class="orcCardHead"><div><div style="font-size:17px;font-weight:900">${esc(o.nome||'Cliente')}</div><div class="small muted">${esc(o.numero||'')} · ${o.data?new Date(o.data+'T12:00:00').toLocaleDateString('pt-BR'):''}</div><div style="margin-top:7px"><span class="orcStatus ${status==='Aprovado'?'aprovado':status==='Recusado'?'recusado':''}">${status==='Aprovado'?'✅':status==='Recusado'?'❌':'🕐'} ${esc(status)}</span></div></div><div class="orcCardPreview"><button type="button" class="btn alt orcPreviewIcon" data-orc-action="preview" data-orc-id="${o.id}" title="Visualizar orçamento" aria-label="Visualizar orçamento">👁️</button></div></div><div class="small muted" style="margin-top:9px">${esc(o.resumo||'Sem descrição')}</div><div class="orcActions" style="margin-top:11px"><button class="btn alt iconAction" title="Editar" aria-label="Editar" data-orc-action="edit" data-orc-id="${o.id}">✏️</button><button class="btn alt iconAction" title="Imprimir" aria-label="Imprimir" data-orc-action="print" data-orc-id="${o.id}">🖨️</button><button class="btn alt iconAction" title="Compartilhar orçamento pelo WhatsApp" aria-label="Compartilhar orçamento pelo WhatsApp" data-orc-action="whatsapp" data-orc-id="${o.id}"><span class="waShareIcon"><img src="${WHATS_ICON}" alt="WhatsApp"><span class="waArrow">➤</span></span></button><button class="btn danger iconAction" title="Excluir" aria-label="Excluir" data-orc-action="delete" data-orc-id="${o.id}">🗑️</button></div></div>`}
@@ -3296,16 +3296,20 @@ window.csSetLanguage=setLanguage;if(document.readyState==='loading')document.add
 </script>
 
 <style id="csjDraftStyles">
-.csjDraftSection{margin:14px 0 18px;border:1px solid #d9e6dc;border-radius:15px;background:#f5faf6;padding:14px}
-.csjDraftSection h3{margin:0 0 8px;color:#166534}
-.csjDraftCard{background:#fff;border:1px solid #dce5df;border-radius:12px;padding:12px;margin-top:9px}
-.csjDraftTag{display:inline-block;background:#fff3cd;color:#805b00;border:1px solid #f3d98b;border-radius:7px;font-size:12px;font-weight:800;padding:4px 7px;margin-bottom:7px}
-.csjDraftCardTitle{font-weight:800;font-size:16px;overflow-wrap:anywhere}
-.csjDraftCardMeta{font-size:12px;color:#68736b;margin-top:4px}
-.csjDraftCardActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.csjDraftCardActions button{border:0;border-radius:9px;padding:9px 12px;font-weight:700}
+.csjDraftSection{margin:10px 0 14px;border:1px solid #d9e6dc;border-radius:12px;background:#f5faf6;overflow:hidden}
+.csjDraftSection summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:14px;font-weight:800;color:#166534;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.csjDraftSection summary::-webkit-details-marker{display:none}
+.csjDraftSection summary:after{content:'＋';font-size:17px;color:#166534}
+.csjDraftSection[open] summary:after{content:'−'}
+.csjDraftList{padding:0 10px 10px}
+.csjDraftCard{background:#fff;border:1px solid #dce5df;border-radius:10px;padding:10px;margin-top:8px}
+.csjDraftTag{display:inline-block;background:#fff3cd;color:#805b00;border:1px solid #f3d98b;border-radius:6px;font-size:11px;font-weight:800;padding:3px 6px;margin-bottom:5px}
+.csjDraftCardTitle{font-weight:800;font-size:14px;overflow-wrap:anywhere}
+.csjDraftCardMeta{font-size:11px;color:#68736b;margin-top:3px}
+.csjDraftCardActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.csjDraftCardActions button{border:0;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700}
 .csjDraftContinue{background:#166534;color:#fff}.csjDraftDelete{background:#fee2e2;color:#991b1b}
-.csjDraftHint{font-size:13px;color:#68736b;margin:6px 0 0}
+.csjDraftHint{font-size:12px;color:#68736b;margin:0 0 7px}
 </style>
 <script>
 (function(){
@@ -3435,9 +3439,19 @@ function renderPanel(){
  const old=$d('csjDraftSection');if(old)old.remove();if(!kind)return;
  const rows=drafts.filter(d=>d.tipo===kind).sort((a,b)=>String(b.atualizado_em||'').localeCompare(String(a.atualizado_em||'')));
  if(!rows.length)return;
- const section=document.createElement('section');section.id='csjDraftSection';section.className='csjDraftSection';
- section.innerHTML='<h3>📝 Rascunhos</h3><p class="csjDraftHint">Itens não concluídos. Eles não contam como registros oficiais.</p>'+rows.map(d=>'<article class="csjDraftCard"><span class="csjDraftTag">RASCUNHO</span><div class="csjDraftCardTitle">'+escD(d.titulo||labelKind(kind))+'</div><div class="csjDraftCardMeta">Última alteração: '+escD(new Date(d.atualizado_em||d.criado_em||Date.now()).toLocaleString('pt-BR'))+'</div><div class="csjDraftCardActions"><button class="csjDraftContinue" data-csj-continue="'+escD(d.id)+'">Continuar editando</button><button class="csjDraftDelete" data-csj-delete="'+escD(d.id)+'">Excluir</button></div></article>').join('');
- content.appendChild(section);
+ const section=document.createElement('details');section.id='csjDraftSection';section.className='csjDraftSection';
+ section.innerHTML='<summary>📝 Rascunhos ('+rows.length+')</summary><div class="csjDraftList"><p class="csjDraftHint">Itens incompletos — só abrem se você tocar em “Continuar editando”.</p>'+rows.map(d=>'<article class="csjDraftCard"><span class="csjDraftTag">RASCUNHO</span><div class="csjDraftCardTitle">'+escD(d.titulo||labelKind(kind))+'</div><div class="csjDraftCardMeta">Última alteração: '+escD(new Date(d.atualizado_em||d.criado_em||Date.now()).toLocaleString('pt-BR'))+'</div><div class="csjDraftCardActions"><button class="csjDraftContinue" data-csj-continue="'+escD(d.id)+'">Continuar editando</button><button class="csjDraftDelete" data-csj-delete="'+escD(d.id)+'">Excluir</button></div></article>').join('')+'</div>';
+ // Orçamentos: inserir logo após o resumo, antes dos cartões oficiais.
+ // Nas demais abas, manter o campo compacto no topo do conteúdo.
+ if(kind==='orcamentos'){
+  const list=$d('orcList');
+  if(list)content.insertBefore(section,list);
+  else content.insertBefore(section,content.children[1]||null);
+ }else{
+  const toolbar=content.querySelector('.toolbar');
+  if(toolbar&&toolbar.nextSibling)content.insertBefore(section,toolbar.nextSibling);
+  else content.prepend(section);
+ }
 }
 function scheduleRender(){clearTimeout(renderTimer);renderTimer=setTimeout(renderPanel,180)}
 function setFields(fields,root){
@@ -3516,6 +3530,11 @@ function init(){
   const originalClose=window.closeModal;
   const wrappedClose=function(opts){const ctx=currentKind();if(ctx&&ctx.kind==='clientes')persistContext(ctx);return originalClose(opts)};
   wrappedClose.__csjDraftWrapped=true;window.closeModal=wrappedClose;
+ }
+ if(typeof window.csTabRender==='function'&&!window.csTabRender.__csjDraftWrapped){
+  const originalTab=window.csTabRender;
+  const wrappedTab=function(nextTab){const ctx=currentKind();if(ctx)persistContext(ctx);return originalTab(nextTab)};
+  wrappedTab.__csjDraftWrapped=true;window.csTabRender=wrappedTab;
  }
  const c=$d('content');if(c)observer.observe(c,{childList:true});
  const m=$d('modal');if(m)new MutationObserver(()=>{if(m.classList.contains('hidden')){delete activeIds.clientes;scheduleRender()}else scheduleSave()}).observe(m,{attributes:true,attributeFilter:['class']});
