@@ -3341,7 +3341,7 @@ async function cloudList(){
  const cloud=data||[], ids=new Set(cloud.map(x=>x.id));
  // Reenvia rascunhos salvos localmente quando o aparelho estava sem conexão.
  let pending=[];try{pending=JSON.parse(localStorage.getItem(PKEY)||'[]')}catch(e){}
- for(const p of pending){try{const row={id:p.id,owner_id:p.owner_id||user.id,titulo:p.titulo,tipo:p.tipo,aba:p.aba,payload:p.payload,atualizado_em:p.atualizado_em};const {error:upErr}=await db.from('csj_rascunhos').upsert(row,{onConflict:'id'});if(!upErr)ids.add(p.id)}catch(e){}}
+ for(const p of pending){try{if(p._delete){const {error:delErr}=await db.from('csj_rascunhos').delete().eq('id',p.id);if(!delErr)ids.add(p.id);continue}const row={id:p.id,owner_id:p.owner_id||user.id,titulo:p.titulo,tipo:p.tipo,aba:p.aba,payload:p.payload,atualizado_em:p.atualizado_em};const {error:upErr}=await db.from('csj_rascunhos').upsert(row,{onConflict:'id'});if(!upErr)ids.add(p.id)}catch(e){}}
  try{localStorage.setItem(PKEY,JSON.stringify(pending.filter(p=>!ids.has(p.id))))}catch(e){}
  const {data:fresh,error:e2}=await db.from('csj_rascunhos').select('id,owner_id,titulo,tipo,aba,payload,criado_em,atualizado_em').order('atualizado_em',{ascending:false}).limit(200);
  if(e2)throw e2;
@@ -3378,7 +3378,7 @@ async function saveCurrent(){
  const fields=fieldsD();
  if(!fields.length){const st=document.getElementById('csjDraftStatus');st.textContent='Não encontrei campos preenchidos nesta tela. Abra o formulário que deseja guardar e tente novamente.';return}
  const t=tabD(),now=new Date().toISOString();
- const d={id:activeDraft?.id||('dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2))),owner_id:activeDraft?.owner_id||window.me?.id,titulo:titleD(fields,t),tipo:t,aba:t,payload:{fields,scrollY:window.scrollY||0},criado_em:activeDraft?.criado_em||now,atualizado_em:now};
+ const d={id:activeDraft?.id||('dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2))),owner_id:activeDraft?.owner_id||window.me?.id,titulo:titleD(fields,t),tipo:t,aba:t,payload:{fields,scrollY:window.scrollY||0,clientId:window.currentClientEditId||null},criado_em:activeDraft?.criado_em||now,atualizado_em:now};
  try{await upsertD(d);activeDraft=d;renderList();const st=document.getElementById('csjDraftStatus');if(st)st.textContent='Rascunho salvo e sincronizado. Continue preenchendo: as alterações serão atualizadas automaticamente.';scheduleAutosave();}catch(e){const st=document.getElementById('csjDraftStatus');if(st)st.textContent='Não foi possível sincronizar: '+(e.message||'erro inesperado');}
 }
 function scheduleAutosave(){clearTimeout(saveTimer);if(!activeDraft)return;saveTimer=setTimeout(async()=>{if(!activeDraft||loading)return;const fields=fieldsD();if(!fields.length)return;activeDraft.payload={fields,scrollY:window.scrollY||0};activeDraft.titulo=titleD(fields,activeDraft.aba);try{await upsertD(activeDraft)}catch(e){console.warn('Rascunho aguardando sincronização',e)}},1000)}
@@ -3389,7 +3389,7 @@ async function restoreDraft(id){
  const ids=(d.payload?.fields||[]).map(f=>f.id);
  // Reabre os formulários conhecidos antes de devolver os campos salvos.
  if(ids.includes('cn')&&typeof window.openClient==='function'){
-   try{window.openClient(window.currentClientEditId||null);await new Promise(r=>setTimeout(r,350))}catch(e){}
+   try{window.openClient(d.payload?.clientId||null);await new Promise(r=>setTimeout(r,350))}catch(e){}
  }
  if(ids.includes('orcNome')&&typeof window.novoOrcamento==='function'){
    try{window.novoOrcamento();await new Promise(r=>setTimeout(r,250))}catch(e){}
