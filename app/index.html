@@ -3541,7 +3541,9 @@ async function continueDraft(id){
     const box=$d('emRows');if(box){box.innerHTML='';(d.payload?.items||[]).forEach(it=>window.emissaoAddService({data:it.data,desc:it.desc,valor:it.valor}));}
    }
   }
-  activeIds[d.tipo]=d.id;
+  const draftId=canonicalDraftId(d.id);
+  if(draftId!==d.id){drafts=drafts.map(x=>x.id===d.id?{...x,id:draftId}:x);writeCache();removePending(d.id);}
+  activeIds[d.tipo]=draftId;
   scheduleRender();
  }catch(e){alert('Não foi possível reabrir o rascunho: '+(e.message||'erro'))}
  finally{setTimeout(()=>{restoring=false},500)}
