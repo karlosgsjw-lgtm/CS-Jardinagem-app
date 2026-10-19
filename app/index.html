@@ -3320,8 +3320,8 @@ const escD=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const tabD=()=>history.state?.tab||document.querySelector('[data-tab].active')?.dataset.tab||'inicio';
 const tabLabelD=t=>({'inicio':'Início','agenda':'Agenda','clientes':'Clientes','ajudantes':'Ajudantes','financeiro':'Financeiro','anual':'Agenda Anual','emissao':'Recibos','necessidades':'Necessidades','orcamentos':'Orçamentos','orcamento':'Orçamentos'}[t]||String(t||'Formulário'));
 function fieldsD(){
- const root=document.getElementById('content')||document.body, out=[];
- root.querySelectorAll('input,textarea,select').forEach((el,i)=>{
+ const out=[], nodes=[...document.querySelectorAll('#content input, #content textarea, #content select, #modal:not(.hidden) #modalBody input, #modal:not(.hidden) #modalBody textarea, #modal:not(.hidden) #modalBody select')];
+ nodes.forEach((el,i)=>{
   if(!el.id&&!el.name)return;
   if(['button','submit','reset','file','password'].includes((el.type||'').toLowerCase()))return;
   if(el.disabled||el.closest('[hidden]')||el.getAttribute('aria-hidden')==='true')return;
@@ -3386,6 +3386,14 @@ async function restoreDraft(id){
  const d=drafts.find(x=>x.id===id);if(!d)return;
  activeDraft=JSON.parse(JSON.stringify(d));closePanel();
  if(d.aba&&window.tab){window.tab(d.aba);await new Promise(r=>setTimeout(r,450))}
+ const ids=(d.payload?.fields||[]).map(f=>f.id);
+ // Reabre os formulários conhecidos antes de devolver os campos salvos.
+ if(ids.includes('cn')&&typeof window.openClient==='function'){
+   try{window.openClient(window.currentClientEditId||null);await new Promise(r=>setTimeout(r,350))}catch(e){}
+ }
+ if(ids.includes('orcNome')&&typeof window.novoOrcamento==='function'){
+   try{window.novoOrcamento();await new Promise(r=>setTimeout(r,250))}catch(e){}
+ }
  loading=true;
  let restored=0;
  (d.payload?.fields||[]).forEach(f=>{let el=null;try{el=f.id?document.getElementById(f.id):document.querySelector(f.key)}catch(e){}if(!el)return;if(el.type==='checkbox'||el.type==='radio')el.checked=!!f.value;else if(el.tagName==='SELECT'||'value'in el)el.value=f.value??'';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));restored++});
