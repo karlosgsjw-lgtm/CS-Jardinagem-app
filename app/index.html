@@ -3351,7 +3351,10 @@ function makePayload(ctx){
  if(ctx.kind==='orcamentos'){
   try{payload.quote=JSON.parse(localStorage.getItem('csj_orcamento_draft')||'null')}catch(e){payload.quote=null}
   payload.items=[...document.querySelectorAll('#orcServicesList .orcServiceData')].map(el=>{try{return JSON.parse(el.textContent||'{}')}catch(e){return {}}});
-  if(payload.quote&&(!payload.quote.itens||!payload.quote.itens.length))payload.quote.itens=payload.items;
+  const q=payload.quote||{version:2,mode:'new',id:'',itens:[]};
+  const map={orcClienteSelect:'cliente_id',orcNome:'nome',orcTelefone:'telefone',orcEndereco:'endereco',orcData:'data',orcValidade:'validade',orcStatus:'status',orcForma:'forma',orcObs:'obs',orcSomarValores:'somarValores'};
+  fields.forEach(f=>{if(map[f.id])q[map[f.id]]=f.id==='orcSomarValores'?!!f.value:f.value});
+  q.itens=payload.items;q.savedAt=new Date().toISOString();payload.quote=q;
  }
  if(ctx.kind==='recibos'){
   payload.items=[...document.querySelectorAll('#emRows .emissaoItem')].map(el=>({data:el.querySelector('.emDate')?.value||'',desc:el.querySelector('.emDesc')?.value||'',valor:el.querySelector('.emVal')?.value||'0,00'}));
@@ -3406,6 +3409,15 @@ async function deleteDraft(id){
   scheduleRender();
  }catch(e){alert('Não foi possível excluir o rascunho: '+(e.message||'erro'))}
 }
+async function persistContext(ctx){
+ if(restoring||!ctx||!window.me||!window.dbClient)return;
+ const {fields,payload}=makePayload(ctx);
+ if(!meaningful(fields,ctx.kind,payload))return;
+ const id=activeIds[ctx.kind]||(activeIds[ctx.kind]='dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2)));
+ const previous=drafts.find(x=>x.id===id);
+ const d={id,owner_id:previous?.owner_id||window.me.id,titulo:titleFor(ctx.kind,payload,fields),tipo:ctx.kind,aba:ctx.tab,payload,criado_em:previous?.criado_em||new Date().toISOString(),atualizado_em:new Date().toISOString()};
+ try{await cloudSave(d)}catch(e){console.warn('Não foi possível sincronizar o rascunho agora',e)}
+}
 function scheduleSave(){
  if(restoring)return;
  const ctx=currentKind();if(!ctx||!window.me||!window.dbClient)return;
@@ -3413,12 +3425,7 @@ function scheduleSave(){
  timers[ctx.kind]=setTimeout(async()=>{
   const live=currentKind();
   if(!live||live.kind!==ctx.kind)return;
-  const {fields,payload}=makePayload(live);
-  if(!meaningful(fields,ctx.kind,payload))return;
-  const id=activeIds[ctx.kind]||(activeIds[ctx.kind]='dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2)));
-  const previous=drafts.find(x=>x.id===id);
-  const d={id,owner_id:previous?.owner_id||window.me.id,titulo:titleFor(ctx.kind,payload,fields),tipo:ctx.kind,aba:ctx.tab,payload,criado_em:previous?.criado_em||new Date().toISOString(),atualizado_em:new Date().toISOString()};
-  try{await cloudSave(d)}catch(e){console.warn('Não foi possível sincronizar o rascunho agora',e)}
+  await persistContext(live);
  },700);
 }
 function labelKind(k){return k==='orcamentos'?'Orçamentos':k==='recibos'?'Recibos':'Clientes'}
@@ -3473,8 +3480,14 @@ document.addEventListener('click',e=>{
  const cont=e.target.closest('[data-csj-continue]'),del=e.target.closest('[data-csj-delete]');
  if(cont){e.preventDefault();continueDraft(cont.dataset.csjContinue)}
  if(del){e.preventDefault();deleteDraft(del.dataset.csjDelete)}
- // Se o usuário concluiu oficialmente o formulário, o rascunho deixa de aparecer.
  const btn=e.target.closest('button');
+ // Persiste o estado antes de os handlers existentes fecharem ou limparem o formulário.
+ if(btn&&btn.getAttribute('onclick')&&btn.getAttribute('onclick').includes('sairEditorOrcamento'))persistContext({kind:'orcamentos',tab:'orcamentos',root:$d('content')});
+ if((btn&&btn.classList.contains('modalCloseButton'))||e.target?.id==='modal'){
+  const ctx=currentKind();if(ctx)persistContext(ctx);
+ }
+ // Se o usuário concluiu oficialmente o formulário, o rascunho deixa de aparecer.
+
  if(btn&&btn.getAttribute('onclick')){
   const oc=btn.getAttribute('onclick');
   let kind=null;
