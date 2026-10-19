@@ -3294,3 +3294,117 @@ function init(){const b=document.getElementById('csLanguageButton'),m=document.g
 window.csSetLanguage=setLanguage;if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
 </script>
+
+<style id="csjDraftStyles">
+#csjDraftFab{position:fixed;right:14px;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:9990;border:0;border-radius:999px;background:#166534;color:#fff;font-weight:800;padding:12px 15px;box-shadow:0 5px 18px #0003;display:flex;gap:7px;align-items:center;font-size:14px}
+#csjDraftShade{position:fixed;inset:0;background:#0007;z-index:9997;display:none;align-items:flex-end;justify-content:center;padding:12px}
+#csjDraftShade.open{display:flex}
+#csjDraftPanel{background:#fff;color:#172018;border-radius:20px 20px 14px 14px;width:min(620px,100%);max-height:min(82dvh,760px);overflow:auto;padding:18px;box-shadow:0 16px 50px #0004}
+.csjDraftHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.csjDraftList{display:grid;gap:9px;margin-top:12px}
+.csjDraftItem{border:1px solid #dce5df;border-radius:13px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.csjDraftItem small{display:block;color:#68736b;margin-top:4px}
+.csjDraftActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.csjDraftBtn{border:0;border-radius:9px;padding:9px 11px;font-weight:700;background:#166534;color:#fff}
+.csjDraftBtn.alt{background:#e8f1eb;color:#14532d}.csjDraftBtn.danger{background:#fee2e2;color:#991b1b}
+.csjDraftNote{font-size:13px;color:#68736b;line-height:1.4}
+@media(max-width:480px){#csjDraftFab{right:10px;bottom:calc(76px + env(safe-area-inset-bottom,0px));padding:11px 13px}#csjDraftPanel{padding:14px}.csjDraftItem{grid-template-columns:1fr}.csjDraftActions{justify-content:flex-start}}
+</style>
+
+<script>
+(function(){
+'use strict';
+const DKEY='csj_rascunhos_cache_v1', PKEY='csj_rascunhos_pending_v1';
+let drafts=[],activeDraft=null,saveTimer=null,loading=false;
+const escD=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tabD=()=>history.state?.tab||document.querySelector('[data-tab].active')?.dataset.tab||'inicio';
+const tabLabelD=t=>({'inicio':'Início','agenda':'Agenda','clientes':'Clientes','ajudantes':'Ajudantes','financeiro':'Financeiro','anual':'Agenda Anual','emissao':'Recibos','necessidades':'Necessidades','orcamentos':'Orçamentos','orcamento':'Orçamentos'}[t]||String(t||'Formulário'));
+function fieldsD(){
+ const root=document.getElementById('content')||document.body, out=[];
+ root.querySelectorAll('input,textarea,select').forEach((el,i)=>{
+  if(!el.id&&!el.name)return;
+  if(['button','submit','reset','file','password'].includes((el.type||'').toLowerCase()))return;
+  if(el.disabled||el.closest('[hidden]')||el.getAttribute('aria-hidden')==='true')return;
+  const key=el.id?'#'+el.id:'[name="'+String(el.name).replace(/"/g,'\\"')+'"]';
+  out.push({key,id:el.id||'',name:el.name||'',type:el.type||el.tagName.toLowerCase(),value:el.type==='checkbox'||el.type==='radio'?!!el.checked:el.value,checked:!!el.checked,label:(el.closest('label')?.innerText||el.getAttribute('aria-label')||el.placeholder||el.id||el.name||('Campo '+(i+1))).trim().slice(0,90)});
+ });
+ return out;
+}
+function titleD(fields,t){const candidate=fields.find(f=>/nome|cliente|empresa|t[ií]tulo|descri/i.test(f.label+' '+f.id+' '+f.name)&&String(f.value||'').trim());return (tabLabelD(t)+' — '+(candidate?String(candidate.value).trim().slice(0,50):'Em andamento')).slice(0,120)}
+function readCache(){try{drafts=JSON.parse(localStorage.getItem(DKEY)||'[]')}catch(e){drafts=[]}}
+function writeCache(){try{localStorage.setItem(DKEY,JSON.stringify(drafts))}catch(e){}}
+async function cloudList(){
+ const db=window.dbClient,user=window.me;
+ if(!db||!user||!navigator.onLine)return drafts;
+ const {data,error}=await db.from('csj_rascunhos').select('id,owner_id,titulo,tipo,aba,payload,criado_em,atualizado_em').order('atualizado_em',{ascending:false}).limit(200);
+ if(error)throw error;
+ const cloud=data||[], ids=new Set(cloud.map(x=>x.id));
+ // Reenvia rascunhos salvos localmente quando o aparelho estava sem conexão.
+ let pending=[];try{pending=JSON.parse(localStorage.getItem(PKEY)||'[]')}catch(e){}
+ for(const p of pending){try{const row={id:p.id,owner_id:p.owner_id||user.id,titulo:p.titulo,tipo:p.tipo,aba:p.aba,payload:p.payload,atualizado_em:p.atualizado_em};const {error:upErr}=await db.from('csj_rascunhos').upsert(row,{onConflict:'id'});if(!upErr)ids.add(p.id)}catch(e){}}
+ try{localStorage.setItem(PKEY,JSON.stringify(pending.filter(p=>!ids.has(p.id))))}catch(e){}
+ const {data:fresh,error:e2}=await db.from('csj_rascunhos').select('id,owner_id,titulo,tipo,aba,payload,criado_em,atualizado_em').order('atualizado_em',{ascending:false}).limit(200);
+ if(e2)throw e2;
+ drafts=fresh||cloud;writeCache();return drafts;
+}
+async function upsertD(d){
+ const user=window.me,db=window.dbClient;
+ if(!user||!db)throw new Error('Entre no aplicativo para sincronizar os rascunhos.');
+ d.owner_id=d.owner_id||user.id;d.atualizado_em=new Date().toISOString();
+ const row={id:d.id,owner_id:d.owner_id,titulo:d.titulo,tipo:d.tipo,aba:d.aba,payload:d.payload,atualizado_em:d.atualizado_em};
+ if(!navigator.onLine){const p=JSON.parse(localStorage.getItem(PKEY)||'[]').filter(x=>x.id!==d.id);p.push(row);localStorage.setItem(PKEY,JSON.stringify(p));}
+ else {const {error}=await db.from('csj_rascunhos').upsert(row,{onConflict:'id'});if(error)throw error;}
+ const i=drafts.findIndex(x=>x.id===d.id);if(i>=0)drafts[i]={...drafts[i],...row};else drafts.unshift({...row,criado_em:d.criado_em||d.atualizado_em});
+ writeCache();return d;
+}
+function openPanel(){document.getElementById('csjDraftShade').classList.add('open');renderList();refreshList().catch(e=>{const n=document.getElementById('csjDraftStatus');if(n)n.textContent='Não foi possível sincronizar agora. Confira a conexão e tente novamente.'})}
+function closePanel(){document.getElementById('csjDraftShade').classList.remove('open')}
+function renderList(){
+ const list=document.getElementById('csjDraftList');if(!list)return;
+ list.innerHTML=drafts.length?drafts.map(d=>'<div class="csjDraftItem"><div><strong>'+escD(d.titulo||'Rascunho')+'</strong><small>'+escD(tabLabelD(d.aba))+' · '+escD(new Date(d.atualizado_em||d.criado_em||Date.now()).toLocaleString('pt-BR'))+'</small></div><div class="csjDraftActions"><button class="csjDraftBtn" data-draft-open="'+escD(d.id)+'">Editar</button><button class="csjDraftBtn danger" data-draft-delete="'+escD(d.id)+'">Excluir</button></div></div>').join(''):'<p class="csjDraftNote">Nenhum rascunho salvo ainda. Abra um formulário e toque em “Salvar rascunho”.</p>';
+}
+async function refreshList(){const status=document.getElementById('csjDraftStatus');try{await cloudList();renderList();if(status)status.textContent=navigator.onLine?'Rascunhos sincronizados com o Supabase.':'Sem conexão: os novos rascunhos ficam pendentes neste aparelho.'}catch(e){if(status)status.textContent='Exibindo rascunhos disponíveis neste aparelho. Sincronização pendente.'}}
+function openUi(){
+ if(document.getElementById('csjDraftShade'))return;
+ const b=document.createElement('button');b.id='csjDraftFab';b.type='button';b.innerHTML='📝 Rascunhos';b.addEventListener('click',openPanel);document.body.appendChild(b);
+ const shade=document.createElement('div');shade.id='csjDraftShade';shade.innerHTML='<section id="csjDraftPanel" role="dialog" aria-modal="true" aria-label="Rascunhos"><div class="csjDraftHead"><div><h2 style="margin:0;font-size:21px">📝 Rascunhos</h2><p class="csjDraftNote" style="margin:5px 0 0">Guarde formulários sem concluir. Disponíveis nos dois celulares das contas administradoras.</p></div><button type="button" class="csjDraftBtn alt" id="csjDraftClose">Fechar</button></div><button type="button" class="csjDraftBtn" id="csjDraftSave">＋ Salvar formulário atual como rascunho</button><p id="csjDraftStatus" class="csjDraftNote" aria-live="polite">Carregando rascunhos…</p><div id="csjDraftList" class="csjDraftList"></div></section>';
+ shade.addEventListener('click',e=>{if(e.target===shade)closePanel()});document.body.appendChild(shade);
+ document.getElementById('csjDraftClose').addEventListener('click',closePanel);
+ document.getElementById('csjDraftSave').addEventListener('click',saveCurrent);
+ document.getElementById('csjDraftList').addEventListener('click',e=>{const op=e.target.closest('[data-draft-open]'),del=e.target.closest('[data-draft-delete]');if(op)restoreDraft(op.dataset.draftOpen);if(del)deleteDraft(del.dataset.draftDelete)});
+}
+async function saveCurrent(){
+ if(loading)return;
+ const fields=fieldsD();
+ if(!fields.length){const st=document.getElementById('csjDraftStatus');st.textContent='Não encontrei campos preenchidos nesta tela. Abra o formulário que deseja guardar e tente novamente.';return}
+ const t=tabD(),now=new Date().toISOString();
+ const d={id:activeDraft?.id||('dr_'+(crypto.randomUUID?crypto.randomUUID():Date.now()+'_'+Math.random().toString(36).slice(2))),owner_id:activeDraft?.owner_id||window.me?.id,titulo:titleD(fields,t),tipo:t,aba:t,payload:{fields,scrollY:window.scrollY||0},criado_em:activeDraft?.criado_em||now,atualizado_em:now};
+ try{await upsertD(d);activeDraft=d;renderList();const st=document.getElementById('csjDraftStatus');if(st)st.textContent='Rascunho salvo e sincronizado. Continue preenchendo: as alterações serão atualizadas automaticamente.';scheduleAutosave();}catch(e){const st=document.getElementById('csjDraftStatus');if(st)st.textContent='Não foi possível sincronizar: '+(e.message||'erro inesperado');}
+}
+function scheduleAutosave(){clearTimeout(saveTimer);if(!activeDraft)return;saveTimer=setTimeout(async()=>{if(!activeDraft||loading)return;const fields=fieldsD();if(!fields.length)return;activeDraft.payload={fields,scrollY:window.scrollY||0};activeDraft.titulo=titleD(fields,activeDraft.aba);try{await upsertD(activeDraft)}catch(e){console.warn('Rascunho aguardando sincronização',e)}},1000)}
+async function restoreDraft(id){
+ const d=drafts.find(x=>x.id===id);if(!d)return;
+ activeDraft=JSON.parse(JSON.stringify(d));closePanel();
+ if(d.aba&&window.tab){window.tab(d.aba);await new Promise(r=>setTimeout(r,450))}
+ loading=true;
+ let restored=0;
+ (d.payload?.fields||[]).forEach(f=>{let el=null;try{el=f.id?document.getElementById(f.id):document.querySelector(f.key)}catch(e){}if(!el)return;if(el.type==='checkbox'||el.type==='radio')el.checked=!!f.value;else if(el.tagName==='SELECT'||'value'in el)el.value=f.value??'';el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));restored++});
+ loading=false;
+ if(d.payload?.scrollY)window.scrollTo({top:d.payload.scrollY,behavior:'smooth'});
+ if(!restored)alert('O rascunho foi aberto na aba '+tabLabelD(d.aba)+', mas o formulário original não está aberto nessa tela. Abra o formulário correspondente; se os campos não reaparecerem, este formulário precisa ser aberto manualmente antes de restaurar.');
+ else {const note=document.createElement('div');note.textContent='Rascunho restaurado. Revise os campos antes de salvar oficialmente.';note.style.cssText='position:fixed;z-index:9999;bottom:18px;left:50%;transform:translateX(-50%);background:#166534;color:white;padding:12px 16px;border-radius:12px;max-width:90%;box-shadow:0 4px 15px #0003';document.body.appendChild(note);setTimeout(()=>note.remove(),3500)}
+}
+async function deleteDraft(id){
+ const d=drafts.find(x=>x.id===id);if(!d)return;
+ if(!confirm('Excluir este rascunho? Esta ação não pode ser desfeita.'))return;
+ try{if(navigator.onLine&&window.dbClient){const {error}=await window.dbClient.from('csj_rascunhos').delete().eq('id',id);if(error)throw error}else{const p=JSON.parse(localStorage.getItem(PKEY)||'[]');p.push({...d,_delete:true});localStorage.setItem(PKEY,JSON.stringify(p))}
+ drafts=drafts.filter(x=>x.id!==id);if(activeDraft?.id===id)activeDraft=null;writeCache();renderList();const st=document.getElementById('csjDraftStatus');if(st)st.textContent='Rascunho excluído.'}catch(e){alert('Não foi possível excluir o rascunho: '+(e.message||'erro'))}
+}
+document.addEventListener('input',e=>{if(e.target.closest('#content')&&!loading)scheduleAutosave()});
+document.addEventListener('change',e=>{if(e.target.closest('#content')&&!loading)scheduleAutosave()});
+window.addEventListener('online',()=>{if(window.me&&window.dbClient)cloudList().then(renderList).catch(()=>{})});
+readCache();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',openUi,{once:true});else openUi();
+window.csjDraftsRefresh=refreshList;
+})();
+</script>
