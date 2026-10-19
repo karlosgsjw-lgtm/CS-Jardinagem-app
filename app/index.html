@@ -3447,6 +3447,7 @@ function renderPanel(){
  const content=$d('content');if(!content||!window.me)return;
  const tab=currentTab(),kind=tab==='orcamentos'?'orcamentos':tab==='emissao'?'recibos':tab==='clientes'?'clientes':null;
  const old=$d('csjDraftSection');if(old)old.remove();if(!kind)return;
+ if(kind==='orcamentos'&&!$d('orcList'))return; // Exibe a lista apenas na tela de listagem, nunca dentro do editor.
  const rows=drafts.filter(d=>d.tipo===kind).sort((a,b)=>String(b.atualizado_em||'').localeCompare(String(a.atualizado_em||'')));
  if(!rows.length)return;
  const section=document.createElement('details');section.id='csjDraftSection';section.className='csjDraftSection';
@@ -3537,6 +3538,14 @@ const observer=new MutationObserver(records=>{const relevant=records.some(r=>[..
 function init(){
  readCache();
  // Remove o rascunho somente depois de confirmar que o fluxo oficial foi concluído.
+ if(typeof window.sairEditorOrcamento==='function'&&!window.sairEditorOrcamento.__csjDraftWrapped){
+  const originalExitQuote=window.sairEditorOrcamento;
+  const wrappedExitQuote=async function(...args){
+   try{await persistContext({kind:'orcamentos',tab:'orcamentos',root:$d('content')})}catch(e){console.warn('Rascunho do orçamento não sincronizado antes de sair',e)}
+   return originalExitQuote.apply(this,args);
+  };
+  wrappedExitQuote.__csjDraftWrapped=true;window.sairEditorOrcamento=wrappedExitQuote;
+ }
  if(typeof window.salvarOrcamento==='function'&&!window.salvarOrcamento.__csjDraftWrapped){
   const originalSaveQuote=window.salvarOrcamento;
   const wrappedSaveQuote=async function(...args){
