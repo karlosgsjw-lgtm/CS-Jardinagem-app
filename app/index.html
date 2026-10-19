@@ -2418,7 +2418,7 @@ window.editAnnualDate=async function(id,cid,year){
  const fmt=current?current.slice(8,10)+'/'+current.slice(5,7)+'/'+current.slice(0,4):'';
  const entered=await csPrompt('Digite a nova data no formato DD/MM/AAAA:',fmt);
  if(entered==null||!entered.trim())return;
- const m=entered.trim().match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);
+ const m=entered.trim().match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
  if(!m)return alert('Data inválida. Use o formato DD/MM/AAAA.');
  const day=Number(m[1]),monthNum=Number(m[2]),yearNum=Number(m[3]);
  const dt=new Date(yearNum,monthNum-1,day);
