@@ -68,6 +68,8 @@ jobs:
           import android.print.PrintManager;
           import android.webkit.JavascriptInterface;
           import android.webkit.WebView;
+          import android.window.OnBackInvokedCallback;
+          import android.window.OnBackInvokedDispatcher;
           import android.webkit.WebViewClient;
           import java.net.HttpURLConnection;
           import java.net.URL;
@@ -81,16 +83,36 @@ jobs:
 
           public class MainActivity extends BridgeActivity {
               private WebView printWebView;
+              private OnBackInvokedCallback csBackInvokedCallback;
 
-              @Override
-              public void onBackPressed() {
-                  WebView webView = getBridge().getWebView();
-                  if (webView != null) {
-                      webView.evaluateJavascript("window.csHandleNativeBack && window.csHandleNativeBack()", null);
-                      return;
+              private void handleCsBackGesture() {
+                  try {
+                      WebView webView = getBridge().getWebView();
+                      if (webView != null) {
+                          webView.post(() -> webView.evaluateJavascript(
+                              "(function(){if(typeof window.csHandleNativeBack==='function'){window.csHandleNativeBack();return true;}return false;})()",
+                              null
+                          ));
+                          return;
+                      }
+                  } catch (Exception ignored) {
                   }
                   super.onBackPressed();
               }
+
+              @Override
+              public void onBackPressed() {
+                  handleCsBackGesture();
+              }
+
+              @Override
+              public void onStart() {
+                  super.onStart();
+                  if (Build.VERSION.SDK_INT >= 33 && csBackInvokedCallback == null) {
+                      csBackInvokedCallback = () -> handleCsBackGesture();
+                      getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                          OnBackInvokedDispatcher.PRIORITY_DEFAULT, csBackInvokedCallback);
+                  }
 
               @Override
               public void onStart() {
@@ -177,6 +199,16 @@ jobs:
                   webView.postDelayed(() -> webView.evaluateJavascript(
                           "(function(){if(window.__csSiteVisitHook)return;window.__csSiteVisitHook=1;document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a'):null;if(a&&/karlosgsjw-lgtm.github.io\\/CS-Jardinagem-app\\/?$/.test(a.href||'')){try{window.AndroidNotifications.notifySiteVisit()}catch(x){}}},true);})();",
                           null), 1200);
+              }
+
+              @Override
+              public void onStop() {
+                  if (Build.VERSION.SDK_INT >= 33 && csBackInvokedCallback != null) {
+                      try { getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(csBackInvokedCallback); }
+                      catch (Exception ignored) {}
+                      csBackInvokedCallback = null;
+                  }
+                  super.onStop();
               }
 
               @Override
