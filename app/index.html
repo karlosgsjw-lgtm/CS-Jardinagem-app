@@ -1245,6 +1245,8 @@ function scheduleAndroidNotifications(){
    let data=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d>=new Date(now.getFullYear(),now.getMonth(),now.getDate())&&d<=limit}).map(a=>({type:'service',id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
    let end=new Date(now.getFullYear(),now.getMonth()+1,0,18,0,0,0);
    let unpaid=appts.filter(a=>{let d=new Date(a.data_atendimento+'T12:00:00');return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&!a.pago}).map(a=>({id:a.id,date:a.data_atendimento,client:clientName(a),value:Number(a.valor_servico??a.valor??0)}));
+    // Lembretes de cobrança +7 e +20 dias após cada atendimento; itens pagos cancelam alarmes pendentes.
+    appts.filter(a=>a.data_atendimento).forEach(a=>{const c=clients.find(x=>String(x.id)===String(a.cliente_id));data.push({type:'unpaid7',id:a.id,date:a.data_atendimento,client:c?.nome||clientName(a),clientId:a.cliente_id,appointmentId:a.id,paid:!!a.pago});data.push({type:'unpaid20',id:a.id,date:a.data_atendimento,client:c?.nome||clientName(a),clientId:a.cliente_id,appointmentId:a.id,paid:!!a.pago});});
    if(end>now)data.push({type:'monthEnd',id:900000+now.getFullYear()*12+now.getMonth(),date:iso(end),client:'',value:0,unpaid});
    window.AndroidNotifications.scheduleNotifications(JSON.stringify(data));
   }
