@@ -595,6 +595,9 @@ jobs:
                       ch.enableVibration(true);
                       AudioAttributes attrs = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
                       ch.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, attrs);
+                      ch.enableVibration(true);
+                      AudioAttributes attrs = new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build();
+                      ch.setSound(Settings.System.DEFAULT_NOTIFICATION_URI, attrs);
                       nm.createNotificationChannel(ch);
                   }
                   Intent open = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
