@@ -1251,6 +1251,7 @@ function scheduleAndroidNotifications(){
  }catch(e){console.warn('Notificações Android:',e)}
  try{requestAppNotifications().then(appCheckNotifications)}catch(e){}
 }
+window.csHandlePendingNotificationTarget=async function(){try{const bridge=window.AndroidNotifications;if(!bridge||typeof bridge.getPendingNotificationTarget!=='function')return;const raw=bridge.getPendingNotificationTarget();if(!raw)return;const target=typeof raw==='string'?JSON.parse(raw):raw;if(!target||!target.tab)return;if(target.tab==='financeiro'){window.tab('financeiro');setTimeout(function(){const acc=$('financeAccClients');if(acc&&!acc.classList.contains('open'))window.toggleFinanceSection('financeAccClients');setTimeout(function(){let row=null;if(target.appointmentId)row=document.querySelector('#financeAccClients [data-appt-id="'+target.appointmentId+'"]');if(!row&&target.clientName)row=[...document.querySelectorAll('#financeAccClients .unpaidRow')].find(function(el){return el.innerText.includes(target.clientName)});if(row){row.scrollIntoView({behavior:'smooth',block:'center'});row.style.outline='3px solid #16a34a';row.style.borderRadius='10px';setTimeout(function(){row.style.outline=''},4500)}},250)},500)}}catch(e){console.warn('Abrir lembrete de cobrança:',e)}};
 function appCheckNotifications(){
  try{
   if(!('Notification' in window)||Notification.permission!=='granted')return;
@@ -1292,7 +1293,7 @@ function showApp(){  try{csEnsureNavHistory()}catch(e){}
   try{$('modal')?.classList.add('hidden');$('printOverlay')?.remove();$('receiptPreviewOverlay')?.remove();}catch(e){}
   csCurrentTab='__boot__';
   try{sessionStorage.setItem('csj_current_tab','inicio')}catch(e){}
-  setTimeout(()=>window.csTabRender('inicio'),0);
+  setTimeout(()=>window.csTabRender('inicio'),0); setTimeout(()=>window.csHandlePendingNotificationTarget&&window.csHandlePendingNotificationTarget(),900);
 }
 (function(){
  let syncBusy=false;
@@ -2598,7 +2599,7 @@ function financePage(){
     </div>
     <div class="financeAccItem" id="financeAccClients">
       <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccClients')"><div class="financeAccTitle"><span class="financeAccIcon">🔴</span><div class="financeAccText"><b>Clientes a pagar</b><span>${unpaid.length} atendimento(s) em aberto</span></div></div><div class="financeAccSummary"><b>${money(unpaidTotal)}</b><span>total em aberto</span></div><span class="financeAccArrow">⌄</span></button>
-      <div class="financeAccBody"><div class="panel"><h3>🔴 Clientes que ainda não pagaram</h3><p class="muted small">Somente atendimentos de hoje ou anteriores que ainda não foram pagos aparecem aqui. Atendimentos futuros ficam fora desta lista até chegar o dia.</p>${unpaid.map(a=>{let c=clients.find(x=>x.id===a.cliente_id);return `<div class="row infoLine unpaidRow"><div><b>${esc(c?.nome||'Cliente')}</b><div class="small muted">${new Date(a.data_atendimento+'T12:00:00').toLocaleDateString('pt-BR')} · ${esc(a.nota||'Serviço')}</div></div><div class="right unpaidActions"><b>${money(a.valor_servico??a.valor??0)}</b><label class="payCheck"><input type="checkbox" onchange="confirmAppointmentPaid(this,${a.id})"><span>Marcar como pago</span></label></div></div>`}).join('')||'<p class="muted">🎉 Nenhum cliente em aberto.</p>'}<div class="row financeTotal"><b>Total em aberto</b><b class="right">${money(unpaidTotal)}</b></div></div></div>
+      <div class="financeAccBody"><div class="panel"><h3>🔴 Clientes que ainda não pagaram</h3><p class="muted small">Somente atendimentos de hoje ou anteriores que ainda não foram pagos aparecem aqui. Atendimentos futuros ficam fora desta lista até chegar o dia.</p>${unpaid.map(a=>{let c=clients.find(x=>x.id===a.cliente_id);return `<div class="row infoLine unpaidRow" data-appt-id="${a.id}"><div><b>${esc(c?.nome||'Cliente')}</b><div class="small muted">${new Date(a.data_atendimento+'T12:00:00').toLocaleDateString('pt-BR')} · ${esc(a.nota||'Serviço')}</div></div><div class="right unpaidActions"><b>${money(a.valor_servico??a.valor??0)}</b><label class="payCheck"><input type="checkbox" onchange="confirmAppointmentPaid(this,${a.id})"><span>Marcar como pago</span></label></div></div>`}).join('')||'<p class="muted">🎉 Nenhum cliente em aberto.</p>'}<div class="row financeTotal"><b>Total em aberto</b><b class="right">${money(unpaidTotal)}</b></div></div></div>
     </div>
     <div class="financeAccItem" id="financeAccDash">
       <button type="button" class="financeAccHead" onclick="toggleFinanceSection('financeAccDash')"><div class="financeAccTitle"><span class="financeAccIcon">📊</span><div class="financeAccText"><b>Dashboard da empresa</b><span>Faturamento · atendimentos · recebimentos · ajudantes</span></div></div><div class="financeAccSummary"><b>${money(earned)}</b><span>faturamento no período</span></div><span class="financeAccArrow">⌄</span></button>
