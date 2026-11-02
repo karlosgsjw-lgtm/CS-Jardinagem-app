@@ -576,6 +576,8 @@ jobs:
           import android.content.Context;
           import android.content.Intent;
           import android.os.Build;
+          import android.media.AudioAttributes;
+          import android.provider.Settings;
           import androidx.core.app.NotificationCompat;
 
           public class CSNotificationReceiver extends BroadcastReceiver {
@@ -609,10 +611,10 @@ jobs:
                       open.putExtra("reminderType", intent.getStringExtra("reminderType"));
                       open.putExtra("reminderKey", intent.getStringExtra("reminderKey"));
                   }
+                  int id = intent.getIntExtra("id", (int)(System.currentTimeMillis() & 0x7fffffff));
                   PendingIntent pi = PendingIntent.getActivity(context, id, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
                   String title = intent.getStringExtra("title");
                   String body = intent.getStringExtra("body");
-                  int id = intent.getIntExtra("id", (int)(System.currentTimeMillis() & 0x7fffffff));
                   NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
                           .setSmallIcon(R.drawable.ic_stat_cs)
                           .setColor(android.graphics.Color.rgb(22, 101, 52))
