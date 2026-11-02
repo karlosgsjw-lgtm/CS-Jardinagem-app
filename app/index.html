@@ -992,7 +992,16 @@ async function loadProfile(){
   $('who').textContent=(profile.nome||me.email)+' · Usuário';$('usersTab').classList.toggle('hidden',true);return;
  }
  let r=await dbClient.from('profiles').select('*').eq('id',me.id).maybeSingle();
- profile=r.data||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
+ if(r.error){
+  window.csProfileLoadError=r.error.message||'Falha ao consultar o perfil.';
+  throw new Error('Não foi possível confirmar seu perfil no Supabase: '+window.csProfileLoadError);
+ }
+ if(!r.data){
+  window.csProfileLoadError='Nenhum perfil encontrado para o ID autenticado '+me.id;
+  throw new Error('Seu usuário autenticado não possui registro correspondente em profiles. Não foi atribuído perfil comum automaticamente.');
+ }
+ profile=r.data;
+ window.csProfileLoadError='';
  try{
   localStorage.setItem(key,JSON.stringify(profile));
   localStorage.setItem('csj_profile_cache_v2_offline',JSON.stringify(profile));
@@ -1046,7 +1055,11 @@ async function loadData(cacheOnly=false){
  ]);
  const [c,a,h,hp,an,ev,n]=results;
  const okCount=results.filter(x=>x.status==='fulfilled' && x.value && !x.value.error).length;
- window.csDataLoadError=okCount?'' : results.map(x=>x.status==='rejected'?(x.reason?.message||'Falha de rede'):(x.value?.error?.message||'Falha')).join(' | ');
+ const coreErrors=[];
+ if(c.status!=='fulfilled'||c.value?.error)coreErrors.push('clientes: '+(c.status==='fulfilled'?(c.value?.error?.message||'falha na consulta'):(c.reason?.message||'falha de rede')));
+ if(a.status!=='fulfilled'||a.value?.error)coreErrors.push('atendimentos: '+(a.status==='fulfilled'?(a.value?.error?.message||'falha na consulta'):(a.reason?.message||'falha de rede')));
+ window.csDataLoadError=coreErrors.length?coreErrors.join(' | '):(okCount?'':results.map(x=>x.status==='rejected'?(x.reason?.message||'Falha de rede'):(x.value?.error?.message||'Falha')).join(' | '));
+ if(coreErrors.length)throw new Error('Não foi possível atualizar os dados principais do Supabase ('+window.csDataLoadError+'). Os dados antigos não serão apresentados como se estivessem atualizados.');
  if(c.status==='fulfilled'&&c.value?.data)clients=c.value.data;
  if(a.status==='fulfilled'&&a.value?.data)appts=a.value.data;
  if(h.status==='fulfilled'&&h.value?.data){helperList=h.value.data;window.helperLoadError=''}else if(!hadCache)window.helperLoadError=h.status==='fulfilled'?(h.value?.error?.message||''):(h.reason?.message||'');
