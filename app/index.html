@@ -1085,8 +1085,30 @@ function csIsNetworkError(e){
   const m=String(e?.message||e||'').toLowerCase();
   return e?.name==='TypeError'||/failed to fetch|networkerror|network error|fetch failed|load failed|network request/i.test(m);
 }
+// Nunca grava nem sincroniza como anon: confirma a sessão real do Supabase
+// e garante que ela pertence ao usuário atualmente aberto no aplicativo.
+async function csRequireAuthenticatedUser(expectedId=me?.id){
+  if(!navigator.onLine)return false;
+  try{
+    const sr=await dbClient.auth.getSession();
+    if(sr.error||!sr.data?.session?.user?.id)return false;
+    const ur=await dbClient.auth.getUser();
+    const user=ur.data?.user;
+    if(ur.error||!user?.id)return false;
+    if(expectedId&&String(user.id)!==String(expectedId))return false;
+    me=user;
+    return true;
+  }catch(e){
+    console.warn('Sessão do Supabase não confirmada:',e);
+    return false;
+  }
+}
+function csAuthRequiredError(){
+  return {data:null,error:{message:'Sua sessão de acesso expirou ou não está autenticada. Entre novamente com seu e-mail e senha para fazer alterações. Seus dados salvos não foram apagados.'}};
+}
 async function csWriteInsert(table,payload,wantData=false){
   if(navigator.onLine){
+    if(!await csRequireAuthenticatedUser())return csAuthRequiredError();
     try{
       const q=dbClient.from(table).insert(payload);
       const r=await (wantData?q.select('*').single():q);
@@ -1101,6 +1123,7 @@ async function csWriteInsert(table,payload,wantData=false){
 }
 async function csWriteUpdate(table,payload,id){
   if(navigator.onLine){
+    if(!await csRequireAuthenticatedUser())return csAuthRequiredError();
     try{
       const r=await dbClient.from(table).update(payload).eq('id',id);
       if(!r?.error)return r;
@@ -1144,7 +1167,8 @@ async function csWriteDelete(table,id){
     return {data:null,error:null};
   }
 
-  // Online: mantém a exclusão normal no Supabase.
+  // Online: mantém a exclusão normal no Supabase, mas nunca como anon.
+  if(!await csRequireAuthenticatedUser())return csAuthRequiredError();
   try{
     const r=await dbClient.from(table).delete().eq('id',id);
     if(!r?.error)return r;
@@ -1201,7 +1225,11 @@ function csOfflineReplaceTempId(tempId,realId,table){
  csOfflineQueueWrite(q);csOfflinePersistData();
 }
 async function csFlushOfflineQueue(){
- if(!navigator.onLine||!me)return;if(!csOfflineQueueRead().length)return;
+ if(!navigator.onLine||!me)return;
+ // A fila pode ter sido criada em modo offline/biométrico. Só envia depois
+ // de validar uma sessão autenticada e pertencente ao mesmo usuário.
+ if(!await csRequireAuthenticatedUser())return;
+ if(!csOfflineQueueRead().length)return;
  let q=csOfflineQueueRead();
  for(let i=0;i<q.length;i++){const x=q[i];let r;
   if(x.op==='insert'){
@@ -1453,6 +1481,10 @@ async function csLoginBiometric(auto=false){
         try{
           const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
           if(!snap?.me?.id){loginMsg('Faça um login normal uma vez para preparar o acesso biométrico.');return}
+          if(navigator.onLine&&!await csRequireAuthenticatedUser(snap.me.id)){
+            loginMsg('Sua sessão não está autenticada neste aparelho. Entre com e-mail e senha para continuar.');
+            showLogin();return;
+          }
           me={id:snap.me.id,email:snap.me.email||localStorage.getItem('csj_bio_user')||''};
           profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
           clients=snap.clients||[];appts=snap.appts||[];helperList=snap.helperList||[];helperPayments=snap.helperPayments||[];
@@ -1474,6 +1506,10 @@ async function csLoginBiometric(auto=false){
     if(!cred){loginMsg('Biometria cancelada. Você pode entrar com e-mail e senha.');return}
     const snap=JSON.parse(localStorage.getItem('csj_offline_snapshot_v3')||'null');
     if(!snap?.me?.id){loginMsg('Faça um login normal uma vez para preparar o acesso biométrico.');return}
+    if(navigator.onLine&&!await csRequireAuthenticatedUser(snap.me.id)){
+      loginMsg('Sua sessão não está autenticada neste aparelho. Entre com e-mail e senha para continuar.');
+      showLogin();return;
+    }
     me={id:snap.me.id,email:snap.me.email||localStorage.getItem('csj_bio_user')||''};
     profile=snap.profile||{id:me.id,nome:me.email,perfil:'usuario',ativo:true};
     clients=snap.clients||[];appts=snap.appts||[];helperList=snap.helperList||[];helperPayments=snap.helperPayments||[];annuals=snap.annuals||[];events=snap.events||[];needs=snap.needs||[];
